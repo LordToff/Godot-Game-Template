@@ -1,6 +1,14 @@
-# Ash & Oath v0.3 — playable prototype
+# Ash & Oath v0.4 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, dice animations, restrained graphic improvements, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
+
+## New in v0.4
+
+The tall **side chronicle** shows the entire event stream; the large colored banner and TURN arrow identify the active unit. Movement eases into position and effects fade smoothly. **What changed** in the top bar contains an in-game changelog with reasons.
+
+**Tutorial / Ability Lab** is available before drafting or from the top bar. It preserves normal builds and offers all 57 faces, prepared targets, per-face instructions, optional next Numeric 0/1, boss-hit triggers, next-round timing, reset and a copyable reproduction log. **Roll chosen face again** preserves statuses for multi-use tests (e.g. Gambler's Coin and Blessing); it explicitly bypasses normal roll timing in this isolated lab. Mutated-away faces and Downed heroes require Reset. Held channels must be released before rerolling. Gold has no shop in this single encounter, Cleave has no secondary enemy, and Blank / Red Tile are intentionally inert.
+
+Bone and Recovery placement and Corruption Conversion have explicit choices. Passing Grace cannot erase itself against a full recipient. Sight uses straight supercover rays and checks blocked diagonal corners. Tuned positive Numeric Attacks gain 1 damage to make them competitive with Basic Strike; Original mode preserves original values.
 
 ## Play
 
@@ -22,12 +30,13 @@ You control all three heroes locally. Escape cancels ordinary selection and clos
 | --- | --- | --- |
 | Boss HP | 12 | 18 |
 | Basic Strike | 2 | 1 |
+| Positive Numeric Attack result | +1 damage (Short Shot capped at 1) | Unmodified |
 | Boss Brace | 1 Block | 2 Block |
 | Failed close-range advance | Holds position, no free Block | Printed fallback can grant Block |
 
 The two-face extended selection and one starting reroll apply in either mode. Hero HP remains 6, the arena is 9×9, boss footprint is 2×2, the three boss dice distributions remain unchanged, and ordinary initiative/turn/reaction/downed/recovery timing is retained.
 
-A deterministic 100-seed greedy-bot test using default dice and the starting reroll (without bonus gifts) completed with **47 wins / 53 losses / 0 stalls**. Another 100-seed test covering representative attack/healing/defense/movement bonus pairs completed with **52 wins / 48 losses / 0 stalls**, compared with 0 wins in the initial prototype. This is a useful tuning signal, not a prediction of human win rates or certification that all bonus combinations are balanced.
+A deterministic 100-seed greedy-bot test using default dice and the starting reroll (without bonus gifts) completed with **47 wins / 53 losses / 0 stalls**. Another 100-seed test covering representative attack/healing/defense/movement bonus pairs completed with **63 wins / 37 losses / 0 stalls**, compared with 0 wins in the initial prototype. This is a useful tuning signal, not a prediction of human win rates or certification that all bonus combinations are balanced.
 
 ## Full catalog and prototype variants
 
@@ -38,7 +47,7 @@ The source documents contain contradictory and unfinished versions. Selection de
 Notable explicit interpretations:
 
 - The boss faces north for Weak Point/Flanking Blow; its southern edge is the rear.
-- Recovery heals self/an adjacent hero; catalog range was unspecified. Blessing places it on the first available Blank. Bone Mutation similarly fills the first available Blank.
+- Recovery heals self/an adjacent hero; catalog range was unspecified. Blessing and Bone Mutation both let you choose a specific Blank slot.
 - Conjure copies eligible visible immediate results; unavailable targets can be declined. Copy/setup loops are excluded. Borrow Shape uses the Tabletop rotate-a-die version. Second Chance cannot repeat the die it just skipped.
 - Clairvoyance grants a stored Action Reroll when rolled, capped at one. Forgotten Strength uses the caster's next Numeric damage variant. Numeric Echo stores one ordinary result.
 - Lethargic Bind suppresses one printed boss face on one die until the binder's next turn, with normal-damage backlash when triggered.
@@ -47,7 +56,7 @@ Notable explicit interpretations:
 - Oath of Smoke stores a just-resolved Step/Stride/Guard until the next shared roll; its movement reaction steps one. The temporary stored effect is distinct from the installed face.
 - Black Oath's ambiguous “battle turn” means the owner's turn. Wither Ward gives the attacker Weakness after HP damage. Ember Burst uses ordinary damage and includes adjacent allies.
 - Defy Death automatically sets aside the first available result when applying Stunned. Drive Back's ordinary Stunned choice remains player-selected.
-- Corruption Conversion selects the first eligible ability already installed on the target die. Engrave copies into the first available Blank or unlocked non-Engrave. Locked Red Tiles cannot be overwritten.
+- Corruption Conversion lets you choose the Blank die and the installed ability it becomes; reactions store correctly. Engrave copies into the first available Blank or unlocked non-Engrave. Locked Red Tiles cannot be overwritten.
 - The boss chooses equal shortest paths deterministically; legal equal target ties are random. Deployment remains a test layout, boss D4 and heroes H3/H5/H7.
 
 ## Existing plugins used
@@ -64,13 +73,17 @@ godot --headless --path . --script res://prototype/tests/catalog_test.gd
 godot --headless --path . --script res://prototype/tests/presentation_test.gd
 godot --headless --path . --script res://prototype/tests/simulation.gd
 godot --headless --path . --script res://prototype/tests/bonus_simulation.gd
+godot --headless --path . --script res://prototype/tests/lab_test.gd
 godot --path . --script res://prototype/tests/ui_test.gd
+godot --path . --script res://prototype/tests/lab_ui_test.gd
 ```
 
 - 41 original-rule timing/construction assertions (explicitly tested in Original mode).
-- 171 catalog/construction/reroll/tuned-balance checks, including resolution of every draft and generated face, all reaction families and channels.
+- 174 catalog/construction/reroll/tuned-balance checks, including resolution of every draft and generated face, all reaction families and channels.
 - 1,993 presentation/pair checks: all 990 distinct bonus combinations are legal and retain healing, causal event/animation metadata, Short Shot final-damage cap, negative-damage clamping and Debt timing.
 - 24 graphical UI checks including full-pool two-face selection, builder input, roll state, combat/status animation events, mouse input, reroll, settings, reward and restart preservation.
+- 314 Ability Lab assertions exercising every face fixture, completing choices, reaction triggers, channels, balance, recipient capacity and sight.
+- 19 graphical Lab checks covering launcher, ability selector, log, turn banner, mutation/conversion input, reaction controls, changelog, interpolation and preserved builds.
 - 200 seeded complete encounters with no stalls across baseline and representative two-bonus builds.
 
 Run UI tests with a display; the template keyboard settings need a graphical display server. Linux and browser exports are run here. Windows is cross-exported and cannot be tested on Windows in this environment. The inherited template can report an ObjectDB shutdown leak warning; final test runs contain no script errors.
@@ -82,6 +95,8 @@ Campaign Events, online multiplayer, persistent saves and resurrection remain ou
 - `battle.gd`: state/rules, boss AI, status/reaction/channel handling and catalog dispatch.
 - `catalog.gd`: complete draft pool, category metadata and printed prototype effects.
 - `prototype.gd`: forge/draft UI, board, animations, input, effects and plugin integration.
+- `lab.gd`: isolated per-face tutorial fixtures and manual testing controls.
+- `changes.gd`: in-game versioned changelog with reasons.
 - `prototype.tscn`: entry scene.
 - `tests/`: rule, catalog, simulation and graphical UI suites.
 

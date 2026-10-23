@@ -1,8 +1,8 @@
-# Ash & Oath v0.3 — playable prototype
+# Ash & Oath v0.4 — playable prototype
 
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
 
-v0.3 adds direct selection of two non-starter bonus faces per hero, attack/block/buff/debuff animations, a ruined-courtyard battlefield, a readable causal combat chronicle and balance/reliability fixes. One starting reroll per hero and the original/tuned encounter options remain.
+v0.4 adds a large side chronicle, clear turn banner and board arrow, smoother animations, a tutorial / Ability Lab covering every face, completed face choices, Numeric attack tuning and an in-game changelog explaining each change.
 
 This checkout now starts **Ash & Oath**, a tactical dice-building boss battler based on the supplied Master Rules v10 and Action Faces. Open `project.godot` in Godot 4.6.3 and press **F5**, or run `godot --path .`.
 

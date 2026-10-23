@@ -751,19 +751,27 @@ func sight(a: int, b: int, limit: int) -> bool:
  for start_cell in cells(a):
   for end_cell in cells(b):
    if absi(start_cell.x-end_cell.x)+absi(start_cell.y-end_cell.y) > limit: continue
-   # A strict orthogonal ray or clear horizontal-then-vertical route; units block sight.
-   for first_x in [true,false]:
-    var p: Vector2i = start_cell
-    var clear := true
-    while p != end_cell:
-     var dir := Vector2i.ZERO
-     if (first_x and p.x != end_cell.x) or p.y == end_cell.y: dir.x = signi(end_cell.x-p.x)
-     else: dir.y = signi(end_cell.y-p.y)
-     p += dir
-     for u in range(4):
-      if u in [a,b] or (u < 3 and heroes[u].dead): continue
-      if p in cells(u): clear = false
-    if clear: return true
+   var clear := true
+   # Supercover segment: include both cells touched at a diagonal corner.
+   var dx: int = end_cell.x-start_cell.x
+   var dy: int = end_cell.y-start_cell.y
+   var nx := absi(dx); var ny := absi(dy)
+   var ix := 0; var iy := 0
+   var p: Vector2i = start_cell
+   var touched: Array = []
+   while ix < nx or iy < ny:
+    var decision := (1+2*ix)*ny-(1+2*iy)*nx
+    if decision == 0:
+     touched.append(p+Vector2i(signi(dx),0)); touched.append(p+Vector2i(0,signi(dy)))
+     p += Vector2i(signi(dx),signi(dy)); ix += 1; iy += 1
+    elif decision < 0: p.x += signi(dx); ix += 1
+    else: p.y += signi(dy); iy += 1
+    touched.append(p)
+   for cell in touched:
+    for u in range(4):
+     if u in [a,b] or (u < 3 and heroes[u].dead): continue
+     if cell in cells(u): clear = false
+   if clear: return true
  return false
 
 func mutate(hero: int, d: int, side: int, id: int) -> void:
@@ -795,13 +803,14 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
    return true
   12:
    if target < 0 or target == 3 or heroes[target].dead: return false
-   if add_to_blank(target,55):
-    h.blessings += 1
-    if h.blessings >= 2: mutate(active,d,side,0)
+   if not heroes[target].build.any(func(die):return 0 in die): return false
+   pending = {"kind":"slot","hero":active,"die":d,"face":f,"target":target,"install":55}
+   return true
   13: pass # The when-rolled charge was already granted.
   14: h.num_boost += 1
   15,19:
    if target < 0 or target >= 3 or target == active or heroes[target].dead or distance(active,target) > 3 or not sight(active,target,3): return false
+   if f == 15 and not heroes[target].build.any(func(die):return 0 in die): return false
    var value := numeric(h)
    if f == 19 and not h.numeric_zero: value = maxi(1,value)
    heal(target,value)
@@ -838,12 +847,15 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
   28,44,45,46,48: return false # Stored automatically by the roll.
   29: h.debt_buff = 2; h.debt_next = 2
   33:
-   if not add_to_blank(active,54): note("No Blank available for Bone Mutation.")
+   if not h.build.any(func(die):return 0 in die): return false
+   pending = {"kind":"slot","hero":active,"die":d,"face":f,"target":active,"install":54}
+   return true
   34,35,36,37,38,39,40,41:
    var range_value := 2 if f == 35 else 1
    if target < 0 or target == active or (target < 3 and heroes[target].dead) or distance(active,target) > range_value: return false
    if f == 35 and not sight(active,target,range_value): return false
    var value := numeric(h,true)
+   if tuned and value > 0: value += 1
    if f == 35: value = mini(1,value)
    if f == 39 and target == 3 and rear(active): value += 1
    if f == 41:
@@ -958,11 +970,19 @@ func catalog_pick(hero: int, d: int, side: int = -1) -> bool:
   if not h.used[d] or d in [source,p.get("skipped",-1)] or not Catalog.can_copy(face(active,d)): return false
   var copy: int = face(active,d); pending = {}; h.results[source] = copy; forced_die = source; return true
  if f == 26:
-  if d == source or h.used[d] or face(active,d) != 0: return false
-  var options: Array = h.build[d].filter(func(id):return id > 0 and id not in [11,16,23,24,26,56])
-  if options.is_empty(): return false
+  if p.stage == 0:
+   if d == source or h.used[d] or face(active,d) != 0: return false
+   if not h.build[d].any(func(id):return id > 0 and id not in [11,16,23,24,26,56]): return false
+   pending.stage = 1; pending.convert_die = d; return true
+  if d != p.convert_die or side < 0: return false
+  var chosen: int = h.build[d][side]
+  if chosen <= 0 or chosen in [11,16,23,24,26,56]: return false
   mutate(active,source,h.rolls[source],56); spend(source)
-  h.results[d] = options[0]; pending = {}; forced_die = d; return true
+  h.results[d] = chosen; pending = {}; forced_die = d
+  if Catalog.is_reaction(chosen): h.reaction.append(d); h.used[d] = true; forced_die = -1
+  on_roll(h,d)
+  note("Corruption Conversion selects " + FACES[chosen] + " on Die " + str(d+1) + ".")
+  return true
  if f == 30:
   if d == source or h.used[d] or (not Catalog.is_attack(face(active,d)) and face(active,d) not in [4,42,43,50,51,52]): return false
   var n := rng.randi_range(1,6)
@@ -1007,3 +1027,15 @@ func decline(d: int) -> void:
  action_before = {}; action_owner = active; action_label = FACES[face(active,d)]
  record_event("decline","%s declines %s (Die %s); no effect, result spent." % [unit_name(active),action_label,["I","II","III"][d]],active)
  spend(d)
+
+
+func choose_slot(d: int, side: int) -> bool:
+ if pending.get("kind","") != "slot" or d not in range(3) or side not in range(6): return false
+ var p: Dictionary = pending.duplicate()
+ if heroes[p.target].build[d][side] != 0: return false
+ mutate(p.target,d,side,p.install)
+ if p.face == 12:
+  heroes[p.hero].blessings += 1
+  if heroes[p.hero].blessings >= 2: mutate(p.hero,p.die,heroes[p.hero].rolls[p.die],0)
+ pending = {}; spend(p.die,true)
+ return true

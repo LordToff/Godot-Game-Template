@@ -57,6 +57,7 @@ func run():
     match g.pending.kind:
      "bind":g.choose_bind(0,"Strike")
      "ember":g.ember(1)
+     "slot":check(g.choose_slot(0,3),"choose exact generated face slot")
      "catalog_choice":
       match id:
        11:check(g.catalog_pick(1,0),"Conjure picks an immediate face")
@@ -65,7 +66,9 @@ func run():
         check(g.catalog_pick(0,1),"Second Chance skips a die")
         check(not g.catalog_pick(0,1),"skipped die cannot count as already resolved")
         check(g.catalog_pick(0,2),"Second Chance repeats another spent face")
-       26:check(g.catalog_pick(0,1),"conversion transforms a Blank")
+       26:
+        check(g.catalog_pick(0,1),"conversion chooses a Blank die")
+        check(g.catalog_pick(0,1,0),"conversion chooses an installed face")
        30:check(g.catalog_pick(0,1),"Ill Omen modifies Defense")
        32:check(g.catalog_pick(0,1),"Oath of Smoke selects Guard")
    if id in [25,31,49]:
