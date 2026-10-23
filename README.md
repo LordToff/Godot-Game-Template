@@ -1,6 +1,8 @@
-# Ash & Oath — playable prototype
+# Ash & Oath v0.2 — playable prototype
 
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
+
+v0.2 adds a three-offer starter-face draft, one reroll per hero, clearer boss effects, animated dice, improved board art and a tuned tutorial (original balance remains selectable).
 
 This checkout now starts **Ash & Oath**, a tactical dice-building boss battler based on the supplied Master Rules v10 and Action Faces. Open `project.godot` in Godot 4.6.3 and press **F5**, or run `godot --path .`.
 

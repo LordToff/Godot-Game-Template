@@ -8,7 +8,7 @@ func expect(ok: bool, message: String) -> void:
   failures += 1; printerr("FAIL: ",message)
 func fresh():
  var g = Battle.new()
- g.start([Battle.default_build(),Battle.default_build(),Battle.default_build()],71)
+ g.start([Battle.default_build(),Battle.default_build(),Battle.default_build()],71,false,false)
  g.pending = {}; g.active = 0
  return g
 func set_faces(g, id: int, faces: Array) -> void:
@@ -65,7 +65,7 @@ func run() -> void:
  expect(g.heroes[0].build[0][0] == 0,"Fracture blanks selected installed face")
  expect(g.face(0,0) == 1,"Fracture preserves already recorded unused result")
  g = fresh(); g.active = 3; g.heroes[0].pos = Vector2i(2,3); g.heroes[1].pos = Vector2i(7,7); g.heroes[2].pos = Vector2i(0,8)
- g.heroes[0].reaction = [1]; g.pending = {"kind":"attack","action":"Strike","victims":[0],"reacted":[],"amount":2}
+ g.heroes[0].results[1] = 5; g.heroes[0].reaction = [1]; g.pending = {"kind":"attack","action":"Strike","victims":[0],"reacted":[],"amount":2}
  g.continue_attack()
  expect(g.pending.kind == "reaction","attack opens stored Reaction window")
  g.react(true,Vector2i.LEFT)

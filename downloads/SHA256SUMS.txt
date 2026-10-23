@@ -1,1 +1,2 @@
-d868ddba276949060e794917de6c22cb56e536417958c5359098644695f8afba  AshAndOath-Windows.zip
+77fd18c04eb7b6cd5a82f24ff770e399c34450ea9e676923f269d2e8eeed7fb8  AshAndOath-Windows.zip
+77fd18c04eb7b6cd5a82f24ff770e399c34450ea9e676923f269d2e8eeed7fb8  AshAndOath-Windows-v0.2.zip

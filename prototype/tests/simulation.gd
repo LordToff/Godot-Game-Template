@@ -34,6 +34,12 @@ func run():
     continue
    if g.active == 3: g.boss_step(); continue
    var id: int = g.active; var h: Dictionary = g.heroes[id]
+   var rerolled := false
+   if h.opening and h.rerolls > 0:
+    for d in range(3):
+     if not h.used[d] and g.face(id,d) == 0:
+      rerolled = g.action_reroll(d); break
+   if rerolled: continue
    var did := false
    for d in range(3):
     if did or h.used[d] or (g.forced_die >= 0 and g.forced_die != d): continue

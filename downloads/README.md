@@ -1,10 +1,12 @@
-# Download Ash & Oath for Windows
+# Download Ash & Oath v0.2 for Windows
 
-[**Download the Windows game (ZIP)**](https://github.com/LordToff/Godot-Game-Template/raw/refs/heads/ash-and-oath-prototype/downloads/AshAndOath-Windows.zip)
+[**Download Windows v0.2 (ZIP)**](https://github.com/LordToff/Godot-Game-Template/raw/refs/heads/ash-and-oath-prototype/downloads/AshAndOath-Windows-v0.2.zip)
 
-1. Click the download link above. Sign in to GitHub if asked.
-2. In your Downloads folder, right-click `AshAndOath-Windows.zip` and choose **Extract All**.
-3. Open the extracted folder and double-click **AshAndOath.exe**.
-4. Click **Enter the hollow** to play. Click **Rules** inside the game for controls.
+1. Download the ZIP above (sign in to GitHub if asked).
+2. Right-click it in Downloads → **Extract All**. Use a new folder to avoid mixing versions.
+3. Open the extracted folder and double-click **AshAndOath.exe**. No Godot installation is needed.
+4. Each hero picks one starter face from three random offers, then enters the forge.
 
-This build is unsigned. It was exported with Godot 4.6.3; browser and Linux versions were tested in the development environment, and this Windows build was cross-exported. No Godot installation is needed to run it. `SHA256SUMS.txt` records its checksum.
+New in v0.2: a 53-face starter draft, one starting reroll per hero, boss action explanations, dice animations, clearer damage/Block feedback, improved modest graphics, and a tuned tutorial. The forge also offers the original encounter balance. Unfinished catalog designs use explicit prototype variants printed in the game.
+
+Windows was cross-exported with Godot 4.6.3. Browser and Linux builds were run in development. Checksums are in `SHA256SUMS.txt`; the extracted `VERSION.txt` should say **0.2.0**.

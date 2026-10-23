@@ -1,6 +1,8 @@
 extends SceneTree
 var errors := 0
+var checks := 0
 func check(ok: bool, what: String):
+ checks += 1
  if not ok: errors += 1; printerr("UI FAIL: ",what)
 func _initialize(): call_deferred("run")
 func run():
@@ -8,6 +10,11 @@ func run():
  for i in range(4): await process_frame
  var app = current_scene
  check(app.page == "forge","starts in forge")
+ check(app.draft_modal and app.offers.size() == 3,"starter draft opens for all heroes")
+ check(app.offers.all(func(offer):return offer.size() == 3 and offer[0] != offer[1] and offer[1] != offer[2] and offer[0] != offer[2]),"offers contain three distinct random faces")
+ for i in range(3):app.build_hero = i;app.choose_gift(app.offers[i][0])
+ check(not app.draft_modal and app.gifts.all(func(id):return id >= 1 and id <= 53),"each hero can finish its full-catalog gift choice")
+ app.build_hero = 0;app.rebuild()
  var options: Array = app.ui.get_children().filter(func(c):return c is OptionButton)
  check(options.size() == 18,"forge has all 18 editable sides")
  options[0].item_selected.emit(8)
@@ -15,16 +22,24 @@ func run():
  app.builds[0] = app.Model.default_build()
  app.begin()
  check(app.page == "battle" and app.game.round_no == 1,"begin rolls encounter")
+ check(app.rolling_time > 0,"shared roll starts animation")
  app.game.pending = {}; app.game.active = 0
  app.game.heroes[0].results = [2,4,1]; app.game.heroes[0].used = [false,false,false]
- app.selected = 0; app.rebuild()
+ app.rolling_time = 0; app.selected = 0; app.rebuild()
  var target: Vector2i = app.game.heroes[0].pos + Vector2i.UP
  var event := InputEventMouseButton.new(); event.button_index = MOUSE_BUTTON_LEFT; event.pressed = true
  event.position = app.ORIGIN+Vector2(target)*app.CELL+Vector2.ONE*app.CELL/2
  app._gui_input(event)
  check(app.game.heroes[0].pos == target and app.game.heroes[0].used[0],"board click resolves movement")
+ app.game.heroes[0].opening = true;app.game.heroes[0].rerolls = 1
+ app.game.heroes[0].used[0] = false;app.selected = 0;app.rebuild()
+ var reroll_buttons: Array = app.ui.get_children().filter(func(c):return c is Button and c.text.begins_with("Reroll selected"))
+ check(reroll_buttons.size() == 1 and not reroll_buttons[0].disabled,"starting reroll control available in opening")
+ reroll_buttons[0].pressed.emit()
+ check(app.game.heroes[0].rerolls == 0 and app.rolling_time > 0,"reroll spends charge and animates")
+ app.rolling_time = 0;app.rebuild()
  app.game.pending = {"kind":"reaction","hero":0,"action":"Strike","victims":[0],"reacted":[],"amount":2}
- app.game.heroes[0].reaction = [1]; app.rebuild()
+ app.game.heroes[0].results[1] = 5;app.game.heroes[0].reaction = [1]; app.rebuild()
  check(app.ui.get_children().any(func(c):return c is Button and c.text == "Block + stay"),"Reaction choices displayed")
  app.game.pending = {"kind":"fracture","hero":1}; app.rebuild()
  check(app.ui.get_children().filter(func(c):return c is Button).size() >= 18,"Fracture face picker displayed")
@@ -43,7 +58,8 @@ func run():
  for i in range(90): await process_frame
  check(current_scene != app and current_scene.page == "battle","Scene Loader restarts playable encounter")
  check(current_scene.reward_soul and current_scene.game.reward,"reward Soul survives Scene Loader restart")
+ check(current_scene.gifts == app.gifts if is_instance_valid(app) else current_scene.gifts.all(func(id):return id > 0),"starter gifts survive Scene Loader restart")
  current_scene.queue_free()
  for i in range(3): await process_frame
- print("UI INTEGRATION: 12 checks, %d failures" % errors)
+ print("UI INTEGRATION: %d checks, %d failures" % [checks,errors])
  quit(1 if errors else 0)
