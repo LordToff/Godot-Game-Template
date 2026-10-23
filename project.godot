@@ -10,8 +10,8 @@ config_version=5
 
 [application]
 
-config/name="Game Template"
-run/main_scene="res://scenes/opening/opening.tscn"
+config/name="Ash & Oath"
+run/main_scene="res://prototype/prototype.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.png"
 
@@ -31,12 +31,14 @@ copy_path="res://"
 
 [display]
 
-window/size/viewport_width=1280
-window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+
+window/size/viewport_width=1440
+window/size/viewport_height=900
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/maaacks_game_template/plugin.cfg", "res://addons/maaacks_music_controller/plugin.cfg", "res://addons/maaacks_scene_loader/plugin.cfg", "res://addons/maaacks_ui_sound_controller/plugin.cfg", "res://addons/plugin_updater/plugin.cfg")
+enabled=PackedStringArray("res://addons/maaacks_game_template/plugin.cfg", "res://addons/maaacks_music_controller/plugin.cfg", "res://addons/maaacks_scene_loader/plugin.cfg", "res://addons/maaacks_ui_sound_controller/plugin.cfg")
 
 [gui]
 

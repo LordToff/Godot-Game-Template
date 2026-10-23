@@ -1,3 +1,13 @@
+# Ash & Oath — playable prototype
+
+[**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
+
+This checkout now starts **Ash & Oath**, a tactical dice-building boss battler based on the supplied Master Rules v10 and Action Faces. Open `project.godot` in Godot 4.6.3 and press **F5**, or run `godot --path .`.
+
+See [prototype/README.md](prototype/README.md) for controls, implemented rules, test commands, plugin integrations, and explicit prototype choices. The original template documentation is preserved below.
+
+---
+
 ![Package Icon](/addons/maaacks_game_template/media/game-icon-black-transparent-256x256.png)  
 
 # Godot Game Template
