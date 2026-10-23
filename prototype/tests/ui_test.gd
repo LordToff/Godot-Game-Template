@@ -10,10 +10,14 @@ func run():
  for i in range(4): await process_frame
  var app = current_scene
  check(app.page == "forge","starts in forge")
- check(app.draft_modal and app.offers.size() == 3,"starter draft opens for all heroes")
- check(app.offers.all(func(offer):return offer.size() == 3 and offer[0] != offer[1] and offer[1] != offer[2] and offer[0] != offer[2]),"offers contain three distinct random faces")
- for i in range(3):app.build_hero = i;app.choose_gift(app.offers[i][0])
- check(not app.draft_modal and app.gifts.all(func(id):return id >= 1 and id <= 53),"each hero can finish its full-catalog gift choice")
+ check(app.draft_modal and app.offers.size() == 3,"bonus picker opens for all heroes")
+ check(app.offers.all(func(pool):return pool.size() == 45 and pool.all(func(id):return id >= 9 and id < 54)),"full extended pool excludes starter and generated faces")
+ app.choose_gift(1)
+ check(app.gifts[0].is_empty(),"starter faces cannot be selected")
+ for i in range(3):
+  app.build_hero = i;app.choose_gift(19);app.choose_gift(37);app.confirm_gifts()
+ check(not app.draft_modal and app.gifts.all(func(ids):return ids.size() == 2),"each hero confirms two distinct extended faces")
+ check(app.builds.all(func(build):return app.Model.validate(build,[19,37]) == ""),"two-face bonuses automatically produce legal loadouts")
  app.build_hero = 0;app.rebuild()
  var options: Array = app.ui.get_children().filter(func(c):return c is OptionButton)
  check(options.size() == 18,"forge has all 18 editable sides")
@@ -38,6 +42,13 @@ func run():
  reroll_buttons[0].pressed.emit()
  check(app.game.heroes[0].rerolls == 0 and app.rolling_time > 0,"reroll spends charge and animates")
  app.rolling_time = 0;app.rebuild()
+ app.game.heroes[0].used[1] = false;app.game.heroes[0].results[1] = 4
+ app.game.hero_action(1);app.rebuild()
+ check(app.effects.any(func(fx):return fx.kind == "block"),"Block action creates shield animation")
+ app.game.heroes[0].used[2] = false;app.game.heroes[0].results[2] = 47
+ app.game.hero_action(2);app.rebuild()
+ check(app.effects.any(func(fx):return fx.kind == "buff"),"buff action creates green animation")
+ check(app.effects.any(func(fx):return fx.kind == "debuff"),"debuff creates purple animation")
  app.game.pending = {"kind":"reaction","hero":0,"action":"Strike","victims":[0],"reacted":[],"amount":2}
  app.game.heroes[0].results[1] = 5;app.game.heroes[0].reaction = [1]; app.rebuild()
  check(app.ui.get_children().any(func(c):return c is Button and c.text == "Block + stay"),"Reaction choices displayed")
@@ -58,7 +69,7 @@ func run():
  for i in range(90): await process_frame
  check(current_scene != app and current_scene.page == "battle","Scene Loader restarts playable encounter")
  check(current_scene.reward_soul and current_scene.game.reward,"reward Soul survives Scene Loader restart")
- check(current_scene.gifts == app.gifts if is_instance_valid(app) else current_scene.gifts.all(func(id):return id > 0),"starter gifts survive Scene Loader restart")
+ check(current_scene.gifts == app.gifts if is_instance_valid(app) else current_scene.gifts.all(func(ids):return ids.size() == 2),"starter gifts survive Scene Loader restart")
  current_scene.queue_free()
  for i in range(3): await process_frame
  print("UI INTEGRATION: %d checks, %d failures" % [checks,errors])
