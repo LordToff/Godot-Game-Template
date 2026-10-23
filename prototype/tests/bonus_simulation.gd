@@ -5,7 +5,7 @@ func run():
  var wins := 0; var losses := 0; var stalled := 0; var max_round := 0
  for seed_value in range(1,101):
   var g = Battle.new()
-  var pairs: Array = [[19,37],[43,53],[42,34],[19,43],[36,37]]
+  var pairs: Array = [[19,37],[43,53],[42,34],[19,43],[36,37],[57,58],[19,57],[58,37]]
   var loadouts: Array = []
   for hero in range(3):loadouts.append(Battle.bonus_build(pairs[(seed_value+hero)%pairs.size()]))
   g.start(loadouts,seed_value)
@@ -58,7 +58,7 @@ func run():
        if not g.heroes[i].dead and g.heroes[i].hp < 6 and (i != id if f == 19 else true) and (g.distance(id,i) <= 3 if f == 19 else (i == id or g.distance(id,i) == 1)):ts.append(i)
       ts.sort_custom(func(a,b):return g.heroes[a].hp < g.heroes[b].hp)
       if not ts.is_empty():did = g.hero_action(d,ts[0])
-     2,3,0,53:
+     2,3,0,53,57:
       if f == 0 and not g.reward: continue
       var options: Array = g.leap_cells(id) if f == 53 else g.reachable(id,1 if f == 2 else (3 if f == 3 else 2),f == 3)
       var best: Vector2i = h.pos; var dist: int = g.distance(id,3)
@@ -66,6 +66,9 @@ func run():
        var dd: int = g.distance(id,3,p)
        if dd < dist: dist = dd; best = p
       if best != h.pos: did = g.hero_action(d,-1,best)
+     58:
+      for ally in range(3):
+       if not did and ally != id and h.hp > 0 and g.heroes[ally].hp > 0 and not g.heroes[ally].dead and g.distance(ally,3) < g.distance(id,3): did = g.hero_action(d,ally)
      6:
       for other in range(3):
        if other != d and not h.used[other] and g.face(id,other) == 0:

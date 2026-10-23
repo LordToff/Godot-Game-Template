@@ -19,7 +19,7 @@ func run():
  check(chronicle.text.contains("ABILITY LAB") and chronicle.text.contains("isolated test"),"full log includes instructions and context")
  check(app.ui.get_children().any(func(c):return c is Label and "VESPER’S TURN" in c.text and c.get_theme_font_size("font_size") >= 20),"large active turn label")
  var picker = app.ui.get_node("LabAbilities")
- check(picker.item_count == 57,"all hero, generated and penalty faces selectable")
+ check(picker.item_count == 59,"all hero, generated and penalty faces selectable")
  picker.item_selected.emit(33)
  check(app.lab_face == 33 and app.game.face(0,0) == 33,"ability selector resets fixture")
  app.game.hero_action(0);app.rebuild()
@@ -39,7 +39,7 @@ func run():
  check(app.ui.get_children().any(func(c):return c is Button and c.text == "Block + stay"),"lab boss hit opens real reaction controls")
  app.game.react(true);app.rebuild()
  app.show_changes = true;app.rebuild()
- check(app.ui.get_node("ChangeLog").text.contains("why") or app.ui.get_node("ChangeLog").text.contains("Previously"),"in-game changelog explains reasons")
+ check(app.ui.get_node("ChangeLog").text.contains("Why") or app.ui.get_node("ChangeLog").text.contains("Previously"),"in-game changelog explains reasons")
  app.show_changes = false;app.lab_face = 2;app.reset_lab()
  app.game.heroes[0].pos += Vector2i.DOWN;app._process(0.1)
  var pos: Vector2 = app.visual_positions[0]

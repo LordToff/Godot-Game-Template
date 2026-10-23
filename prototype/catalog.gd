@@ -50,19 +50,25 @@ const EXTRA = [
  ["Leap of Echoes","Movement","Tabletop variant: leap up to 2 orthogonally over units, never land occupied. If ending adjacent to the boss, your next Numeric damage this turn gets +1."]
 ]
 const GENERATED = [["Bone","Skill","Gain 1 Block and optionally step 1."],["Recovery","Skill","Heal yourself or an adjacent hero for Numeric."],["Red Tile","Penalty","Inert, non-rerollable, not a Blank, locked for this encounter."]]
+const MOVEMENT = [["Ashstep","Movement","Slip through ash: move up to 2 orthogonal spaces, turning allowed, then gain 1 Block. Cannot pass through units."],["Oathbound Exchange","Movement","Swap positions with a living standing ally within 3 and clear sight. Both heroes gain 1 Block. Cannot swap with the boss or a Downed hero."]]
+static func extended_ids() -> Array:
+ return range(9,54) + [57,58]
 static func name_for(id: int) -> String:
  if id < 9: return ["Blank","Strike","Step","Stride","Guard","Reaction","Focus","First Aid","Shove"][id]
+ if id >= 57: return MOVEMENT[id-57][0]
  return EXTRA[id-9][0] if id < 54 else GENERATED[id-54][0]
 static func category(id: int) -> String:
  if id < 9: return ["Blank","Attack","Movement","Movement","Defense","Defense","Skill","Skill","Skill"][id]
+ if id >= 57: return "Movement"
  return EXTRA[id-9][1] if id < 54 else GENERATED[id-54][1]
 static func text(id: int) -> String:
+ if id >= 57: return MOVEMENT[id-57][2]
  return EXTRA[id-9][2] if id < 54 else GENERATED[id-54][2]
 static func draft_ids() -> Array:
- return range(1,54)
+ return range(1,54) + [57,58]
 static func is_reaction(id: int) -> bool:
  return id in [5,28,44,45,46,48]
 static func is_attack(id: int) -> bool:
  return category(id) == "Attack"
 static func can_copy(id: int) -> bool:
- return id in [1,2,3,4,7,8,19,20,21,22,34,35,36,37,38,39,40,42,43,47,50,51,52,53,54,55]
+ return id in [1,2,3,4,7,8,19,20,21,22,34,35,36,37,38,39,40,42,43,47,50,51,52,53,54,55,57,58]

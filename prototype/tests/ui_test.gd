@@ -11,7 +11,7 @@ func run():
  var app = current_scene
  check(app.page == "forge","starts in forge")
  check(app.draft_modal and app.offers.size() == 3,"bonus picker opens for all heroes")
- check(app.offers.all(func(pool):return pool.size() == 45 and pool.all(func(id):return id >= 9 and id < 54)),"full extended pool excludes starter and generated faces")
+ check(app.offers.all(func(pool):return pool.size() == 47 and pool.all(func(id):return id in app.Catalog.extended_ids())),"full extended pool excludes starter and generated faces")
  app.choose_gift(1)
  check(app.gifts[0].is_empty(),"starter faces cannot be selected")
  for i in range(3):

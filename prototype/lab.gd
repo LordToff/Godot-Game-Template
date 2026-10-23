@@ -6,7 +6,8 @@ static func create(id: int, forced_numeric: int = -1):
  var g = Battle.new()
  g.start([Battle.default_build(),Battle.default_build(),Battle.default_build()],417)
  g.pending = {}; g.outcome = ""; g.order = [0,1,2,3]; g.cursor = 0; g.active = 0; g.forced_die = -1
- g.boss.pos = Vector2i(4,2); g.boss.hp = 30; g.boss.max_hp = 30; g.boss.block = 0; g.boss_rolls = ["Strike","Brace","Sweep"]
+ g.boss.pos = Vector2i(4,2); g.boss.hp = 30; g.boss.max_hp = 30; g.boss.block = 0; g.boss_rolls = ["Strike","Grave Tithe","Sweep"]
+ g.boss_sides = [2,4,3]
  for i in range(3):
   var h: Dictionary = g.heroes[i]
   h.pos = [Vector2i(4,4),Vector2i(3,4),Vector2i(5,4)][i]
@@ -14,6 +15,7 @@ static func create(id: int, forced_numeric: int = -1):
   h.build = [[1,34,4,0,0,0],[34,4,5,0,0,0],[4,7,2,0,0,0]]
   h.stored_num = forced_numeric
  g.heroes[0].build[0][0] = id; g.heroes[0].results[0] = id
+ g.initial_builds = g.heroes.map(func(h):return h.build.duplicate(true))
  if id == 22: g.heroes[0].used = [false,true,true]
  if id == 23: g.heroes[0].used[2] = true
  if id == 26: g.heroes[0].results[1] = 0; g.heroes[0].rolls[1] = 3
@@ -32,8 +34,9 @@ static func create(id: int, forced_numeric: int = -1):
 static func guide(id: int) -> String:
  if Catalog.is_reaction(id): return "Stored reaction: press Boss hits. Respond in the window; compare HP / Block and the log. Reset to repeat."
  if id in [0,56]: return "This face is intentionally inert. Blank is not a failure; Red Tile is also locked against rerolls."
- if id in [2,3,53,54]: return "Select Die I, then a highlighted empty cell." + (" Bone may also Resolve to stay and gain Block." if id == 54 else "")
+ if id in [2,3,53,54,57]: return "Select Die I, then a highlighted empty cell." + (" Bone may also Resolve to stay and gain Block." if id == 54 else "")
  if id in [1,34,35,36,37,38,39,40,41]: return "Select Die I, then click the boss. Try force 0 / 1 and reset. Cleave has no second enemy in this encounter."
+ if id == 58: return "Select Die I and click a standing ally within 3. Positions swap; both gain 1 Block. Dead / Downed allies are ineligible."
  if id in [7,12,15,19,55]: return "Select Die I, then an injured ally. First Aid / Recovery may target self. Blessing then asks for a Blank slot."
  if id == 8: return "Select Die I, click the adjacent ally, then pick a legal push direction beneath the action panel."
  if id == 6: return "Select Focus (Die I), then click Die II to reroll it. The new face must resolve next."

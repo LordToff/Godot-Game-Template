@@ -16,9 +16,9 @@ func fresh(id: int = 1):
  return g
 func _initialize():call_deferred("run")
 func run():
- check(Catalog.draft_ids().size() == 53,"entire playable hero-action catalog in draft")
- for id in range(1,54):
-  var build: Array = Battle.default_build();build[2][2] = id
+ check(Catalog.draft_ids().size() == 55,"entire playable hero-action catalog in draft")
+ for id in Catalog.draft_ids():
+  var build: Array = [[1,2,4,0,0,0],[1,3,5,0,0,0],[1,7,id,0,0,0]]
   check(Battle.validate(build,id) == "","gift can be legally installed: "+Catalog.name_for(id))
   if id >= 9:check(Battle.validate(build) != "","unowned extended face rejected")
  var g = fresh()
@@ -32,7 +32,7 @@ func run():
  g = fresh();g.active = 3;g.boss_rolls = ["Advance","Brace","Strike"];g.boss_index = 0
  g.boss_step();check(g.boss.block == 0,"adjacent Advance cannot farm Block in tuned mode")
  g.boss_step();check(g.boss.block == 1,"tuned Brace gives one Block")
- g = fresh(1);g.hero_action(0,3);check(g.boss.hp == 10,"tuned Strike deals two")
+ g = fresh(1);g.hero_action(0,3);check(g.boss.hp == 14,"tuned Strike deals two")
  for id in range(9,57):
   g = fresh(id)
   if Catalog.is_reaction(id):
@@ -57,7 +57,7 @@ func run():
     match g.pending.kind:
      "bind":g.choose_bind(0,"Strike")
      "ember":g.ember(1)
-     "slot":check(g.choose_slot(0,3),"choose exact generated face slot")
+     "slot":check(g.choose_slot(0,4),"choose exact generated face slot")
      "catalog_choice":
       match id:
        11:check(g.catalog_pick(1,0),"Conjure picks an immediate face")

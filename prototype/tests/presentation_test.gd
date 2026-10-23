@@ -13,8 +13,9 @@ func fresh():
 func _initialize():call_deferred("run")
 func run():
  var tested := 0
- for a in range(9,54):
-  for b in range(a+1,54):
+ for a in Battle.Catalog.extended_ids():
+  for b in Battle.Catalog.extended_ids():
+   if b <= a: continue
    var build: Array = Battle.bonus_build([a,b])
    check(not build.is_empty() and Battle.validate(build,[a,b]) == "","legal pair %d/%d" % [a,b])
    if not build.is_empty():
@@ -25,7 +26,7 @@ func run():
  var g = fresh();g.boss.block = 1;g.hero_action(0,3)
  var hits: Array = g.event_log.filter(func(e):return e.kind == "damage")
  check(hits.size() == 1 and hits[0].source == 0 and hits[0].target == 3 and hits[0].value == 1,"damage event attributes actor, target and actual HP loss")
- check(hits[0].text.contains("1 blocked") and hits[0].text.contains("HP 11/12"),"readable damage summary includes mitigation and remaining HP")
+ check(hits[0].text.contains("1 blocked") and hits[0].text.contains("HP 15/16"),"readable damage summary includes mitigation and remaining HP")
  check(g.event_log.any(func(e):return e.kind == "attack" and e.action == "Strike"),"Attack has a distinct animation event")
  g.hero_action(1)
  check(g.event_log.any(func(e):return e.kind == "block_gain" and e.value == 1),"Block gain has a distinct event")

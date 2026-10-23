@@ -17,7 +17,7 @@ func _initialize() -> void:
  call_deferred("run")
 func run() -> void:
  expect(Battle.validate(Battle.default_build()) == "","balanced build legal")
- var b = Battle.default_build(); b[0] = [1,1,1,1,0,0]
+ var b = Battle.default_build(); b[0] = [1,1,1,1,2,0]
  expect(Battle.validate(b) != "","Blank minimum enforced")
  b = Battle.default_build(); b[0] = [1,1,1,0,0,0]; b[1] = [1,1,1,0,0,0]
  expect(Battle.validate(b) != "","finite face ownership enforced")

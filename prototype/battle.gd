@@ -6,10 +6,11 @@ static var FACES: Array = make_face_names()
 
 static func make_face_names() -> Array:
  var names: Array = []
- for id in range(57): names.append(Catalog.name_for(id))
+ for id in range(59): names.append(Catalog.name_for(id))
  return names
 const CAPS = [18, 4, 2, 1, 2, 1, 1, 1, 1]
 const BOSS_DICE = [["Advance","Advance","Strike","Strike","Brace","Drive Back"], ["Advance","Skirmish","Strike","Sweep","Brace","Distort"], ["Advance","Skirmish","Strike","Sweep","Drive Back","Fracture"]]
+const TUNED_BOSS_DICE = [["Advance","Ashen Chain","Strike","Strike","Brace","Drive Back"], ["Skirmish","Cinder Brand","Strike","Sweep","Grave Tithe","Distort"], ["Advance","Skirmish","Cinder Brand","Sweep","Drive Back","Fracture"]]
 const DIRS = [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]
 var rng := RandomNumberGenerator.new()
 var heroes: Array = []
@@ -40,24 +41,27 @@ var action_owner := -1
 var action_label := ""
 var action_before: Dictionary = {}
 var atomic_damage := false
+var initial_builds: Array = []
+var brand_cells: Array = []
+var boss_sides: Array = []
 
 static func default_build() -> Array:
- return [[1,2,4,0,0,0], [1,3,5,0,0,0], [1,7,6,0,0,0]]
+ return [[1,2,4,1,0,0], [1,3,5,2,0,0], [1,7,6,4,0,0]]
 
 static func validate(build: Array, gift: Variant = -1) -> String:
  var owned: Array = gift if gift is Array else ([gift] if gift is int and gift >= 0 else [])
  var counts := []
- counts.resize(57)
+ counts.resize(59)
  counts.fill(0)
  for die in build:
-  if die.count(0) < 3: return "Every die needs at least 3 Blanks."
+  if die.size() != 6 or die.count(0) < 2: return "Every six-sided die needs at least 2 Blanks."
   for f in die: counts[f] += 1
  for i in range(1,9):
   if counts[i] > CAPS[i] + (1 if i in owned else 0): return "Not enough owned copies of " + FACES[i] + "."
- for i in range(9,57):
+ for i in range(9,59):
   if counts[i] > (1 if i in owned else 0): return "Only owned bonus faces may be equipped."
  var totals := {"Movement":0,"Defense":0,"Skill":0}
- for id in range(1,57):
+ for id in range(1,59):
   var cat: String = Catalog.category(id)
   if totals.has(cat): totals[cat] += counts[id]
  if totals.Movement > 3 or totals.Defense > 3 or totals.Skill > 3:
@@ -67,6 +71,7 @@ static func validate(build: Array, gift: Variant = -1) -> String:
 func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: bool = true) -> void:
  rng.randomize()
  if seed_value: rng.seed = seed_value
+ initial_builds = builds.duplicate(true); brand_cells.clear()
  reward = soul
  tuned = balanced
  roll_serial = 0
@@ -77,7 +82,7 @@ func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: boo
  for i in range(3):
   heroes.append({"name":["VESPER","ROOK","WREN"][i], "hp":6,"block":0,"pos":Vector2i(2+i*2,7),"dead":false,"broken":false,"protected":false,"weak":false,"stun":false,"setaside":-1,"build":builds[i].duplicate(true),"rolls":[],"results":[],"used":[],"reaction":[],"initiative":rng.randi_range(1,6),"rerolls":1,"opening":true,"channel":{},"taken":0,"dr":0,"ward":false,"num_boost":0,"numeric_focus":false,"numeric_zero":false,"bulwark_weak":false,"stored_num":-1,"gambler":false,"gold":0,"backstab":0,"debt_buff":0,"debt_next":0,"debt_penalty":0,"echo_due":false,"defy":false,"black_oath":false,"smoke":{},"mods":{},"blessings":0})
   order.append(i)
- boss = {"hp":12 if tuned else 18,"max_hp":12 if tuned else 18,"block":0,"mark":false,"bargain":{},"weak":false,"binds":[],"pos":Vector2i(3,3),"initiative":rng.randi_range(1,6)}
+ boss = {"hp":16 if tuned else 18,"max_hp":16 if tuned else 18,"block":0,"mark":false,"bargain":{},"weak":false,"binds":[],"pos":Vector2i(3,3),"initiative":rng.randi_range(1,6)}
  order.append(3)
  order.sort_custom(func(a,b):
   var av: int = boss.initiative if a == 3 else heroes[a].initiative
@@ -187,9 +192,11 @@ func shared_roll() -> void:
  for h in heroes:
   h.reaction.clear()
   if h.hp > 0 and not h.dead: roll_hero(h)
- boss_rolls.clear()
+ boss_rolls.clear(); boss_sides.clear()
  for index in range(3):
-  var action: String = BOSS_DICE[index][rng.randi_range(0,5)]
+  var side := rng.randi_range(0,5)
+  boss_sides.append(side)
+  var action: String = boss_dice()[index][side]
   for bind in boss.binds:
    if bind.die == index and bind.action == action:
     action = "Bound"; damage(bind.owner,1); break
@@ -224,7 +231,10 @@ func activate() -> void:
  active = order[cursor]; boss_index = 0; forced_die = -1
  action_owner = active; action_label = "Turn start"; action_before = {}
  record_event("turn",unit_name(active)+" begins its turn.",active)
+ record_event("guide",turn_explanation(),active)
  if active == 3:
+  detonate_brand()
+  if outcome != "": return
   if boss.block > 0: record_event("expire","The Hollow loses %d unspent Block at turn start." % boss.block,3,3)
   boss.block = 0
   for id in range(3):
@@ -507,6 +517,40 @@ func boss_step() -> void:
  last_action = action
  last_targets.clear()
  match action:
+  "Ashen Chain":
+   var target := nearest(targets(3))
+   if target < 0: fallback()
+   else:
+    last_targets = [target]
+    var h: Dictionary = heroes[target]
+    var origin: Vector2i = h.pos
+    var best: Vector2i = origin
+    var dist := distance(3,target)
+    for dir in DIRS:
+     if legal(target,origin+dir) and distance(target,3,origin+dir) < dist:
+      best = origin+dir; dist = distance(target,3,best)
+    h.pos = best
+    var lost: int = mini(1,h.block); h.block -= lost
+    record_event("debuff","Ashen Chain pulls %s %s → %s and removes %d Block. No HP damage; occupied cells stop the pull." % [unit_name(target),cell_name(origin),cell_name(best),lost],3,target)
+  "Cinder Brand":
+   var target := nearest(targets(3))
+   if target < 0: fallback()
+   elif not brand_cells.is_empty(): note("Cinder Brand is already armed; the marked cells remain unchanged.")
+   else:
+    var at: Vector2i = heroes[target].pos
+    for offset in [Vector2i.ZERO,Vector2i.UP,Vector2i.RIGHT,Vector2i.DOWN,Vector2i.LEFT]:
+     var cell: Vector2i = at+offset
+     if cell.x in range(9) and cell.y in range(9): brand_cells.append(cell)
+    var names: Array[String] = []
+    for cell in brand_cells: names.append(cell_name(cell))
+    record_event("hazard","Cinder Brand marks " + ", ".join(names) + ". At the START of the next boss turn, each hero still on a marked cell takes 1 normal damage. Move off the red cross to evade; this action deals no immediate damage.",3,target)
+  "Grave Tithe":
+   var stolen := 0
+   for target in targets(2):
+    var lost: int = mini(1,heroes[target].block); heroes[target].block -= lost; stolen += lost
+    if lost: record_event("debuff","Grave Tithe removes 1 Block from " + unit_name(target) + ".",3,target)
+   boss.block += mini(2,stolen)
+   note("Grave Tithe steals %d Block; The Hollow gains %d Block (maximum 2). No HP damage." % [stolen,mini(2,stolen)])
   "Bound": note("Lethargic Bind suppresses this action.")
   "Advance":
    if not boss_move(2): fallback()
@@ -664,6 +708,9 @@ func action_reroll(d: int) -> bool:
 
 func boss_help(action: String) -> String:
  match action:
+  "Ashen Chain": return "Pull the closest standing hero within 3 one legal cell closer; strip 1 Block. Units stop the pull. No HP damage."
+  "Cinder Brand": return "Mark a red cross beneath the closest hero within 3. At NEXT boss turn start, each hero on any marked cell takes 1 normal damage. Move away to evade. A second Brand cannot stack."
+  "Grave Tithe": return "Remove 1 Block from each standing hero within 2. Gain the stolen Block, capped at 2. No HP damage."
   "Advance": return "Move up to 2 toward the closest standing hero. Already adjacent? Hold position." if tuned else "Move up to 2 toward the closest standing hero; if impossible, use fallback."
   "Skirmish": return "Move 1 toward the closest hero, then attack an adjacent hero for 1. Reactions happen before damage."
   "Strike": return "Attack the closest adjacent standing hero for 2 damage. Ties: lowest Block, then random."
@@ -897,6 +944,14 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
   55:
    if target < 0 or target >= 3 or heroes[target].dead or (target != active and distance(active,target) != 1): return false
    heal(target,numeric(h))
+  57:
+   if destination not in reachable(active,2,false): return false
+   h.pos = destination; h.block += 1
+  58:
+   if target < 0 or target >= 3 or target == active or heroes[target].dead or heroes[target].hp <= 0 or distance(active,target) > 3 or not sight(active,target,3): return false
+   var old: Vector2i = h.pos
+   h.pos = heroes[target].pos; heroes[target].pos = old
+   h.block += 1; heroes[target].block += 1
   56: pass
   _: return false
  spend(d,true)
@@ -1003,7 +1058,7 @@ static func bonus_build(selected_faces: Array) -> Array:
  var base := default_build()
  if selected_faces.size() != 2 or selected_faces[0] == selected_faces[1]: return []
  for f in selected_faces:
-  if f < 9 or f >= 54: return []
+  if f not in Catalog.extended_ids(): return []
  var best: Array = []
  var best_score := -1
  for a in range(9):
@@ -1039,3 +1094,27 @@ func choose_slot(d: int, side: int) -> bool:
   if heroes[p.hero].blessings >= 2: mutate(p.hero,p.die,heroes[p.hero].rolls[p.die],0)
  pending = {}; spend(p.die,true)
  return true
+
+
+func boss_dice() -> Array:
+ return TUNED_BOSS_DICE if tuned else BOSS_DICE
+
+func detonate_brand() -> void:
+ if brand_cells.is_empty(): return
+ var marked: Array = brand_cells.duplicate(); brand_cells.clear()
+ action_owner = 3; action_label = "Cinder Brand detonation"
+ record_event("hazard","Cinder Brand detonates now, before boss dice resolve. Each hero on the red cross takes 1 normal damage; moving away avoids it.",3)
+ atomic_damage = true
+ for id in range(3):
+  if not heroes[id].dead and heroes[id].pos in marked: damage(id,1,false,"Cinder Brand")
+ atomic_damage = false; check_end()
+
+func turn_explanation() -> String:
+ if outcome != "": return "Encounter ended. Open the chronicle to review the result."
+ if active == 3:
+  return "BOSS TURN: marked Cinder cells detonate first; old boss Block expires. Click Resolve I, II, III in order. Reactions pause before damage; choose whether to spend them. After III, click Resolve end of turn."
+ var h: Dictionary = heroes[active]
+ var available := 0
+ for used in h.used:
+  if not used: available += 1
+ return "%s TURN: old Block expires (Stonewake can preserve it); temporary defenses end. Reroll first if you want to use your saved charge (%d left). Resolve up to %d available dice in any order, choosing board targets or Resolve. Stored reactions wait for attacks. End hero turn when finished; unused immediate results are lost at the next shared roll. Next round rolls all heroes together, not at each hero turn." % [unit_name(active),h.rerolls,available]
