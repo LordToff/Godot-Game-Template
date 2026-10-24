@@ -1,6 +1,12 @@
-# Ash & Oath v0.5 — playable prototype
+# Ash & Oath v0.6 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, dice animations, restrained graphic improvements, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
+
+## New in v0.6
+
+The first boss reward Soul converts **at most one rolled Action Die Blank per hero turn into Move 2**. The successful conversion spends the result; its installed side stays Blank. Other Blanks may be spent without effect. Normal own turns and full recovery turns refresh the per-hero allowance; invalid moves, rerolls and shared rolls do not refill or consume it. Starting Soul still grants no Blank movement. The turn guide shows remaining conversions.
+
+The complete [Word comparison](../docs/AshAndOath-Changes-From-Base-Rules-v0.6.docx) and [searchable Markdown](../docs/Changes-From-Base-Rules-v0.6.md) separate base-rule changes, draft ability interpretations, limitations, fixes and interface work. Both original supplied rule documents are the comparison baseline.
 
 ## New in v0.5
 
@@ -82,9 +88,11 @@ godot --headless --path . --script res://prototype/tests/simulation.gd
 godot --headless --path . --script res://prototype/tests/bonus_simulation.gd
 godot --headless --path . --script res://prototype/tests/lab_test.gd
 godot --headless --path . --script res://prototype/tests/update_test.gd
+godot --headless --path . --script res://prototype/tests/soul_test.gd
 godot --path . --script res://prototype/tests/ui_test.gd
 godot --path . --script res://prototype/tests/lab_ui_test.gd
 godot --path . --script res://prototype/tests/update_ui_test.gd
+godot --path . --script res://prototype/tests/soul_ui_test.gd
 ```
 
 - 41 original-rule timing/construction assertions (explicitly tested in Original mode).

@@ -286,7 +286,7 @@ func battle_ui() -> void:
     hint = face_help(game.face(game.active,d)); rebuild(),color_for_face(f),h.used[d] or not game.pending.is_empty() or game.outcome != "").tooltip_text = face_help(f)
   if selected >= 0 and not h.used[selected]:
    var f: int = game.face(game.active,selected)
-   if f in [4,9,10,11,13,14,16,17,18,20,21,22,23,24,25,26,27,29,30,31,32,33,42,43,47,49,50,51,52,54,56] or (f == 0 and not game.reward):
+   if f in [4,9,10,11,13,14,16,17,18,20,21,22,23,24,25,26,27,29,30,31,32,33,42,43,47,49,50,51,52,54,56] or (f == 0 and (not game.reward or h.soul_move_used)):
     button("Resolve selected face",Vector2(630,609),Vector2(225,41),func(): game.hero_action(selected); selected = -1; rebuild())
    button("Decline",Vector2(865,609),Vector2(145,41),func(): game.decline(selected); selected = -1; rebuild(),MUTED)
   button(("Reroll selected die" if selected >= 0 else "Select a die to reroll") + "   ·   " + str(h.rerolls) + " left",Vector2(630,737),Vector2(380,43),func():
@@ -332,7 +332,7 @@ func open_settings() -> void:
 
 func face_help(f: int) -> String:
  if f >= 9: return Catalog.text(f) + (" Tuned balance: positive Numeric Attack damage gains +1; Short Shot remains capped at 1." if balanced and f in range(34,42) else "")
- return ["Blank: no effect. The reward Soul unlocks Move 2.","Strike: %d damage to one adjacent unit. Weakness subtracts 1. Allies are legal targets." % (2 if balanced else 1),"Step: move up to 1 orthogonal space.","Stride: move up to 3 spaces in one straight orthogonal direction; no turning.","Guard: gain 1 Block. Block expires at your next turn start.","Tactical Defense: stored when rolled. On being targeted, gain 1 Block and optionally step 1 before the attack.","Focus: select another unresolved die to reroll it. Keep and resolve its new face.","First Aid: heal yourself or an adjacent hero for 1. Revives Downed heroes with Broken.","Shove: choose an adjacent unit, then a directly-away direction. Moves the full boss footprint. No collision penalty."][f]
+ return ["Blank: no starting effect. First reward Soul: spend at most ONE rolled Blank per hero turn as Move 2. This does not permanently change the installed face.","Strike: %d damage to one adjacent unit. Weakness subtracts 1. Allies are legal targets." % (2 if balanced else 1),"Step: move up to 1 orthogonal space.","Stride: move up to 3 spaces in one straight orthogonal direction; no turning.","Guard: gain 1 Block. Block expires at your next turn start.","Tactical Defense: stored when rolled. On being targeted, gain 1 Block and optionally step 1 before the attack.","Focus: select another unresolved die to reroll it. Keep and resolve its new face.","First Aid: heal yourself or an adjacent hero for 1. Revives Downed heroes with Broken.","Shove: choose an adjacent unit, then a directly-away direction. Moves the full boss footprint. No collision penalty."][f]
 
 func pending_ui() -> void:
  overlay()
@@ -387,7 +387,7 @@ func outcome_ui() -> void:
  var won: bool = game.outcome == "victory"
  label_at("ENCOUNTER COMPLETE",Vector2(399,264),12,GOLD)
  label_at("A soul, reclaimed." if won else "The oath is not over.",Vector2(399,309),32,Color("ece6d9"),700,true)
- label_at("The Hollow is defeated. Each hero unlocks the boss Soul.\n6 maximum HP · 2+ Blanks per die · resolve a Blank as Move 2.\nSurviving heroes recover between encounters." if won else "All three heroes are Downed or dead.\nA clean test restart restores HP, dice and conditions.\nRebuild your dice or try the encounter again.",Vector2(399,378),16,MUTED)
+ label_at("The Hollow is defeated. Each hero unlocks the boss Soul.\n6 maximum HP · 2+ Blanks per die.\nOnce per hero turn: spend ONE Blank as Move 2.\nSurviving heroes recover between encounters." if won else "All three heroes are Downed or dead.\nA clean test restart restores HP, dice and conditions.\nRebuild your dice or try the encounter again.",Vector2(399,378),16,MUTED)
  if won:
   button("Rematch with reward Soul",Vector2(399,493),Vector2(520,49),func(): retry(true))
  else:
@@ -465,7 +465,7 @@ func draw_board() -> void:
  var highlights: Array = []
  if selected >= 0 and game.active < 3 and game.pending.is_empty():
   var f: int = game.face(game.active,selected)
-  if f in [2,3,54] or (f == 0 and game.reward): highlights = game.reachable(game.active,3 if f == 3 else (2 if f == 0 else 1),f == 3)
+  if f in [2,3,54] or (f == 0 and game.reward and not game.heroes[game.active].soul_move_used): highlights = game.reachable(game.active,3 if f == 3 else (2 if f == 0 else 1),f == 3)
   if f == 53: highlights = game.leap_cells(game.active)
   if f == 57: highlights = game.reachable(game.active,2,false)
  for y in range(9):
@@ -799,7 +799,7 @@ func lab_ui() -> void:
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.5",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.6",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
  for i in range(Changes.SECTIONS.size()):
   button(Changes.SECTIONS[i].title,Vector2(125,190+i*75),Vector2(255,58),func(): changes_page = i; rebuild(),GOLD if i == changes_page else MUTED)
@@ -842,6 +842,7 @@ func turn_ui() -> void:
  else:
   var h: Dictionary = game.heroes[game.active]
   text.text += "Choose a bright, unspent die. Its description appears above the action panel. Movement needs an empty highlighted cell; attacks and healing need a legal unit; setup effects use Resolve. Grey dice are spent, held as reactions or channelled. You may End turn without using every die."
+  if game.reward: text.text += "\n\nReward Soul: " + ("0/1" if h.soul_move_used else "1/1") + " Blank-to-Move-2 conversions remain this hero turn.\n"
   text.text += "\n\nReroll window: " + ("OPEN" if h.opening else "CLOSED after your first ordinary resolution") + " · saved charges: " + str(h.rerolls) + ". A starting charge does not refill each round."
  text.text += "\n\n[b]Between turns[/b]\nInitiative stays fixed for this encounter. New round = everyone rolls available dice together. Your next turn start clears old Block and temporary defenses; Channels can pause for maintain / release. HP damage, mitigation and expiry are recorded in the chronicle."
  ui.add_child(text)

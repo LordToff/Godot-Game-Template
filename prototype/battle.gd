@@ -80,7 +80,7 @@ func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: boo
  heroes.clear(); order.clear(); log_lines.clear(); event_log.clear(); event_id = 0; action_owner = -1; action_label = ""; action_before = {}; recovery.clear(); replaced.clear()
  pending = {}; outcome = ""; atomic_damage = false; forced_die = -1; stun_queue.clear(); cursor = 0; round_no = 0; recovery_active = false
  for i in range(3):
-  heroes.append({"name":["VESPER","ROOK","WREN"][i], "hp":6,"block":0,"pos":Vector2i(2+i*2,7),"dead":false,"broken":false,"protected":false,"weak":false,"stun":false,"setaside":-1,"build":builds[i].duplicate(true),"rolls":[],"results":[],"used":[],"reaction":[],"initiative":rng.randi_range(1,6),"rerolls":1,"opening":true,"channel":{},"taken":0,"dr":0,"ward":false,"num_boost":0,"numeric_focus":false,"numeric_zero":false,"bulwark_weak":false,"stored_num":-1,"gambler":false,"gold":0,"backstab":0,"debt_buff":0,"debt_next":0,"debt_penalty":0,"echo_due":false,"defy":false,"black_oath":false,"smoke":{},"mods":{},"blessings":0})
+  heroes.append({"name":["VESPER","ROOK","WREN"][i], "hp":6,"block":0,"pos":Vector2i(2+i*2,7),"dead":false,"broken":false,"protected":false,"weak":false,"stun":false,"setaside":-1,"build":builds[i].duplicate(true),"rolls":[],"results":[],"used":[],"reaction":[],"initiative":rng.randi_range(1,6),"rerolls":1,"opening":true,"soul_move_used":false,"channel":{},"taken":0,"dr":0,"ward":false,"num_boost":0,"numeric_focus":false,"numeric_zero":false,"bulwark_weak":false,"stored_num":-1,"gambler":false,"gold":0,"backstab":0,"debt_buff":0,"debt_next":0,"debt_penalty":0,"echo_due":false,"defy":false,"black_oath":false,"smoke":{},"mods":{},"blessings":0})
   order.append(i)
  boss = {"hp":16 if tuned else 18,"max_hp":16 if tuned else 18,"block":0,"mark":false,"bargain":{},"weak":false,"binds":[],"pos":Vector2i(3,3),"initiative":rng.randi_range(1,6)}
  order.append(3)
@@ -258,7 +258,7 @@ func activate() -> void:
   if h.channel.is_empty() or h.channel.face != 31:
    if h.block > 0: record_event("expire","%s loses %d unspent Block at turn start." % [unit_name(active),h.block],active,active)
    h.block = 0
-  h.opening = true
+  h.opening = true; h.soul_move_used = false
   if not h.channel.is_empty(): pending = {"kind":"channel","hero":active}
 
 func finish_turn() -> void:
@@ -284,7 +284,7 @@ func finish_turn() -> void:
    finish_turn(); return
   replaced.append(active); recovery_active = true
   heroes[active].block = 0
-  heroes[active].opening = true
+  heroes[active].opening = true; heroes[active].soul_move_used = false
   roll_context = "Recovery · fresh Action Dice"
   roll_serial += 1
   heroes[active].setaside = -1
@@ -441,8 +441,9 @@ func hero_action(d: int, target: int = -1, destination: Vector2i = Vector2i(-99,
  match f:
   0:
    if reward and destination.x != -99:
-    if not reachable(active,2,false).has(destination): return false
-    h.pos = destination
+    if h.soul_move_used or not reachable(active,2,false).has(destination): return false
+    h.pos = destination; h.soul_move_used = true
+    record_event("soul",unit_name(active)+" uses the first reward Soul: spends one rolled Blank as Move 2. Soul conversion 1/1 used this hero turn; installed face remains Blank.",active,active)
   1:
    if target < 0 or target == active or distance(active,target) != 1: return false
    strike(d,target,2 if tuned else 1)

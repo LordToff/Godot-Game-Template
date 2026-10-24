@@ -1,8 +1,8 @@
-# Ash & Oath v0.5 — playable prototype
+# Ash & Oath v0.6 — playable prototype
 
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
 
-v0.5 adds topic-based patch notes, contextual turn explanations, two Blanks minimum per die, Ashstep / Oathbound Exchange, live dice inspection with mutation tracking, and a boss with pulls, Block theft and delayed marked explosions.
+v0.6 caps the first reward Soul at one Blank-to-Move-2 conversion per hero turn and adds a complete [Word comparison against the original rules](docs/AshAndOath-Changes-From-Base-Rules-v0.6.docx). Previous dice, boss and interface improvements remain.
 
 This checkout now starts **Ash & Oath**, a tactical dice-building boss battler based on the supplied Master Rules v10 and Action Faces. Open `project.godot` in Godot 4.6.3 and press **F5**, or run `godot --path .`.
 
