@@ -2,10 +2,12 @@
 
 **Live game:** https://lordtoff.github.io/Godot-Game-Template/
 
-This branch contains the tested Godot Web export of Ash & Oath 0.10. GitHub Pages publishes it from `gh-pages` / root.
+This branch contains the tested Godot Web export of Ash & Oath 0.11. GitHub Pages publishes it from `gh-pages` / root.
 
-Version 0.10 replaces the painted images with original pixel sprites and tiles, enlarges the visible arena by about 91% in area, and groups combat controls beside it. Secondary commands are under Menu and Lab tools. Dice resolve instantly; ability timing labels and the Soul ON/OFF switch remain.
+Open **Menu → Game options → Balance workshop** to experiment with implemented numeric values, including Blank movement / uses, abilities, passives, resources and boss actions. Apply saves locally and restarts the fight / test. Reset or import / export profiles; structural limits and inactive mechanics are identified. See [workshop guide](BALANCE_WORKSHOP.md).
 
-The non-threaded export works without special cross-origin isolation headers. Saved presets use browser-local storage. The source and older Windows downloads are on the `ash-and-oath-prototype` branch.
+The game retains the large pixel arena and compact UI. All heroes now use knight sprites, and Cinder Brand / Ember Burst have pixel fire effects.
 
-To update, replace the export files on this branch while retaining `.nojekyll`. GitHub automatically rebuilds the Pages deployment.
+The non-threaded export needs no special cross-origin isolation headers. Profiles and presets use browser-local storage. Source and older Windows builds are on the `ash-and-oath-prototype` branch.
+
+To update, replace export files while retaining `.nojekyll`. GitHub automatically rebuilds the Pages deployment.

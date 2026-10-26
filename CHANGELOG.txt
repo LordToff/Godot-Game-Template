@@ -1,3 +1,12 @@
+# v0.11 — Balance Workshop, knights and fire
+
+- Menu → Game options → Balance workshop: edit implemented ability / passive numbers, including Blank movement and uses per turn.
+- Searchable sections, local saving, Tuned / Original bases, section / all resets and JSON import / export. Apply restarts the fight or Lab test.
+- Lab fixtures have separate starting HP / Block values. Structural rules stay fixed; unsupported secondary-enemy damage is marked inactive.
+- All three heroes now use knight sprites and helmet icons.
+- Cinder Brand has arming flames and a detonation flare; Ember Burst has pixel fire too.
+- Default balance preserved. Custom-profile tests and browser persistence / reset / play checks pass.
+
 # v0.10 — pixel art and a larger battlefield
 
 - **Replaced the painted art.** New pixel sprites, small head icons and simple stone tiles use a limited palette and sharp scaling. The previous painted assets have been removed from the game. The pixel maps and generator are included in the source.
