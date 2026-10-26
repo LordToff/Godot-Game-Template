@@ -3,7 +3,8 @@ extends Control
 const Catalog = preload("res://prototype/catalog.gd")
 const Model = preload("res://prototype/battle.gd")
 const TITLE = preload("res://prototype/assets/title.ttf")
-const BACKDROP = preload("res://prototype/assets/battlefield.svg")
+const BACKDROP = preload("res://prototype/assets/crypt_arena.png")
+const PORTRAITS = preload("res://prototype/assets/character_portraits.png")
 const BODY = preload("res://prototype/assets/body.ttf")
 const GOLD = Color("d5b87a")
 const INK = Color("10151e")
@@ -55,6 +56,7 @@ var offers: Array = []
 var gifts: Array = [[],[],[]]
 var draft_search := ""
 var draft_category := "All"
+var draft_timing := "All timings"
 var inspected_gift := 9
 var draft_scroll := 0
 var seen_event := 0
@@ -190,7 +192,7 @@ func rebuild() -> void:
  sync_presentation()
  for c in ui.get_children(): ui.remove_child(c); c.queue_free()
  label_at("ASH & OATH",Vector2(42,26),27,GOLD,500,true)
- label_at("A DICE-BUILDING BOSS BATTLER",Vector2(44,65),11,MUTED)
+ label_at("A DICE-BUILDING BOSS BATTLER · v0.9",Vector2(44,65),11,MUTED)
  button("View dice",Vector2(350,30),Vector2(235,40),func(): show_dice = true; dice_hero = game.active if page == "battle" else build_hero; rebuild(),Color("9fc7e6"))
  button("Tutorial / Ability Lab",Vector2(605,30),Vector2(245,40),start_lab,Color("82c8b9"))
  button("What changed",Vector2(866,30),Vector2(225,40),func(): show_changes = true; rebuild())
@@ -227,12 +229,13 @@ func forge_ui() -> void:
    var f: int = builds[build_hero][d][side]
    var o := OptionButton.new(); o.clip_text = true; o.position = Vector2(160+side*102,369+d*111); o.size = Vector2(96,66)
    o.add_theme_font_size_override("font_size",12)
-   for id in range(9): o.add_item(Model.FACES[id],id)
-   for id in gifts[build_hero]: o.add_item(Model.FACES[id],id)
+   for id in range(9): o.add_item(Catalog.display_name(id),id)
+   for id in gifts[build_hero]: o.add_item(Catalog.display_name(id),id)
    o.select(o.get_item_index(f)); o.add_theme_stylebox_override("normal",style(Color("202938"),Color(color_for_face(f),0.55)))
    o.add_theme_color_override("font_color",color_for_face(f))
    o.item_selected.connect(func(index): builds[build_hero][d][side] = o.get_item_id(index); rebuild())
-   o.tooltip_text = Model.FACES[f] + "\n" + face_help(f); ui.add_child(o)
+   o.get_popup().min_size = Vector2i(440,0)
+   o.tooltip_text = Catalog.display_name(f) + "\n" + face_help(f); ui.add_child(o)
  var error := Model.validate(builds[build_hero],gifts[build_hero])
  label_at("✓ Legal build · " + str(18-builds[build_hero].reduce(func(a,d): return a+d.count(0),0)) + "/12 ability faces" if error == "" else error,Vector2(75,706),14,COLORS[build_hero] if error == "" else Color("ef8e87"),730)
  button("Guided practice",Vector2(350,811),Vector2(200,40),start_training,Color("82c8b9"))
@@ -266,7 +269,8 @@ func begin() -> void:
  rebuild()
 
 func battle_ui() -> void:
- label_at("ABILITY LAB" if lab else "THE HOLLOW",Vector2(74,109),28,Color("ece6d9"),500,true)
+ portrait_at(3,Vector2(74,102),Vector2(40,40))
+ label_at("ABILITY LAB" if lab else "THE HOLLOW",Vector2(128,109),28,Color("ece6d9"),500,true)
  label_at("▶ ROUND %02d   /   %s" % [game.round_no,"ENCOUNTER ENDED" if game.outcome != "" else ("THE HOLLOW’S TURN" if game.active == 3 else game.heroes[game.active].name + "’S TURN")],Vector2(90,150),22,Color("fff0c8"))
  label_at("%d / %d HP    ·    %d BLOCK" % [game.boss.hp,game.boss.max_hp,game.boss.block],Vector2(408,119),13,Color("d78b83"))
  var x := 74.0
@@ -279,8 +283,9 @@ func battle_ui() -> void:
   var h: Dictionary = game.heroes[i]
   var cy := 790
   var hx := 76+i*183
-  label_at("0%d  %s" % [i+1,h.name],Vector2(hx,cy),16,COLORS[i],170,true)
-  label_at("%d / 6 HP    %d BLOCK" % [h.hp,h.block],Vector2(hx,cy+30),12,MUTED,170)
+  portrait_at(i,Vector2(hx+4,cy),Vector2(40,40))
+  label_at(h.name,Vector2(hx+50,cy),15,COLORS[i],124,true)
+  label_at("%d/6 HP · %d Block" % [h.hp,h.block],Vector2(hx+50,cy+24),11,MUTED,124)
   var statuses: String = "DEAD" if h.dead else ("DOWNED" if h.hp == 0 else ("BROKEN  " if h.broken else ""))
   if h.weak or h.bulwark_weak: statuses += " WEAK"
   if not h.reaction.is_empty(): statuses += " REACTION ×"+str(h.reaction.size())
@@ -310,7 +315,7 @@ func battle_ui() -> void:
   for d in range(3):
    var f: int = game.face(game.active,d)
    var state: String = "CHANNEL HELD" if not h.channel.is_empty() and h.channel.die == d else ("REACTION HELD" if d in h.reaction else ("SPENT" if h.used[d] else ("RESOLVE NEXT" if game.forced_die == d else "READY")))
-   var face_name: String = "Blank → Move 2" if f == 0 and game.reward and not h.soul_move_used else Model.FACES[f]
+   var face_name: String = "Blank → Move 2 (Movement)" if f == 0 and game.reward and not h.soul_move_used else Catalog.display_name(f)
    var text: String = "DIE " + ["I","II","III"][d] + "  ·  " + ("SELECTED" if selected == d and not h.used[d] else state) + "\n" + face_name
    var die_button := button(text,Vector2(630,416+d*61),Vector2(380,51),func():
     friendly_confirm = -1
@@ -504,7 +509,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func _draw() -> void:
  draw_rect(Rect2(Vector2.ZERO,Vector2(1440,900)),Color("10151e"))
- if page == "battle": draw_texture_rect(BACKDROP,Rect2(0,0,1440,900),false)
+ if page == "battle": draw_texture_rect(BACKDROP,Rect2(0,0,1440,900),false,Color(0.16,0.20,0.24,0.35))
  for i in range(28):
   var p := Vector2(fmod(i*131.73,1400.0),fmod(i*79.37+t*3,900.0))
   draw_circle(p,1.2,Color(0.8,0.6,0.35,0.16+sin(t+i)*0.08))
@@ -526,6 +531,7 @@ func _draw() -> void:
   draw_effects()
 
 func draw_board() -> void:
+ draw_texture_rect(BACKDROP,Rect2(35,199,575,575),false)
  var highlights: Array = []
  if selected >= 0 and game.active < 3 and game.pending.is_empty():
   var f: int = game.face(game.active,selected)
@@ -549,11 +555,9 @@ func draw_board() -> void:
    if c in game.cells(3): col = Color("382d37")
    if c in highlights: col = Color("365550")
    if c in game.brand_cells: col = Color("663e31")
-   draw_style_box(style(Color(col,0.87),Color("485155"),3),Rect2(p+Vector2.ONE*2,Vector2.ONE*(CELL-4)))
-   var grain := float((x*17+y*31)%11)/110.0
-   draw_line(p+Vector2(7,8),p+Vector2(23+grain*80,8),Color(0.5,0.55,0.6,0.12),1)
-   if (x+y*3)%5 == 0:
-    draw_polyline(PackedVector2Array([p+Vector2(39,4),p+Vector2(31,17),p+Vector2(34,22)]),Color(0.05,0.07,0.1,0.65),1)
+   var opacity := 0.48 if c in highlights or c in game.brand_cells else (0.22 if c in game.cells(3) else 0.06)
+   draw_rect(Rect2(p,Vector2.ONE*CELL),Color(col,opacity))
+   draw_rect(Rect2(p,Vector2.ONE*CELL),Color(0.75,0.79,0.80,0.24),false,1)
    if c in highlights: draw_circle(p+Vector2.ONE*CELL/2,3,Color("82c5b0"))
    if c in game.brand_cells:
     draw_rect(Rect2(p+Vector2.ONE*4,Vector2.ONE*(CELL-8)),Color("f0a17b"),false,2)
@@ -563,31 +567,11 @@ func draw_board() -> void:
  for i in range(9):
   draw_string(BODY,ORIGIN+Vector2(i*CELL+23,-10),str(i+1),HORIZONTAL_ALIGNMENT_LEFT,-1,11,MUTED)
   draw_string(BODY,ORIGIN+Vector2(-20,i*CELL+32),char(65+i),HORIZONTAL_ALIGNMENT_LEFT,-1,11,MUTED)
- # A restrained ink-and-metal silhouette over the boss's four-cell seal.
- var bp: Vector2 = ORIGIN+Vector2(visual_positions.get(3,Vector2(game.boss.pos)))*CELL+Vector2.ONE*CELL
- draw_circle(bp+Vector2(0,27),38,Color(0.02,0.02,0.04,0.65))
- draw_arc(bp,48,t*0.03,t*0.03+TAU,64,Color("9b6974"),1.5)
- draw_arc(bp,43,0,TAU,64,Color("62454e"),1)
- for mark in range(8):
-  var q := bp+Vector2.from_angle(mark*TAU/8)*46
-  draw_line(q,q+Vector2.from_angle(mark*TAU/8)*5,Color("b28c78"),1)
- bp += attack_nudge(3)
- var sway := sin(t*1.7)*1.2
- draw_colored_polygon(PackedVector2Array([bp+Vector2(-29,36),bp+Vector2(-21,8),bp+Vector2(-17,-13),bp+Vector2(0,-21),bp+Vector2(18,-12),bp+Vector2(25,17),bp+Vector2(34,37),bp+Vector2(10,28),bp+Vector2(0,37),bp+Vector2(-10,29)]),Color("282230"))
- draw_polyline(PackedVector2Array([bp+Vector2(-30,35),bp+Vector2(-17,-13),bp+Vector2(0,-21),bp+Vector2(18,-12),bp+Vector2(33,36)]),Color("87616e"),2,true)
- draw_line(bp+Vector2(-13,-8),bp+Vector2(-7,23),Color("513b4a"),2)
- draw_line(bp+Vector2(14,-7),bp+Vector2(8,24),Color("513b4a"),2)
- draw_polyline(PackedVector2Array([bp+Vector2(-18,-7),bp+Vector2(-31,-1),bp+Vector2(-39,-22),bp+Vector2(-36,-33)]),Color("b2a299"),4,true)
- draw_polyline(PackedVector2Array([bp+Vector2(17,-8),bp+Vector2(31,-2),bp+Vector2(39,-20),bp+Vector2(42,-30)]),Color("b2a299"),4,true)
- draw_line(bp+Vector2(-39,-22),bp+Vector2(-45,-27),Color("d0bbb0"),1.5)
- draw_line(bp+Vector2(39,-20),bp+Vector2(46,-24),Color("d0bbb0"),1.5)
- draw_colored_polygon(PackedVector2Array([bp+Vector2(-10+sway,-26),bp+Vector2(-7+sway,-39),bp+Vector2(5+sway,-40),bp+Vector2(11+sway,-29),bp+Vector2(5+sway,-18),bp+Vector2(-5+sway,-18)]),Color("d0b9a3"))
- draw_polyline(PackedVector2Array([bp+Vector2(-7+sway,-34),bp+Vector2(-14+sway,-43),bp+Vector2(-10+sway,-49)]),Color("b99b81"),3,true)
- draw_polyline(PackedVector2Array([bp+Vector2(7+sway,-35),bp+Vector2(15+sway,-43),bp+Vector2(10+sway,-48)]),Color("b99b81"),3,true)
- draw_line(bp+Vector2(-8+sway,-30),bp+Vector2(8+sway,-30),Color("332334"),3)
- draw_circle(bp+Vector2(-4+sway,-30),1.7,Color("ffc49b")); draw_circle(bp+Vector2(4+sway,-30),1.7,Color("ffc49b"))
- draw_line(bp+Vector2(0+sway,-24),bp+Vector2(0+sway,-19),Color("755b58"),1)
- for rib in range(4): draw_line(bp+Vector2(-7,-7+rib*5),bp+Vector2(7,-7+rib*5),Color("ad8c86"),1.5)
+ # Portrait tokens use the same art as the party panels and drafting tabs.
+ var bp: Vector2 = ORIGIN+Vector2(visual_positions.get(3,Vector2(game.boss.pos)))*CELL+Vector2.ONE*CELL+attack_nudge(3)
+ draw_circle(bp+Vector2(0,26),43,Color(0.02,0.02,0.04,0.65))
+ draw_portrait(3,Rect2(bp-Vector2.ONE*45,Vector2.ONE*90))
+ draw_rect(Rect2(bp-Vector2.ONE*45,Vector2.ONE*90),Color("b18c79"),false,2)
  for i in range(3):
   var h: Dictionary = game.heroes[i]
   if h.dead: continue
@@ -611,20 +595,8 @@ func draw_board() -> void:
   if h.hp == 0:
    draw_line(p+Vector2(-8,-8),p+Vector2(8,8),COLORS[i],3); draw_line(p+Vector2(8,-8),p+Vector2(-8,8),COLORS[i],3)
   else:
-   draw_colored_polygon(PackedVector2Array([p+Vector2(-12,13),p+Vector2(-7,-4),p+Vector2(0,-12),p+Vector2(7,-4),p+Vector2(12,13),p+Vector2(0,9)]),COLORS[i].darkened(0.45))
-   draw_polyline(PackedVector2Array([p+Vector2(-12,13),p+Vector2(-7,-4),p+Vector2(0,-12),p+Vector2(7,-4),p+Vector2(12,13)]),COLORS[i],1.5,true)
-   draw_circle(p+Vector2(0,-3),4,Color("14202b"))
-   draw_line(p+Vector2(-2,-3),p+Vector2(2,-3),Color("e5dac5"),1)
-   draw_line(p+Vector2(0,4),p+Vector2(0,10),COLORS[i].lightened(0.2),1)
-   if i == 0:
-    draw_line(p+Vector2(12,15),p+Vector2(12,-13),Color("b9aa8b"),2)
-    draw_circle(p+Vector2(12,-14),3,COLORS[i])
-   elif i == 1:
-    draw_line(p+Vector2(-12,9),p+Vector2(-13,-7),Color("e2d9d0"),2)
-    draw_line(p+Vector2(-16,3),p+Vector2(-9,3),GOLD,1.5)
-   else:
-    draw_line(p+Vector2(8,8),p+Vector2(15,-4),Color("e2d9d0"),2)
-    draw_arc(p+Vector2(10,3),7,-PI/2,PI/2,12,GOLD,1.5)
+   draw_portrait(i,Rect2(p-Vector2.ONE*18,Vector2.ONE*36))
+   draw_rect(Rect2(p-Vector2.ONE*18,Vector2.ONE*36),COLORS[i],false,1.5)
   for hp in range(6): draw_rect(Rect2(p+Vector2(-18+hp*6,24),Vector2(4,3)),COLORS[i] if hp < h.hp else Color("3d434b"))
 
 func sync_presentation() -> void:
@@ -638,11 +610,9 @@ func sync_presentation() -> void:
    if event.target >= 0:
     effects.append({"kind":kind,"source":event.source,"target":event.target,"life":1.05,"length":1.05})
  if roll_seen > game.roll_presentations.size(): roll_seen = 0
- if game.roll_presentations.size() > roll_seen:
-  var batches: Array = game.roll_presentations.slice(roll_seen)
-  roll_seen = game.roll_presentations.size()
-  if dice_tray:
-   dice_tray.play(batches); rolling_time = 999
+ # Model rolls remain recorded in the event log; results appear instantly.
+ roll_seen = game.roll_presentations.size()
+ rolling_time = 0
  seen_roll = game.roll_serial
  for id in range(4):
   var h: Dictionary = game.boss if id == 3 else game.heroes[id]
@@ -756,42 +726,57 @@ func confirm_gifts() -> void:
  rebuild()
 
 func draft_ui() -> void:
- var shade := ColorRect.new(); shade.color = Color(0.02,0.03,0.05,0.95); shade.size = Vector2(1440,900); ui.add_child(shade)
- var box := Panel.new(); box.position = Vector2(250,148); box.size = Vector2(940,620); box.add_theme_stylebox_override("panel",style(Color("19212d"),GOLD)); ui.add_child(box)
- label_at("BUILD YOUR INHERITANCE",Vector2(282,174),12,GOLD)
- label_at(["VESPER","ROOK","WREN"][build_hero] + " · Choose TWO bonus faces",Vector2(282,204),24,Color("ece6d9"),850,true)
- label_at("All 47 extended hero faces · starter faces excluded · choose any two distinct abilities",Vector2(282,244),12,MUTED,850)
- var search := LineEdit.new(); search.name = "GiftSearch"; search.placeholder_text = "Search abilities…"; search.text = draft_search; search.position = Vector2(282,280); search.size = Vector2(420,36); ui.add_child(search)
+ var shade := ColorRect.new(); shade.color = Color("101922"); shade.size = Vector2(1440,900); ui.add_child(shade)
+ label_at("BUILD YOUR INHERITANCE · v0.9",Vector2(60,30),30,GOLD,900,true)
+ label_at("Pick two bonus faces per hero. Click a card to inspect; use Add / Remove on the right.",Vector2(62,76),16,MUTED,1250)
+ button("Back to forge",Vector2(1150,30),Vector2(230,42),func(): draft_modal = false; rebuild(),MUTED)
+ for hero in range(3):
+  button(["VESPER","ROOK","WREN"][hero]+"  ·  %d/2" % gifts[hero].size(),Vector2(60+hero*292,113),Vector2(280,44),func(): build_hero = hero; draft_scroll = 0; rebuild(),COLORS[hero] if build_hero == hero else MUTED)
+ for hero in range(3):portrait_at(hero,Vector2(70+hero*292,120),Vector2(30,30))
+ var search := LineEdit.new(); search.name = "GiftSearch"; search.placeholder_text = "Search ability names…"; search.text = draft_search; search.position = Vector2(60,178); search.size = Vector2(360,42); ui.add_child(search)
  search.text_changed.connect(func(value):
   draft_search = value; draft_scroll = 0; rebuild()
-  for c in ui.get_children():
-   if c.name == "GiftSearch": c.grab_focus(); c.caret_column = value.length())
- var filter := OptionButton.new(); filter.position = Vector2(738,280); filter.size = Vector2(414,36)
+  var field = ui.get_node("GiftSearch");field.grab_focus();field.caret_column = value.length())
+ var filter := OptionButton.new(); filter.name = "GiftCategory"; filter.position = Vector2(434,178); filter.size = Vector2(225,42)
  for cat in ["All","Attack","Defense","Movement","Skill"]: filter.add_item(cat)
  filter.select(["All","Attack","Defense","Movement","Skill"].find(draft_category))
- filter.item_selected.connect(func(index): draft_category = ["All","Attack","Defense","Movement","Skill"][index]; draft_scroll = 0; rebuild())
- ui.add_child(filter)
- var scroll := ScrollContainer.new(); scroll.position = Vector2(282,331); scroll.size = Vector2(420,363); ui.add_child(scroll)
- var previous_scroll := draft_scroll
- scroll.get_v_scroll_bar().value_changed.connect(func(value): draft_scroll = int(value))
- scroll.set_deferred("scroll_vertical",previous_scroll)
- var list := VBoxContainer.new(); list.custom_minimum_size.x = 398; list.add_theme_constant_override("separation",6); scroll.add_child(list)
- var detail := Label.new(); detail.text = Model.FACES[inspected_gift] + "\n\n" + Catalog.category(inspected_gift) + " · "+Catalog.readiness(inspected_gift)+"\n\n" + face_help(inspected_gift); detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; detail.position = Vector2(742,340); detail.size = Vector2(405,210); detail.add_theme_font_size_override("font_size",15); ui.add_child(detail)
+ filter.item_selected.connect(func(index): draft_category = ["All","Attack","Defense","Movement","Skill"][index];draft_scroll = 0;rebuild());ui.add_child(filter)
+ var timing_filter := OptionButton.new();timing_filter.name = "GiftTiming";timing_filter.position = Vector2(673,178);timing_filter.size = Vector2(251,42)
+ for value in ["All timings","Action","Reaction","Channel"]:timing_filter.add_item(value)
+ timing_filter.select(["All timings","Action","Reaction","Channel"].find(draft_timing))
+ timing_filter.item_selected.connect(func(index):draft_timing = ["All timings","Action","Reaction","Channel"][index];draft_scroll = 0;rebuild());ui.add_child(timing_filter)
+ var scroll := ScrollContainer.new();scroll.name = "GiftCards";scroll.position = Vector2(60,240);scroll.size = Vector2(864,522);ui.add_child(scroll)
+ var saved_scroll := draft_scroll
+ scroll.get_v_scroll_bar().value_changed.connect(func(value):draft_scroll = int(value))
+ scroll.set_deferred("scroll_vertical",saved_scroll)
+ var cards := GridContainer.new();cards.columns = 2;cards.add_theme_constant_override("h_separation",12);cards.add_theme_constant_override("v_separation",12);scroll.add_child(cards)
+ var count := 0
  for id in Catalog.extended_ids():
-  if draft_category != "All" and Catalog.category(id) != draft_category: continue
-  if draft_search != "" and not Model.FACES[id].to_lower().contains(draft_search.to_lower()): continue
-  var b := Button.new(); b.text = ("✓  " if id in gifts[build_hero] else "+  ") + Model.FACES[id] + "  ·  " + Catalog.category(id); b.custom_minimum_size = Vector2(394,40); b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-  b.add_theme_font_size_override("font_size",13); b.add_theme_color_override("font_color",color_for_face(id)); b.add_theme_stylebox_override("normal",style(Color("26313c") if id in gifts[build_hero] else Color("151f2c"),GOLD if id in gifts[build_hero] else Color("35404d")))
-  b.pressed.connect(func(): choose_gift(id))
-  b.mouse_entered.connect(func(): inspected_gift = id; detail.text = Model.FACES[id]+"\n\n"+Catalog.category(id)+" · "+Catalog.readiness(id)+"\n\n"+face_help(id))
-  list.add_child(b)
- var names: Array[String] = []
- for id in gifts[build_hero]: names.append(Model.FACES[id])
- label_at("SELECTED %d / 2\n%s" % [gifts[build_hero].size()," + ".join(names)],Vector2(742,570),15,GOLD,405,false,true)
- label_at("Confirm installs a legal starting build. Customize it in the forge afterward.",Vector2(742,637),12,MUTED,400,false,true)
- button("Confirm these two faces   →",Vector2(742,698),Vector2(408,44),confirm_gifts,GOLD,gifts[build_hero].size() != 2)
- button("Game options · Blank movement",Vector2(742,785),Vector2(408,40),open_settings,Color("82c8b9"))
- button("Try abilities first · Tutorial",Vector2(282,698),Vector2(420,44),start_training,Color("82c8b9"))
+  if draft_category != "All" and Catalog.category(id) != draft_category:continue
+  if draft_timing != "All timings" and Catalog.timing(id) != draft_timing:continue
+  if draft_search != "" and not Model.FACES[id].to_lower().contains(draft_search.to_lower()):continue
+  count += 1
+  var chosen: bool = id in gifts[build_hero]
+  var card := Button.new();card.name = "Face"+str(id);card.text = Model.FACES[id]+"\n("+Catalog.classification(id)+")\n"+("SELECTED" if chosen else "Inspect ability")
+  card.custom_minimum_size = Vector2(414,105);card.alignment = HORIZONTAL_ALIGNMENT_LEFT;card.add_theme_font_size_override("font_size",16)
+  card.add_theme_color_override("font_color",color_for_face(id));card.add_theme_stylebox_override("normal",style(Color("2b3c47") if inspected_gift == id else Color("1a2732"),GOLD if chosen else (color_for_face(id) if inspected_gift == id else Color("354653"))))
+  card.add_theme_stylebox_override("hover",style(Color("304351"),color_for_face(id)));card.tooltip_text = face_help(id)
+  card.pressed.connect(func():inspected_gift = id;rebuild());cards.add_child(card)
+ if count == 0:label_at("No matching abilities. Try different filters.",Vector2(85,285),19,MUTED,800)
+ label_at("%d abilities · starter faces excluded" % count,Vector2(65,775),13,MUTED,850)
+ var detail_box := Panel.new();detail_box.position = Vector2(950,113);detail_box.size = Vector2(430,649);detail_box.add_theme_stylebox_override("panel",style(Color("1a2732"),Color("43515d")));ui.add_child(detail_box)
+ label_at(Model.FACES[inspected_gift],Vector2(976,145),26,color_for_face(inspected_gift),378,true,true)
+ label_at("("+Catalog.classification(inspected_gift)+")",Vector2(976,216),17,GOLD,378)
+ var detail := RichTextLabel.new();detail.name = "GiftDetail";detail.position = Vector2(976,259);detail.size = Vector2(378,225);detail.add_theme_font_size_override("normal_font_size",18);detail.text = face_help(inspected_gift);ui.add_child(detail)
+ label_at(Catalog.readiness(inspected_gift),Vector2(976,502),12,MUTED,378)
+ var selected_names: Array[String] = []
+ for id in gifts[build_hero]:selected_names.append(Model.FACES[id])
+ label_at("YOUR TWO FACES\n"+(" · ".join(selected_names) if not selected_names.is_empty() else "None selected yet"),Vector2(976,548),15,GOLD,378,false,true)
+ var chosen: bool = inspected_gift in gifts[build_hero]
+ button("Remove this face" if chosen else ("Add this face" if gifts[build_hero].size() < 2 else "Two selected · remove one first"),Vector2(976,675),Vector2(378,52),func():choose_gift(inspected_gift),color_for_face(inspected_gift),not chosen and gifts[build_hero].size() >= 2)
+ button("Confirm hero’s two faces →",Vector2(950,797),Vector2(430,52),confirm_gifts,GOLD,gifts[build_hero].size() != 2)
+ button("Guided practice",Vector2(60,810),Vector2(260,42),start_training,Color("82c8b9"))
+ button("Game options",Vector2(335,810),Vector2(260,42),open_settings,MUTED)
 
 func catalog_pending_ui(p: Dictionary) -> void:
  if p.kind == "slot":
@@ -872,7 +857,7 @@ func lab_ui() -> void:
  if training: button("Next lesson →" if training_step < LESSON_FACES.size()-1 else "Play preset →",Vector2(870,864),Vector2(150,30),next_lesson,GOLD,not lesson_done())
  label_at("LAB · Vesper %d/6 HP · %d Block · %s" % [game.heroes[0].hp,game.heroes[0].block,Model.FACES[lab_face]],Vector2(77,780),12,Color("82c8b9"),520)
  var picker := OptionButton.new(); picker.name = "LabAbilities"; picker.position = Vector2(77,806); picker.size = Vector2(315,35)
- for id in range(59): picker.add_item("%02d · %s" % [id,Model.FACES[id]],id)
+ for id in range(59): picker.add_item(Catalog.display_name(id),id)
  picker.select(lab_face); picker.item_selected.connect(func(index): training = false; lab_face = index; reset_lab()); ui.add_child(picker)
  var num := OptionButton.new(); num.position = Vector2(403,806); num.size = Vector2(186,35)
  for title in ["Numeric: random","Numeric: force 0","Numeric: force 1"]: num.add_item(title)
@@ -884,7 +869,7 @@ func lab_ui() -> void:
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.8.2",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.9",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
  var nav_step := minf(75,610.0/Changes.SECTIONS.size())
  for i in range(Changes.SECTIONS.size()):
@@ -959,6 +944,7 @@ func dice_ui() -> void:
     rolled = in_fight and game.heroes[dice_hero].rolls[d] == side
    var changed := current != original
    var title: String = "SIDE %d%s\n%s" % [side+1," · ROLLED" if rolled else "",current]
+   if not is_boss: title += "\n(" + Catalog.classification(id) + ")"
    if changed: title += "\n★ was " + original
    var b := button(title,Vector2(130+side*199,232+d*143),Vector2(187,105),func(): dice_inspected = Vector2i(d,side); rebuild(),GOLD if changed else (Color("9fc7e6") if rolled else MUTED))
    b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; b.add_theme_font_size_override("font_size",13)
@@ -972,7 +958,7 @@ func dice_ui() -> void:
   var h: Dictionary = game.heroes[dice_hero] if in_fight else {}
   var build: Array = h.build if in_fight else builds[dice_hero]
   var id: int = build[d][side]
-  info = "DIE %s · SIDE %d · %s\n%s" % [["I","II","III"][d],side+1,Model.FACES[id],face_help(id)]
+  info = "DIE %s · SIDE %d · %s\n%s" % [["I","II","III"][d],side+1,Catalog.display_name(id),face_help(id)]
   if in_fight:
    info += "\nRecorded roll: %s · %s. Installed sides may change while an earlier recorded result stays valid." % [Model.FACES[game.face(dice_hero,d)],"reaction held" if d in h.reaction else ("channel held" if not h.channel.is_empty() and h.channel.die == d else ("spent" if h.used[d] else "ready"))]
  label_at(info,Vector2(130,675),17,Color("d9e3eb"),1175,false,true)
@@ -1048,7 +1034,7 @@ func lab_setup_ui() -> void:
  label_at("LAB · COMBINE TWO ABILITIES",Vector2(160,180),30,GOLD,1100,true)
  label_at("Die I is your selected test face. Choose the result for Die II, then reset the fixture.\nThese overrides are for testing combinations; normal builds are preserved.",Vector2(165,250),18,MUTED,1100,false,true)
  var picker := OptionButton.new();picker.position = Vector2(165,355);picker.size = Vector2(800,48)
- for id in range(Model.FACES.size()):picker.add_item(Model.FACES[id],id)
+ for id in range(Model.FACES.size()):picker.add_item(Catalog.display_name(id),id)
  picker.select(lab_support);picker.item_selected.connect(func(index):lab_support = index);ui.add_child(picker)
  button("Apply and reset test",Vector2(165,460),Vector2(400,50),func(): show_lab_setup = false;reset_lab())
  button("Back",Vector2(585,460),Vector2(380,50),func():show_lab_setup = false;rebuild(),MUTED)
@@ -1083,3 +1069,15 @@ func options_ui() -> void:
  button("Sound: " + ("OFF" if muted else "ON"),Vector2(399,503),Vector2(275,43),func(): muted = not muted; music.stream_paused = muted; audio.volume_db = -80 if muted else 0; rebuild(),MUTED)
  button("Audio / display settings",Vector2(689,503),Vector2(285,43),open_audio_settings,MUTED)
  button("Back to game",Vector2(399,575),Vector2(575,46),func(): show_options = false; rebuild())
+
+
+func portrait_region(id: int) -> Rect2:
+ var half := Vector2(PORTRAITS.get_size())/2.0
+ return Rect2(Vector2(id%2,id/2)*half+Vector2(0.18,0.0)*half,half*0.74)
+
+func draw_portrait(id: int, rect: Rect2) -> void:
+ draw_texture_rect_region(PORTRAITS,rect,portrait_region(id))
+
+func portrait_at(id: int, at: Vector2, dimensions: Vector2) -> void:
+ var atlas := AtlasTexture.new();atlas.atlas = PORTRAITS;atlas.region = portrait_region(id)
+ var picture := TextureRect.new();picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE;picture.texture = atlas;picture.position = at;picture.size = dimensions;picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED;picture.mouse_filter = Control.MOUSE_FILTER_IGNORE;ui.add_child(picture)

@@ -1,10 +1,10 @@
-# Ash & Oath v0.8.2 — playable prototype
+# Ash & Oath v0.9 — playable prototype
 
 [**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/) — no installation required.
 
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
 
-v0.8.2 makes the Blank → Move 2 ON/OFF switch available during combat and in Game Options, with clearer dice cards, separated battle panels and a larger log font. Each hero can convert one Blank per turn when ON; switching OFF disables conversion. v0.8 added real 3D dice with readable results, persistent Channel rings, guided practice, build presets, Lab combinations and combat interaction fixes. The [six-page plain-language guide](docs/AshAndOath-Plain-Language-Guide-v0.8.pdf) explains the current rules and remaining limits.
+v0.9 removes roll animations, labels each ability with its category and Reaction / Channel timing, redesigns the bonus-face picker with cards and filters, and adds painted crypt and character art. The Blank → Move 2 ON/OFF switch remains visible during battle and in Options. See the [plain-language v0.9 changes](docs/Changes-v0.9.md). The older v0.8 guide remains a historical rules reference; its dice-animation instructions are superseded.
 
 This checkout now starts **Ash & Oath**, a tactical dice-building boss battler based on the supplied Master Rules v10 and Action Faces. Open `project.godot` in Godot 4.6.3 and press **F5**, or run `godot --path .`.
 

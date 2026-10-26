@@ -78,3 +78,17 @@ static func readiness(id: int) -> String:
  if id in [9,11,38]: return "LIMITED · see effect notes"
  if id < 9 or id in [42,43,44,47,54,55,56,57,58]: return "IMPLEMENTED"
  return "PLAYTEST VERSION"
+
+
+static func timing(id: int) -> String:
+ if is_reaction(id): return "Reaction"
+ if id in [25,31,49]: return "Channel"
+ return "Action"
+
+static func classification(id: int) -> String:
+ var suffix := " - " + timing(id) if timing(id) != "Action" else ""
+ return category(id) + suffix
+
+static func display_name(id: int) -> String:
+ if id == 0: return name_for(id)
+ return name_for(id) + " (" + classification(id) + ")"

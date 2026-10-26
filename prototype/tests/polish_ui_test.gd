@@ -14,19 +14,9 @@ func run():
  for i in range(4):await process_frame
  var app = current_scene
  app.start_lab();app.game.present_action_roll(0,[0,1,2],"Recorded hero faces");app.rebuild()
- check(app.dice_tray.busy and app.dice_tray.cubes.size() == 3,"real 3D tray builds three cubes")
- check(app.dice_tray.cubes[0].get_child_count() == 7,"cube contains mesh and six face labels")
- app.dice_tray.elapsed = 1.1;app.dice_tray._process(0);app.dice_tray.set_process(false)
- check(app.dice_tray.results_label.text.contains("Strike") and app.dice_tray.results_label.text.contains("Guard"),"settled tray displays actual ability results")
- check(app.dice_tray.cubes[0].rotation.is_equal_approx(app.dice_tray.landings[0]),"cube lands on recorded orientation")
- await capture("dice")
- for side in range(6):
-  app.dice_tray.queue[0].sides[0] = side;app.dice_tray.start_batch();app.dice_tray.elapsed = 1.1;app.dice_tray._process(0)
-  var normal: Vector3 = app.dice_tray.cubes[0].get_child(side+1).global_basis.z.normalized()
-  check(normal.z > 0.9,"recorded side %d faces the camera after settling" % side)
-
- app.dice_tray.finish();app.dice_tray.set_process(true)
- check(not app.dice_tray.busy and app.rolling_time == 0,"skip preserves gameplay and unlocks controls")
+ check(not app.dice_tray.busy and app.rolling_time == 0,"recorded rolls never open an animated tray")
+ check(app.dice_tray.get_child_count() == 0,"no hidden 3D viewport or dice meshes")
+ check(app.roll_seen == app.game.roll_presentations.size(),"instant results consume presentation records")
  app.lab_face = 49;app.reset_lab();app.game.hero_action(0);app.rebuild();app._process(0.4)
  check(app.channel_glows[0] > 0,"Channel produces persistent aura")
  check(app.ui.get_children().any(func(c):return c is Button and c.text.contains("CHANNEL HELD")),"Channel die is labelled held")

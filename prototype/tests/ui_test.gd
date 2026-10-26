@@ -26,7 +26,7 @@ func run():
  app.builds[0] = app.Model.default_build()
  app.begin()
  check(app.page == "battle" and app.game.round_no == 1,"begin rolls encounter")
- check(app.rolling_time > 0,"shared roll starts animation")
+ check(app.rolling_time == 0 and not app.dice_tray.busy,"shared roll resolves instantly")
  app.game.pending = {}; app.game.active = 0
  app.game.heroes[0].results = [2,4,1]; app.game.heroes[0].used = [false,false,false]
  app.rolling_time = 0; app.selected = 0; app.rebuild()
@@ -40,7 +40,7 @@ func run():
  var reroll_buttons: Array = app.ui.get_children().filter(func(c):return c is Button and c.text.begins_with("Reroll selected"))
  check(reroll_buttons.size() == 1 and not reroll_buttons[0].disabled,"starting reroll control available in opening")
  reroll_buttons[0].pressed.emit()
- check(app.game.heroes[0].rerolls == 0 and app.rolling_time > 0,"reroll spends charge and animates")
+ check(app.game.heroes[0].rerolls == 0 and app.rolling_time == 0,"reroll spends charge without delaying input")
  app.rolling_time = 0;app.rebuild()
  app.game.heroes[0].used[1] = false;app.game.heroes[0].results[1] = 4
  app.game.hero_action(1);app.rebuild()
@@ -57,6 +57,8 @@ func run():
  app.game.pending = {}; app.show_help = true; app.rebuild()
  check(app.ui.get_children().any(func(c):return c is Button and c.text == "Return to the game"),"rules overlay can close")
  app.show_help = false; app.rebuild(); app.open_settings()
+ check(app.show_options,"game options opens before audio/display settings")
+ app.open_audio_settings()
  for i in range(5): await process_frame
  check(get_nodes_in_group("ash_settings").any(func(c):return c.packed_scene != null and c.visible),"template settings window instantiated")
  for settings in get_nodes_in_group("ash_settings"): settings.close()

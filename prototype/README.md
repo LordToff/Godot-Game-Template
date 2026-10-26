@@ -1,12 +1,18 @@
-# Ash & Oath v0.8.1 — playable prototype
+# Ash & Oath v0.9 — playable prototype
 
-A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, dice animations, restrained graphic improvements, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
+A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, instant rolls, painted arena and character art, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
+
+## New in v0.9
+
+Rolls resolve immediately with no dice animation or input delay. Ability labels include category and special timing: e.g. `Contained Power (Skill - Channel)` and `Shield Wall (Defense - Reaction)`. The bonus picker has two-column cards, hero tabs, search, category / timing filters, a fixed effect panel and explicit Add / Remove controls. All 47 bonus faces and legal two-face builds remain available.
+
+The battlefield uses a painted crypt and portrait tokens with a thin tactical grid. Legal-target highlights and combat / Channel effects remain. Painted scenery is decorative, not an obstacle rule. Blank → Move 2 is switchable during battle or in Game Options without refilling a spent allowance. No balance or dice probabilities changed. See [v0.9 changes](../docs/Changes-v0.9.md).
 
 ## New in v0.8.1
 
 Use the Test Soul checkbox beside Restore balanced build in the forge to enable Blank → Move 2 once per hero turn without winning first. The Lab has the same toggle. Presets save the choice; switching off/on does not refill a used allowance.
 
-## New in v0.8
+## Historical v0.8 (roll animations removed in v0.9)
 
 Real 3D cubes display the actual recorded ability faces, including Numeric rolls, single-die rerolls, released Channels and recovery rolls. Fast / Skip controls preserve results. Persistent colored rune rings identify Channels; hover the hero for its effect. Dice labels distinguish ready, spent, held and forced next results. Legal targets highlight and friendly attacks require a second click.
 
@@ -14,7 +20,7 @@ The opening Tutorial offers eight guided lessons and can launch a practice prese
 
 Interaction rulings: Short Shot’s cap includes Mark Prey and consumes the mark on a damaging shot; Pierce cannot restore Block after Downed; Break Rhythm restores original initiative next round; Contained Power shared-roll bonuses wait for Maintain. Repeated Attacks recheck targets and reroll Numeric separately; Hooked Slash / Engrave riders apply per hit. Balance constants stay unchanged.
 
-Read the [six-page plain-language guide](../docs/AshAndOath-Plain-Language-Guide-v0.8.pdf). `dice_tray.gd` contains the separate 3D presentation layer. `polish_test.gd` and `polish_ui_test.gd` exercise interaction fixes, real meshes, settled results, Channels, practice progression, presets and friendly-fire confirmation.
+Read the [six-page plain-language guide](../docs/AshAndOath-Plain-Language-Guide-v0.8.pdf). `dice_tray.gd` is now a nonvisual compatibility endpoint; the 3D presentation was removed in v0.9. `polish_test.gd` and `polish_ui_test.gd` exercise interaction fixes, instant rolls, Channels, practice progression, presets and friendly-fire confirmation.
 
 ## New in v0.7
 
@@ -46,7 +52,7 @@ Run the Windows executable from the extracted download; no Godot installation is
 
 1. Each hero chooses **two distinct bonus faces directly from the entire 47-face extended hero pool**. There are no random offers. Search and category filtering are available. The eight starter designs, boss-only Hamstring, archived Heart/Vital Die and generated/penalty tiles are excluded. You can inspect each printed prototype effect before confirming.
 2. Both chosen faces become owned. Confirming installs a legal twelve-ability build containing both, retaining First Aid and prioritizing useful basic attacks/movement. Every one of the 1,081 possible distinct pairs has been validated. Customize the three dice in the forge afterward. Keep two Blanks per die, at most twelve equipped abilities, and the separate Movement/Defense/Skill caps. Owning the gift does not bypass construction limits.
-3. Click **Enter the hollow**. Dice tumble briefly; controls unlock when the animation finishes. All results remain public.
+3. Click **Enter the hollow**. Results appear immediately; all dice stay public and controls are available without waiting.
 4. Click a hero's die, then a highlighted destination or target. Some self/setup effects use **Resolve selected face**, while effects needing a choice open a dedicated picker. Decline spends a beneficial result without using it.
 5. Each hero starts the encounter with **one Action Reroll**. Select an unresolved eligible die and click **Reroll selected die** before resolving any ordinary face that turn. The charge is once per encounter, not per round. Focus is its own later reroll exception. Downed clears the bank; Clairvoyance can replenish it, subject to cap 1.
 6. Boss turns show full explanations for all three actions, with completed actions checked off. On hero turns click any compact intent row to inspect it. Click Resolve I/II/III, then end of turn. Reactions, Fracture, pushes, channels and catalog choices pause for player input.
