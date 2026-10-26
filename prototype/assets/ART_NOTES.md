@@ -1,4 +1,6 @@
-# Pixel art · v0.10
+# Pixel art · v0.11
+
+All three heroes now use armoured knight sprites and helmet icons, with teal, purple and gold tabards / shields. Cinder Brand and Ember Burst fire is drawn as animated pixel rectangles without touching gameplay RNG.
 
 The current art uses original pixel maps and geometric tiles defined in `tools/make_pixel_art.py`. The generator draws the sprites at their source resolution; it does not convert or downsample the previous painted images.
 

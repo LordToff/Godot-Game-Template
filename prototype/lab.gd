@@ -2,16 +2,16 @@ extends RefCounted
 const Battle = preload("res://prototype/battle.gd")
 const Catalog = preload("res://prototype/catalog.gd")
 
-static func create(id: int, forced_numeric: int = -1):
+static func create(id: int, forced_numeric: int = -1, profile: Dictionary = {}, balanced: bool = true):
  var g = Battle.new()
- g.start([Battle.default_build(),Battle.default_build(),Battle.default_build()],417)
+ g.start([Battle.default_build(),Battle.default_build(),Battle.default_build()],417,false,balanced,profile)
  g.pending = {}; g.outcome = ""; g.order = [0,1,2,3]; g.initiative_base = g.order.duplicate(); g.cursor = 0; g.active = 0; g.forced_die = -1
- g.boss.pos = Vector2i(4,2); g.boss.hp = 30; g.boss.max_hp = 30; g.boss.block = 0; g.boss_rolls = ["Strike","Grave Tithe","Sweep"]
+ g.boss.pos = Vector2i(4,2); g.boss.hp = g.v("lab.boss_hp"); g.boss.max_hp = g.boss.hp; g.boss.block = g.v("lab.boss_block"); g.boss_rolls = ["Strike","Grave Tithe","Sweep"]
  g.boss_sides = [2,4,3]
  for i in range(3):
   var h: Dictionary = g.heroes[i]
   h.pos = [Vector2i(4,4),Vector2i(3,4),Vector2i(5,4)][i]
-  h.hp = 3; h.block = 0; h.reaction = []; h.channel = {}; h.used = [false,false,false]; h.rolls = [0,0,0]; h.results = [1,34,4]
+  h.hp = mini(g.v("lab.hero_hp"),h.max_hp); h.block = g.v("lab.hero_block"); h.reaction = []; h.channel = {}; h.used = [false,false,false]; h.rolls = [0,0,0]; h.results = [1,34,4]
   h.build = [[1,34,4,0,0,0],[34,4,5,0,0,0],[4,7,2,0,0,0]]
   h.stored_num = forced_numeric
  g.heroes[0].build[0][0] = id; g.heroes[0].results[0] = id
@@ -20,8 +20,8 @@ static func create(id: int, forced_numeric: int = -1):
  if id == 23: g.heroes[0].used[2] = true
  if id == 26: g.heroes[0].results[1] = 0; g.heroes[0].rolls[1] = 3
  if id == 32: g.heroes[0].results[1] = 4; g.heroes[0].rolls[1] = 1
- if id == 46: g.heroes[0].hp = 1
- if id == 48: g.heroes[0].taken = 2; g.heroes[0].echo_due = true
+ if id == 46: g.heroes[0].hp = mini(g.v("lab.defy_hp"),g.heroes[0].max_hp)
+ if id == 48: g.heroes[0].taken = g.v("lab.echo_taken"); g.heroes[0].echo_due = true
  if Catalog.is_reaction(id): g.heroes[0].reaction = [0]; g.heroes[0].used[0] = true
  g.on_roll(g.heroes[0],0)
  g.event_log.clear(); g.log_lines.clear(); g.event_id = 0
@@ -57,7 +57,7 @@ static func attack(g, id: int) -> void:
  if id == 28: g.heroes[2].pos = Vector2i(6,5); g.heroes[1].pos = Vector2i(5,4)
  g.begin_action(3,"Lab Strike")
  g.last_action = "Lab Strike"; g.last_targets = [victim]
- g.pending = {"kind":"attack","action":"Strike","victims":[victim],"reacted":[],"amount":2}
+ g.pending = {"kind":"attack","action":"Strike","victims":[victim],"reacted":[],"amount":g.v("boss.Strike.damage")}
  g.continue_attack(); g.report_changes()
 
 static func next_turn(g, forced_numeric: int = -1) -> void:

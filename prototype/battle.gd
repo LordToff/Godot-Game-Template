@@ -1,6 +1,8 @@
 class_name AshBattle
 extends RefCounted
 
+const Balance = preload("res://prototype/balance.gd")
+var balance: Dictionary = {}
 const Catalog = preload("res://prototype/catalog.gd")
 static var FACES: Array = make_face_names()
 
@@ -47,30 +49,46 @@ var boss_sides: Array = []
 var roll_presentations: Array = []
 var initiative_base: Array = []
 
-static func default_build() -> Array:
- return [[1,2,4,1,0,0], [1,3,5,2,0,0], [1,7,6,4,0,0]]
+static func default_build(profile: Dictionary = {}) -> Array:
+ var result: Array = [[1,2,4,1,0,0], [1,3,5,2,0,0], [1,7,6,4,0,0]]
+ var counts := {}
+ var categories := {"Movement":0,"Defense":0,"Skill":0}
+ for die in result:
+  for side in range(6):
+   var f: int = die[side]
+   if f == 0:continue
+   var category: String = Catalog.category(f)
+   if int(counts.get(f,0)) >= Balance.value(profile,"owned."+str(f)) or (categories.has(category) and categories[category] >= Balance.value(profile,"body."+category)):
+    die[side] = 0;continue
+   counts[f] = int(counts.get(f,0))+1
+   if categories.has(category):categories[category] += 1
+  for side in range(5,-1,-1):
+   if die.count(0) >= Balance.value(profile,"body.blanks"):break
+   die[side] = 0
+ return result
 
-static func validate(build: Array, gift: Variant = -1) -> String:
+static func validate(build: Array, gift: Variant = -1, profile: Dictionary = {}) -> String:
  var owned: Array = gift if gift is Array else ([gift] if gift is int and gift >= 0 else [])
  var counts := []
  counts.resize(59)
  counts.fill(0)
  for die in build:
-  if die.size() != 6 or die.count(0) < 2: return "Every six-sided die needs at least 2 Blanks."
+  if die.size() != 6 or die.count(0) < Balance.value(profile,"body.blanks"): return "Every six-sided die needs at least %d Blanks." % Balance.value(profile,"body.blanks")
   for f in die: counts[f] += 1
  for i in range(1,9):
-  if counts[i] > CAPS[i] + (1 if i in owned else 0): return "Not enough owned copies of " + FACES[i] + "."
+  if counts[i] > Balance.value(profile,"owned."+str(i)) + (Balance.value(profile,"owned.bonus") if i in owned else 0): return "Not enough owned copies of " + FACES[i] + "."
  for i in range(9,59):
-  if counts[i] > (1 if i in owned else 0): return "Only owned bonus faces may be equipped."
+  if counts[i] > (Balance.value(profile,"owned.bonus") if i in owned else 0): return "Only owned bonus faces may be equipped."
  var totals := {"Movement":0,"Defense":0,"Skill":0}
  for id in range(1,59):
   var cat: String = Catalog.category(id)
   if totals.has(cat): totals[cat] += counts[id]
- if totals.Movement > 3 or totals.Defense > 3 or totals.Skill > 3:
-  return "Broken Body allows at most 3 of each: Movement, Defense, Skill."
+ if totals.Movement > Balance.value(profile,"body.Movement") or totals.Defense > Balance.value(profile,"body.Defense") or totals.Skill > Balance.value(profile,"body.Skill"):
+  return "Body caps: Movement %d, Defense %d, Skill %d." % [Balance.value(profile,"body.Movement"),Balance.value(profile,"body.Defense"),Balance.value(profile,"body.Skill")]
  return ""
 
-func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: bool = true) -> void:
+func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: bool = true, profile: Dictionary = {}) -> void:
+ balance = profile.duplicate(true)
  rng.randomize()
  if seed_value: rng.seed = seed_value
  initial_builds = builds.duplicate(true); brand_cells.clear(); roll_presentations.clear()
@@ -82,9 +100,9 @@ func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: boo
  heroes.clear(); order.clear(); log_lines.clear(); event_log.clear(); event_id = 0; action_owner = -1; action_label = ""; action_before = {}; recovery.clear(); replaced.clear()
  pending = {}; outcome = ""; atomic_damage = false; forced_die = -1; stun_queue.clear(); cursor = 0; round_no = 0; recovery_active = false
  for i in range(3):
-  heroes.append({"name":["VESPER","ROOK","WREN"][i], "hp":6,"block":0,"pos":Vector2i(2+i*2,7),"dead":false,"broken":false,"protected":false,"weak":false,"stun":false,"setaside":-1,"build":builds[i].duplicate(true),"rolls":[],"results":[],"used":[],"reaction":[],"initiative":rng.randi_range(1,6),"rerolls":1,"opening":true,"soul_move_used":false,"channel":{},"taken":0,"dr":0,"ward":false,"num_boost":0,"numeric_focus":false,"numeric_zero":false,"bulwark_weak":false,"stored_num":-1,"gambler":false,"gold":0,"backstab":0,"debt_buff":0,"debt_next":0,"debt_penalty":0,"echo_due":false,"defy":false,"black_oath":false,"smoke":{},"mods":{},"blessings":0})
+  heroes.append({"name":["VESPER","ROOK","WREN"][i], "hp":v("hero.hp"),"max_hp":v("hero.hp"),"block":0,"pos":Vector2i(2+i*2,7),"dead":false,"broken":false,"protected":false,"weak":false,"stun":false,"setaside":-1,"build":builds[i].duplicate(true),"rolls":[],"results":[],"used":[],"reaction":[],"initiative":rng.randi_range(v("initiative.min"),v("initiative.max")),"rerolls":mini(v("hero.rerolls"),v("hero.reroll_cap")),"opening":true,"soul_move_used":false,"soul_moves_used":0,"channel":{},"taken":0,"dr":0,"ward":false,"num_boost":0,"numeric_focus":false,"numeric_zero":false,"bulwark_weak":false,"stored_num":-1,"gambler":false,"gold":0,"backstab":0,"debt_buff":0,"debt_next":0,"debt_penalty":0,"echo_due":false,"defy":false,"black_oath":false,"smoke":{},"mods":{},"blessings":0,"mutations":0})
   order.append(i)
- boss = {"hp":16 if tuned else 18,"max_hp":16 if tuned else 18,"block":0,"mark":false,"bargain":{},"weak":false,"binds":[],"pos":Vector2i(3,3),"initiative":rng.randi_range(1,6)}
+ boss = {"hp":v("boss.hp"),"max_hp":v("boss.hp"),"block":0,"mark":false,"bargain":{},"weak":false,"binds":[],"pos":Vector2i(3,3),"initiative":rng.randi_range(v("initiative.min"),v("initiative.max"))}
  order.append(3)
  order.sort_custom(func(a,b):
   var av: int = boss.initiative if a == 3 else heroes[a].initiative
@@ -203,7 +221,7 @@ func shared_roll() -> void:
   var action: String = boss_dice()[index][side]
   for bind in boss.binds:
    if bind.die == index and bind.action == action:
-    action = "Bound"; damage(bind.owner,1); break
+    action = "Bound"; damage(bind.owner,v("face18.backlash")); break
   boss_rolls.append(action)
  for id in range(3):
   var h: Dictionary = heroes[id]
@@ -258,11 +276,11 @@ func activate() -> void:
   if h.dead or h.hp == 0 or active in replaced:
    cursor += 1; activate(); return
   if h.echo_due:
-   h.echo_due = false; damage(active,1,true)
+   h.echo_due = false; damage(active,v("face48.penalty"),true)
    if h.hp <= 0 or outcome != "":
     if outcome == "": cursor += 1; activate()
     return
-  if h.dr > 0: record_event("expire",unit_name(active)+" loses Damage Reduction 1 at turn start.",active,active)
+  if h.dr > 0: record_event("expire",unit_name(active)+" loses Damage Reduction at turn start.",active,active)
   if h.ward: record_event("expire",unit_name(active)+" loses Wither Ward at turn start.",active,active)
   h.dr = 0; h.bulwark_weak = false; h.ward = false; h.num_boost = 0; h.numeric_focus = false
   h.debt_penalty = maxi(h.debt_penalty,h.debt_next); h.debt_next = 0
@@ -270,7 +288,7 @@ func activate() -> void:
   if h.channel.is_empty() or h.channel.face != 31:
    if h.block > 0: record_event("expire","%s loses %d unspent Block at turn start." % [unit_name(active),h.block],active,active)
    h.block = 0
-  h.opening = true; h.soul_move_used = false
+  h.opening = true; h.soul_move_used = false; h.soul_moves_used = 0
   if not h.channel.is_empty(): pending = {"kind":"channel","hero":active}
 
 func finish_turn() -> void:
@@ -283,7 +301,7 @@ func finish_turn() -> void:
   heroes[active].stun = false
   heroes[active].debt_buff = 0; heroes[active].num_boost = 0; heroes[active].numeric_focus = false
   if heroes[active].black_oath and heroes[active].block > 0:
-   heroes[active].black_oath = false; damage(active,1,true)
+   heroes[active].black_oath = false; damage(active,v("face50.penalty"),true)
    if outcome != "": return
  if active == 3: boss.weak = false
  if recovery_active:
@@ -296,7 +314,7 @@ func finish_turn() -> void:
    finish_turn(); return
   replaced.append(active); recovery_active = true
   heroes[active].block = 0
-  heroes[active].opening = true; heroes[active].soul_move_used = false
+  heroes[active].opening = true; heroes[active].soul_move_used = false; heroes[active].soul_moves_used = 0
   roll_context = "Recovery · fresh Action Dice"
   roll_serial += 1
   heroes[active].setaside = -1
@@ -366,11 +384,12 @@ func boss_move(steps: int) -> bool:
  return moved
 
 func fallback() -> void:
- if tuned and not targets(1).is_empty():
-  note("No closer step: The Hollow holds position; no free Block.")
-  return
- if boss_move(1): note("Fallback · The Hollow moves one step closer.")
- else: boss.block += 1; note("Fallback · Cannot close the gap; +1 Block.")
+ if not targets(1).is_empty():
+  boss.block += v("boss.fallback.idle")
+  note("No closer step: The Hollow holds position; gains %d Block." % v("boss.fallback.idle"))
+ elif boss_move(v("boss.fallback.move")):note("Fallback · The Hollow closes the gap.")
+ else:
+  boss.block += v("boss.fallback.block");note("Fallback · Block +%d." % v("boss.fallback.block"))
 
 func check_end() -> void:
  if atomic_damage: return
@@ -395,15 +414,15 @@ func damage(id: int, amount: int, unavoidable: bool = false, reason: String = ""
   if amount > 0 and not h.protected: h.dead = true; note(h.name + " is slain.")
  elif amount > 0:
   if id < 3 and h.defy and h.hp-amount <= 0:
-   h.defy = false; amount = maxi(0,h.hp-1); h.stun = true
+   h.defy = false; amount = maxi(0,h.hp-mini(h.hp,v("face46.hp"))); h.stun = true
    for d in range(3):
     if not h.used[d]: h.used[d] = true; break
   var old_hp: int = h.hp
   h.hp = maxi(0,h.hp-amount)
   if id < 3: h.taken += old_hp-h.hp
-  if id < 3 and h.ward and distance(id,3) == 1:
+  if id < 3 and h.ward and distance(id,3) <= v("face51.range"):
    boss.weak = true
-   record_event("debuff","Wither Ward: %s inflicts Weakness 1 on The Hollow until the boss turn ends." % unit_name(id),id,3)
+   record_event("debuff","Wither Ward: %s inflicts Weakness %d on The Hollow until the boss turn ends." % [unit_name(id),v("face51.weakness")],id,3)
    if action_before.has(3): action_before[3].statuses["Weakness"] = true
   if id < 3 and h.hp == 0:
    if h.broken: h.dead = true; note(h.name + " is slain — Broken.")
@@ -418,7 +437,7 @@ func damage(id: int, amount: int, unavoidable: bool = false, reason: String = ""
  var label: String = reason if reason != "" else (action_label if action_label != "" else "Damage")
  var result := "%s — %s → %s: %d incoming; %d blocked" % [label,unit_name(action_owner),unit_name(id),incoming,absorbed]
  if reduction > 0: result += "; %d reduced" % reduction
- result += "; %d HP lost. HP %d/%d, Block %d." % [lost,h.hp,6 if id < 3 else boss.max_hp,h.block]
+ result += "; %d HP lost. HP %d/%d, Block %d." % [lost,h.hp,h.get("max_hp",v("hero.hp")) if id < 3 else boss.max_hp,h.block]
  if unavoidable: result += " Unavoidable: bypasses Block and ordinary reduction."
  if id < 3 and initial_hp == 0 and h.protected: result += " Downed protection prevents death this turn."
  record_event("damage" if lost > 0 else ("block" if absorbed+reduction > 0 else "info"),result,action_owner,id,lost)
@@ -426,16 +445,16 @@ func damage(id: int, amount: int, unavoidable: bool = false, reason: String = ""
  if id < 3 and lost > 0 and not broken_channel.is_empty() and broken_channel.face in [25,49]:
   var ch: Dictionary = broken_channel; h.channel = {}
   mutate(id,ch.die,ch.side,56 if ch.face == 25 else 0)
-  if ch.face == 25 and outcome == "": damage(id,2,false,"Contained Power backlash")
+  if ch.face == 25 and outcome == "": damage(id,v("face25.backlash"),false,"Contained Power backlash")
 
 func heal(id: int, value: int = 1) -> void:
  var h: Dictionary = heroes[id]
  if h.dead or value <= 0: return
  if h.hp == 0:
   h.broken = true; h.protected = false; recovery.append(id)
- var restored: int = mini(6-h.hp,value)
+ var restored: int = maxi(0,mini(h.get("max_hp",v("hero.hp"))-h.hp,value))
  h.hp += restored
- record_event("heal","%s — %s heals %s for %d HP. HP %d/6." % [action_label,unit_name(action_owner),unit_name(id),restored,h.hp],action_owner,id,restored)
+ record_event("heal","%s — %s heals %s for %d HP. HP %d/%d." % [action_label,unit_name(action_owner),unit_name(id),restored,h.hp,h.get("max_hp",v("hero.hp"))],action_owner,id,restored)
 
 func face(id: int, d: int) -> int:
  return heroes[id].results[d]
@@ -458,16 +477,16 @@ func hero_action(d: int, target: int = -1, destination: Vector2i = Vector2i(-99,
  match f:
   0:
    if reward and destination.x != -99:
-    if h.soul_move_used or not reachable(active,2,false).has(destination): return false
-    h.pos = destination; h.soul_move_used = true
-    record_event("soul",unit_name(active)+" uses the first reward Soul: spends one rolled Blank as Move 2. Soul conversion 1/1 used this hero turn; installed face remains Blank.",active,active)
+    if soul_remaining(active) <= 0 or not reachable(active,v("soul.move"),false).has(destination): return false
+    h.pos = destination; h.soul_moves_used = int(h.get("soul_moves_used",0))+1; h.soul_move_used = h.soul_moves_used >= v("soul.uses")
+    record_event("soul","%s uses the first reward Soul: spends one rolled Blank as Move %d. Soul conversion %d/%d used this hero turn; installed face remains Blank." % [unit_name(active),v("soul.move"),h.soul_moves_used,v("soul.uses")],active,active)
   1:
-   if target < 0 or target == active or distance(active,target) != 1: return false
-   strike(d,target,2 if tuned else 1)
+   if target < 0 or target == active or distance(active,target) > face_range(f): return false
+   strike(d,target,v("face1.damage"))
   2,3:
-   if not reachable(active,1 if f == 2 else 3,f == 3).has(destination): return false
+   if not reachable(active,move_steps(f),f == 3).has(destination): return false
    h.pos = destination
-  4: h.block += modified_value(d,1)
+  4: h.block += modified_value(d,v("face4.block"))
   6:
    if target < 0 or target == d or h.used[target]: return false
    spend(d)
@@ -482,16 +501,18 @@ func hero_action(d: int, target: int = -1, destination: Vector2i = Vector2i(-99,
    else: forced_die = target
    return true
   7:
-   if target < 0 or target == 3 or heroes[target].dead or (target != active and distance(active,target) != 1): return false
-   heal(target)
+   if target < 0 or target == 3 or heroes[target].dead or (target != active and distance(active,target) > face_range(f)): return false
+   heal(target,v("face7.heal"))
   8:
-   if target < 0 or target == active or distance(active,target) != 1: return false
+   if target < 0 or target == active or distance(active,target) > face_range(f): return false
    var dirs := away_dirs(active,target)
    if destination not in dirs: return false
    var tp: Vector2i = boss.pos if target == 3 else heroes[target].pos
-   if legal(target,tp+destination):
-    if target == 3: boss.pos += destination
-    else: heroes[target].pos += destination
+   for step in range(v("face8.move")):
+    if not legal(target,tp+destination):break
+    tp += destination
+    if target == 3:boss.pos = tp
+    else:heroes[target].pos = tp
    note("Shove · No collision penalty.")
   _: return false
  spend(d,true)
@@ -537,68 +558,75 @@ func boss_step() -> void:
  last_targets.clear()
  match action:
   "Ashen Chain":
-   var target := nearest(targets(3))
+   var target := nearest(targets(v("boss.chain.range")))
    if target < 0: fallback()
    else:
     last_targets = [target]
     var h: Dictionary = heroes[target]
     var origin: Vector2i = h.pos
     var best: Vector2i = origin
-    var dist := distance(3,target)
-    for dir in DIRS:
-     if legal(target,origin+dir) and distance(target,3,origin+dir) < dist:
-      best = origin+dir; dist = distance(target,3,best)
+    for step in range(v("boss.chain.move")):
+     var dist := distance(target,3,best);var next: Vector2i = best
+     for dir in DIRS:
+      if legal(target,best+dir) and distance(target,3,best+dir) < dist:
+       next = best+dir;dist = distance(target,3,next)
+     if next == best:break
+     best = next
     h.pos = best
-    var lost: int = mini(1,h.block); h.block -= lost
+    var lost: int = mini(v("boss.chain.strip"),h.block); h.block -= lost
     record_event("debuff","Ashen Chain pulls %s %s → %s and removes %d Block. No HP damage; occupied cells stop the pull." % [unit_name(target),cell_name(origin),cell_name(best),lost],3,target)
   "Cinder Brand":
-   var target := nearest(targets(3))
+   var target := nearest(targets(v("boss.brand.range")))
    if target < 0: fallback()
    elif not brand_cells.is_empty(): note("Cinder Brand is already armed; the marked cells remain unchanged.")
    else:
     var at: Vector2i = heroes[target].pos
-    for offset in [Vector2i.ZERO,Vector2i.UP,Vector2i.RIGHT,Vector2i.DOWN,Vector2i.LEFT]:
+    var offsets: Array = [Vector2i.ZERO]
+    for direction in DIRS:
+     for step in range(1,v("boss.brand.radius")+1):offsets.append(direction*step)
+    for offset in offsets:
      var cell: Vector2i = at+offset
      if cell.x in range(9) and cell.y in range(9): brand_cells.append(cell)
     var names: Array[String] = []
     for cell in brand_cells: names.append(cell_name(cell))
-    record_event("hazard","Cinder Brand marks " + ", ".join(names) + ". At the START of the next boss turn, each hero still on a marked cell takes 1 normal damage. Move off the red cross to evade; this action deals no immediate damage.",3,target)
+    fire_event(3,brand_cells,"Cinder Brand armed",true)
+    record_event("hazard","Cinder Brand marks " + ", ".join(names) + ". At the START of the next boss turn, each hero still on a marked cell takes %d normal damage. Move off the red cross to evade; no immediate damage." % v("boss.brand.damage"),3,target)
   "Grave Tithe":
    var stolen := 0
-   for target in targets(2):
-    var lost: int = mini(1,heroes[target].block); heroes[target].block -= lost; stolen += lost
-    if lost: record_event("debuff","Grave Tithe removes 1 Block from " + unit_name(target) + ".",3,target)
-   boss.block += mini(2,stolen)
-   note("Grave Tithe steals %d Block; The Hollow gains %d Block (maximum 2). No HP damage." % [stolen,mini(2,stolen)])
+   for target in targets(v("boss.tithe.range")):
+    var lost: int = mini(v("boss.tithe.strip"),heroes[target].block); heroes[target].block -= lost; stolen += lost
+    if lost: record_event("debuff","Grave Tithe removes %d Block from %s." % [lost,unit_name(target)],3,target)
+   boss.block += mini(v("boss.tithe.cap"),stolen)
+   note("Grave Tithe steals %d Block; The Hollow gains %d (cap %d). No HP damage." % [stolen,mini(v("boss.tithe.cap"),stolen),v("boss.tithe.cap")])
   "Bound": note("Lethargic Bind suppresses this action.")
   "Advance":
-   if not boss_move(2): fallback()
+   if not boss_move(v("boss.advance.move")): fallback()
   "Brace":
-   var value := 1 if tuned else 2
+   var value := v("boss.brace.block")
    boss.block += value
    note("Brace · +%d Block. Total: %d. Expires at the next boss turn." % [value,boss.block])
   "Distort":
-   var t := nearest(targets(2))
+   var t := nearest(targets(v("boss.distort.range")))
    if t < 0: fallback()
    else:
     last_targets = [t]; heroes[t].weak = true
-    record_event("debuff","Distort: %s gains Weakness 1 until the next boss turn; its Attacks deal 1 less damage." % unit_name(t),3,t)
+    record_event("debuff","Distort: %s gains Weakness %d until the next boss turn." % [unit_name(t),v("boss.distort.weakness")],3,t)
     if action_before.has(t): action_before[t].statuses["Weakness"] = true
   "Fracture":
-   var ts := targets(1).filter(func(i): return heroes[i].build.any(func(d): return d.any(func(f): return f not in [0,56])))
+   var ts := targets(v("boss.fracture.range")).filter(func(i): return heroes[i].build.any(func(d): return d.any(func(f): return f not in [0,56])))
    var t := nearest(ts)
    if t < 0: fallback()
-   else: last_targets = [t]; pending = {"kind":"fracture","hero":t}
+   else: last_targets = [t]; pending = {"kind":"fracture","hero":t,"remaining":v("boss.fracture.count")}
   _:
-   if action == "Skirmish": boss_move(1)
-   var ts := targets(1,action == "Sweep")
+   if action == "Skirmish": boss_move(v("boss.skirmish.move"))
+   var ts := targets(boss_range(action),action == "Sweep")
    if ts.is_empty():
     if action != "Skirmish": fallback()
    else:
     var victims: Array = ts if action == "Sweep" else [nearest(ts,action == "Strike")]
     last_targets = victims.duplicate()
     note(action + " targets " + ", ".join(victims.map(func(t): return heroes[t].name)))
-    pending = {"kind":"attack","action":action,"victims":victims,"reacted":[],"amount":2 if action == "Strike" else 1}
+    pending = {"kind":"attack","action":action,"victims":victims,"reacted":[],"amount":v("boss."+action+".damage")}
     continue_attack()
  report_changes()
 
@@ -613,16 +641,16 @@ func continue_attack() -> void:
     if key in pending.reacted: continue
     var f: int = face(actor,die)
     var trigger: bool = actor == victim and (f in [5,28] or heroes[actor].smoke.has(die))
-    if f == 44: trigger = actor != victim and distance(actor,victim) <= 2 and sight(actor,victim,2)
-    if f == 45: trigger = actor != victim and distance(actor,3) == 1 and pending.action != "Sweep"
-    if f == 46: trigger = actor == victim and pending.amount-int(boss.weak)-heroes[actor].block-heroes[actor].dr >= heroes[actor].hp
+    if f == 44: trigger = actor != victim and distance(actor,victim) <= v("face44.range") and sight(actor,victim,v("face44.range"))
+    if f == 45: trigger = actor != victim and distance(actor,3) <= mini(v("face45.range"),boss_range(pending.action)) and pending.action != "Sweep"
+    if f == 46: trigger = actor == victim and pending.amount-(v("face51.weakness") if boss.weak else 0)-heroes[actor].block-heroes[actor].dr >= heroes[actor].hp
     if f == 48: trigger = true
     if trigger:
      pending.kind = "reaction"; pending.hero = actor; pending.die = die; pending.victim = victim
      return
  var victims: Array = pending.victims.duplicate()
- if action != "Sweep" and (heroes[victims[0]].hp <= 0 or distance(3,victims[0]) != 1):
-  var ts := targets(1)
+ if action != "Sweep" and (heroes[victims[0]].hp <= 0 or distance(3,victims[0]) > boss_range(action)):
+  var ts := targets(boss_range(action))
   if ts.is_empty():
    note(action + " has no legal adjacent target after Reactions; " + ("completed movement is kept, attack ends." if action == "Skirmish" else "attack is replaced by fallback."))
    pending = {}
@@ -635,9 +663,9 @@ func continue_attack() -> void:
  pending = {}
  for t in victims:
   # Sweep locks its area after all reactions, and hits each adjacent unit once.
-  if action == "Sweep" and distance(3,t) != 1: continue
-  record_event("attack","The Hollow attacks %s with %s for %d damage." % [unit_name(t),action,maxi(0,amount-int(boss.weak))],3,t,amount)
-  damage(t,maxi(0,amount-int(boss.weak)))
+  if action == "Sweep" and distance(3,t) > boss_range(action): continue
+  record_event("attack","The Hollow attacks %s with %s for %d damage." % [unit_name(t),action,maxi(0,amount-(v("face51.weakness") if boss.weak else 0))],3,t,amount)
+  damage(t,maxi(0,amount-(v("face51.weakness") if boss.weak else 0)))
   if outcome != "": return
   if action == "Drive Back": pending = {"kind":"push","hero":t}; return
 
@@ -652,17 +680,20 @@ func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
   begin_action(t,"Reaction: "+FACES[f],victim,die)
   match f:
    28:
-    var options := targets(1).filter(func(id):return id != t)
+    var options := targets(mini(v("face28.range"),boss_range(pending.action))).filter(func(id):return id != t)
     if not options.is_empty(): pending.victims = [nearest(options)]
-   44: h.block += 1; heroes[victim].block += 1
+   44: h.block += v("face44.self"); heroes[victim].block += v("face44.ally")
    45: pending.victims = [t]
    46: h.defy = true; mutate(t,die,h.rolls[die],0)
    48:
-    h.echo_due = false; mutate(t,die,h.rolls[die],0); damage(3,mini(3,h.taken))
+    h.echo_due = false; mutate(t,die,h.rolls[die],0); damage(3,mini(v("face48.cap"),h.taken))
     if outcome != "": return
    _:
-    if not h.smoke.has(die) or h.smoke[die] == 4: h.block += 1
-    if dir != Vector2i.ZERO and legal(t,h.pos+dir): h.pos += dir
+    if not h.smoke.has(die) or h.smoke[die] == 4: h.block += v("face32.block") if h.smoke.has(die) else v("face5.block")
+    if dir != Vector2i.ZERO:
+     for step in range(v("face32.move") if h.smoke.has(die) else v("face5.move")):
+      if not legal(t,h.pos+dir):break
+      h.pos += dir
     h.smoke.erase(die)
   report_changes()
   action_owner = 3; action_label = pending.action; action_before = {}
@@ -674,26 +705,24 @@ func fracture(d: int, side: int) -> void:
  note(heroes[t].name + " loses " + FACES[heroes[t].build[d][side]] + " for this encounter.")
  mutate(t,d,side,0)
  if d in heroes[t].reaction and heroes[t].rolls[d] == side: heroes[t].reaction.erase(d)
- pending = {}
+ if int(pending.get("remaining",1)) > 1 and heroes[t].build.any(func(die):return die.any(func(f):return f not in [0,56])):pending.remaining -= 1
+ else:pending = {}
 
 func push(dir: Vector2i) -> void:
  var t: int = pending.hero
- if dir not in away_dirs(3,t): return
+ if dir not in away_dirs(3,t):return
  pending = {}
- if legal(t,heroes[t].pos+dir):
-  var origin: Vector2i = heroes[t].pos
-  heroes[t].pos += dir
-  record_event("move","Drive Back pushes %s %s → %s." % [unit_name(t),cell_name(origin),cell_name(heroes[t].pos)],3,t)
- else:
-  record_event("collision","Drive Back: %s hits an obstruction at %s; suffers 1 unavoidable damage and Stunned." % [unit_name(t),cell_name(heroes[t].pos+dir)],3,t)
-  damage(t,1,true,"Drive Back collision")
-  if outcome != "" or heroes[t].dead or heroes[t].hp == 0: return
-  if heroes[t].stun: damage(t,1,true)
+ var origin: Vector2i = heroes[t].pos
+ for step in range(v("boss.push.move")):
+  if legal(t,heroes[t].pos+dir):heroes[t].pos += dir
   else:
-   if heroes[t].used.has(false):
-    heroes[t].stun = true
-    pending = {"kind":"stun","hero":t}
- note("Drive Back · Forced movement; collision causes 1 unavoidable damage and Stunned.")
+   record_event("collision","Drive Back: %s hits an obstruction; suffers %d unavoidable damage and Stunned." % [unit_name(t),v("boss.push.collision")],3,t)
+   damage(t,v("boss.push.collision"),true,"Drive Back collision")
+   if outcome != "" or heroes[t].dead or heroes[t].hp == 0:return
+   if heroes[t].stun:damage(t,v("status.stun_repeat"),true)
+   elif heroes[t].used.has(false):heroes[t].stun = true;pending = {"kind":"stun","hero":t}
+   break
+ if origin != heroes[t].pos:record_event("move","Drive Back pushes %s %s → %s." % [unit_name(t),cell_name(origin),cell_name(heroes[t].pos)],3,t)
 
 func stun_die(d: int) -> void:
  var t: int = pending.hero
@@ -713,8 +742,8 @@ func stun_die(d: int) -> void:
 func action_reroll(d: int) -> bool:
  if active >= 3 or outcome != "" or not pending.is_empty(): return false
  var h: Dictionary = heroes[active]
- if not h.opening or h.rerolls <= 0 or h.used[d] or face(active,d) in [9,11,15,56]: return false
- h.rerolls -= 1
+ if not h.opening or h.rerolls < v("hero.reroll_cost") or h.used[d] or face(active,d) in [9,11,15,56]: return false
+ h.rerolls -= v("hero.reroll_cost")
  action_owner = active; action_label = "Action Reroll"; action_before = {}
  h.rolls[d] = rng.randi_range(0,5)
  h.results[d] = h.build[d][h.rolls[d]]
@@ -723,10 +752,17 @@ func action_reroll(d: int) -> bool:
  roll_context = "Action Reroll · keep the new result"
  roll_serial += 1
  present_action_roll(active,[d],"Action reroll")
- record_event("roll",h.name.capitalize() + " spends 1 Action Reroll: Die %s → %s. Charges left: %d." % [["I","II","III"][d],FACES[face(active,d)],h.rerolls],active,active)
+ record_event("roll",h.name.capitalize() + " spends %d Action Reroll: Die %s → %s. Charges left: %d." % [v("hero.reroll_cost"),["I","II","III"][d],FACES[face(active,d)],h.rerolls],active,active)
  return true
 
 func boss_help(action: String) -> String:
+ var base := default_boss_help(action)
+ if balance.is_empty():return base
+ var group := "Boss · "+action
+ var values := Balance.summary(balance,group,tuned)
+ return "ACTIVE VALUES\n"+values+"\n\nRules reference (default numbers; active values above take precedence):\n"+base
+
+func default_boss_help(action: String) -> String:
  match action:
   "Ashen Chain": return "Pull the closest standing hero within 3 one legal cell closer; strip 1 Block. Units stop the pull. No HP damage."
   "Cinder Brand": return "Mark a red cross beneath the closest hero within 3. At NEXT boss turn start, each hero on any marked cell takes 1 normal damage. Move away to evade. A second Brand cannot stack."
@@ -736,7 +772,7 @@ func boss_help(action: String) -> String:
   "Strike": return "Attack the closest adjacent standing hero for 2 damage. Ties: lowest Block, then random."
   "Sweep": return "Attack EVERY adjacent hero for 1 each, including Downed heroes. Each hero is hit once."
   "Drive Back": return "Attack an adjacent hero for 1, then push 1 directly away. Collision: 1 unavoidable damage + Stunned."
-  "Brace": return "Gain %d Block. Damage consumes Block; any left expires at the boss’s next turn." % (1 if tuned else 2)
+  "Brace": return "Gain %d Block. Damage consumes Block; any left expires at the boss’s next turn." % v("boss.brace.block")
   "Distort": return "Closest standing hero within 2 gains Weakness 1 until the next boss turn: Attacks deal 1 less damage."
   "Fracture": return "Closest adjacent hero chooses one installed ability to become Blank for this fight. Earlier rolled results stay."
  return "Resolve one boss die at a time, then end its turn."
@@ -745,15 +781,15 @@ func on_roll(h: Dictionary, d: int) -> void:
  var f: int = h.results[d]
  if f == 13:
   var before: int = h.rerolls
-  h.rerolls = mini(1,h.rerolls+1)
-  record_event("buff" if before == 0 else "info",h.name.capitalize()+ (" gains 1 Action Reroll from Clairvoyance." if before == 0 else " rolls Clairvoyance, but the Action Reroll bank is already full (1/1)."),heroes.find(h),heroes.find(h))
+  h.rerolls = mini(v("hero.reroll_cap"),h.rerolls+v("face13.rerolls"))
+  record_event("buff" if h.rerolls > before else "info","%s rolls Clairvoyance: gains %d Action Rerolls; bank %d/%d." % [h.name.capitalize(),h.rerolls-before,h.rerolls,v("hero.reroll_cap")],heroes.find(h),heroes.find(h))
  if f == 48: h.echo_due = true
  if not h.channel.is_empty() and h.channel.face == 25 and h.channel.die != d:
   if h.channel.get("confirmed",true):
-   if f == 0: h.block += 1
-   else: h.channel.boost = mini(2,h.channel.get("boost",0)+1)
-  elif f == 0: h.channel.pending_blank = h.channel.get("pending_blank",0)+1
-  else: h.channel.pending_boost = mini(2,h.channel.get("pending_boost",0)+1)
+   if f == 0: h.block += v("face25.blank_block")
+   else: h.channel.boost = mini(v("face25.cap"),h.channel.get("boost",0)+v("face25.boost"))
+  elif f == 0: h.channel.pending_blank = h.channel.get("pending_blank",0)+v("face25.blank_block")
+  else: h.channel.pending_boost = mini(v("face25.cap"),h.channel.get("pending_boost",0)+v("face25.boost"))
 
 func numeric(h: Dictionary, damage_value: bool = false) -> int:
  var value := 0
@@ -766,15 +802,15 @@ func numeric(h: Dictionary, damage_value: bool = false) -> int:
   if h.gambler and side == 4: absolute_zero = true
   elif h.gambler and side == 5:
    var base := rng.randi_range(0,4)
-   value = 2*(1 if base < 4 or h.numeric_focus else 0)
-  else: value = 1 if side < 4 or h.numeric_focus else 0
+   value = v("face9.multiplier")*(v("numeric.positive") if base < v("numeric.positive_faces") else (v("face20.blank_value") if h.numeric_focus else v("numeric.blank")))
+  else: value = v("numeric.positive") if side < v("numeric.positive_faces") else (v("face20.blank_value") if h.numeric_focus else v("numeric.blank"))
  var rolled_value := value
  h.numeric_focus = false
  if not absolute_zero:
   if not h.channel.is_empty() and h.channel.face == 25: value += h.channel.get("boost",0)
   if damage_value: value += h.num_boost; h.num_boost = 0
  h.numeric_zero = absolute_zero
- roll_presentations.append({"actor":h.name.capitalize(),"kind":("Numeric · base %d → value %d" % [rolled_value,value]) + (" · Attack modifiers follow" if damage_value else ""),"faces":[["1","1","1","1","×0" if h.gambler else "0","×2" if h.gambler else "0"]],"sides":[numeric_side],"results":[str(value)],"dice":[0]})
+ roll_presentations.append({"actor":h.name.capitalize(),"kind":("Numeric · base %d → value %d" % [rolled_value,value]) + (" · Attack modifiers follow" if damage_value else ""),"faces":[numeric_faces(h.gambler)],"sides":[numeric_side],"results":[str(value)],"dice":[0]})
  note(h.name + " rolls Numeric → " + str(value))
  roll_context = "Numeric Die · result " + str(value)
  roll_serial += 1
@@ -791,50 +827,51 @@ func modified_value(d: int, value: int) -> int:
 
 func strike(d: int, target: int, base: int, pierce: int = 0, numeric_attack: bool = false) -> int:
  var h: Dictionary = heroes[active]
- var value := maxi(0,modified_value(d,base)-int(h.weak or h.bulwark_weak))
+ var value := maxi(0,modified_value(d,base)-hero_weakness(h))
  if numeric_attack and h.numeric_zero: value = 0
  var repeats := 1
- if h.backstab >= round_no and target == 3 and rear(active): repeats += 1; h.backstab = 0
+ if h.backstab >= round_no and target == 3 and rear(active): repeats += v("face10.repeat"); h.backstab = 0
  if h.mods.has(d):
   pierce += h.mods[d].get("pierce",0); repeats += h.mods[d].get("repeat",0)
  var lost := 0
  for n in range(repeats):
   if outcome != "" or h.hp <= 0 or h.dead: break
   if target < 3 and heroes[target].dead: break
-  if distance(active,target) > (2 if face(active,d) == 35 else 1): break
-  if face(active,d) == 35 and not sight(active,target,2): break
+  if distance(active,target) > face_range(face(active,d)): break
+  if face(active,d) == 35 and not sight(active,target,face_range(35)): break
   if n > 0:
    var next_base: int = numeric_attack_base(d,target) if numeric_attack else base
-   value = maxi(0,modified_value(d,next_base)-int(h.weak or h.bulwark_weak))
+   value = maxi(0,modified_value(d,next_base)-hero_weakness(h))
    if numeric_attack and h.numeric_zero: value = 0
   var unit: Dictionary = boss if target == 3 else heroes[target]
   var before: int = unit.hp
   var hit_had_block: bool = unit.block > 0
   var marked: bool = target == 3 and boss.mark and unit.block == 0 and value > 0
-  var power := 1 if target == 3 and not boss.bargain.is_empty() and not (numeric_attack and h.numeric_zero) else 0
+  var bargained: bool = target == 3 and not boss.bargain.is_empty() and not (numeric_attack and h.numeric_zero)
+  var power := v("face27.damage") if bargained else 0
   var bypass := mini(unit.block,pierce)
   unit.block -= bypass
-  record_event("attack","%s attacks %s with %s for %d damage%s." % [unit_name(active),unit_name(target),action_label,mini(1,value+power) if face(active,d) == 35 else value+power," (Pierce %d)" % pierce if pierce > 0 else ""],active,target,value+power)
-  damage(target,mini(1,value+power) if face(active,d) == 35 else value+power)
+  record_event("attack","%s attacks %s with %s for %d damage%s." % [unit_name(active),unit_name(target),action_label,mini(v("face35.cap"),value+power) if face(active,d) == 35 else value+power," (Pierce %d)" % pierce if pierce > 0 else ""],active,target,value+power)
+  damage(target,mini(v("face35.cap"),value+power) if face(active,d) == 35 else value+power)
   if target == 3 or (unit.hp > 0 and not unit.dead): unit.block += bypass
   var hit_loss: int = maxi(0,before-unit.hp)
   lost += hit_loss
   if outcome != "": break
   if face(active,d) == 40 and target == 3 and hit_had_block and unit.block == 0 and hit_loss > 0: delay_boss_once()
-  if face(active,d) == 36 and hit_loss >= 2: h.block += hit_loss
+  if face(active,d) == 36 and hit_loss >= v("face36.threshold"): h.block += hit_loss*v("face36.multiplier")
   if face(active,d) == 41: engrave_copy(d)
   if outcome != "": break
   if marked and before > unit.hp:
    boss.mark = false
-   if face(active,d) != 35: damage(3,1)
-  if power > 0 and outcome == "":
+   if face(active,d) != 35: damage(3,v("face21.damage"))
+  if bargained and outcome == "":
    boss.bargain.charges -= 1
    if boss.bargain.charges == 0:
-    var owner: int = boss.bargain.owner; boss.bargain = {}; damage(owner,1,true,"Blood Bargain backlash")
+    var owner: int = boss.bargain.owner; boss.bargain = {}; damage(owner,v("face27.backlash"),true,"Blood Bargain backlash")
  return lost
 
 func rear(id: int) -> bool:
- return heroes[id].pos.y >= boss.pos.y+2 and distance(id,3) == 1
+ return heroes[id].pos.y >= boss.pos.y+2 and distance(id,3) <= v("face51.range")
 
 func sight(a: int, b: int, limit: int) -> bool:
  for start_cell in cells(a):
@@ -885,8 +922,8 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
  match f:
   9:
    if not h.gambler: h.gambler = true; note(h.name + " arms Gambler's Coin (x0 / x2).")
-   else: h.gold += 1; mutate(active,d,side,0); note("Gambler's Coin becomes Blank · +1 Gold.")
-  10: h.backstab = round_no+1
+   else: h.gold += v("face9.gold"); mutate(active,d,side,0); note("Gambler's Coin becomes Blank · +%d Gold." % v("face9.gold"))
+  10: h.backstab = round_no+v("face10.duration")
   11,16,23,26,30,32:
    pending = {"kind":"catalog_choice","hero":active,"die":d,"face":f,"stage":0}
    return true
@@ -896,16 +933,16 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
    pending = {"kind":"slot","hero":active,"die":d,"face":f,"target":target,"install":55}
    return true
   13: pass # The when-rolled charge was already granted.
-  14: h.num_boost += 1
+  14: h.num_boost += v("face14.boost")
   15,19:
-   if target < 0 or target >= 3 or target == active or heroes[target].dead or distance(active,target) > 3 or not sight(active,target,3): return false
+   if target < 0 or target >= 3 or target == active or heroes[target].dead or distance(active,target) > face_range(f) or not sight(active,target,face_range(f)): return false
    if f == 15 and not heroes[target].build.any(func(die):return 0 in die): return false
-   var value := numeric(h)
-   if f == 19 and not h.numeric_zero: value = maxi(1,value)
+   var value := numeric_for(f,h)
+   if f == 19 and not h.numeric_zero: value = maxi(v("face19.minimum"),value)
    heal(target,value)
    if f == 15: mutate(active,d,side,0); add_to_blank(target,15)
   17:
-   if h.stored_num < 0: h.stored_num = 1 if rng.randi_range(0,5) < 4 else 0
+   if h.stored_num < 0: h.stored_num = v("numeric.positive") if rng.randi_range(0,5) < v("numeric.positive_faces") else v("numeric.blank")
   18:
    pending = {"kind":"bind","hero":active,"die":d}
    return true
@@ -914,16 +951,16 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
   22:
    for other in range(3):
     if other != d and not h.used[other] and face(active,other) != 0: return false
-   damage(3,1,true)
+   damage(3,v("face22.damage"),true)
   24:
    var attacks: Array = h.build[d].filter(func(id):return Catalog.is_attack(id))
    if not attacks.is_empty():
     var copied: int = attacks[rng.randi_range(0,attacks.size()-1)]
     h.results[d] = copied
-    for n in range(2):
+    for n in range(v("face24.repeat")):
      var victims: Array = []
      for id in range(4):
-      if id != active and not (id < 3 and heroes[id].dead) and distance(active,id) <= (2 if copied == 35 else 1): victims.append(id)
+      if id != active and not (id < 3 and heroes[id].dead) and distance(active,id) <= face_range(copied): victims.append(id)
      if not victims.is_empty():
       h.used[d] = false; hero_action(d,victims[rng.randi_range(0,victims.size()-1)])
      if outcome != "": break
@@ -932,27 +969,27 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
    if not h.channel.is_empty():
     note("Only one Channel per hero is supported. Maintain or release the existing Channel at your next turn; this die remains available to decline.")
     return false
-   if f == 31: h.block += 2
+   if f == 31: h.block += v("face31.initial")
    h.channel = {"die":d,"side":side,"face":f,"boost":0,"confirmed":true,"pending_blank":0,"pending_boost":0}
    note(h.name + " begins Channel · " + FACES[f])
-  27: boss.bargain = {"owner":active,"charges":2}
+  27: boss.bargain = {"owner":active,"charges":v("face27.charges")}
   28,44,45,46,48: return false # Stored automatically by the roll.
-  29: h.debt_buff = 2; h.debt_next = 2
+  29: h.debt_buff = v("face29.boost"); h.debt_next = v("face29.penalty")
   33:
    if not h.build.any(func(die):return 0 in die): return false
    pending = {"kind":"slot","hero":active,"die":d,"face":f,"target":active,"install":54}
    return true
   34,35,36,37,38,39,40,41:
-   var range_value := 2 if f == 35 else 1
+   var range_value := face_range(f)
    if target < 0 or target == active or (target < 3 and heroes[target].dead) or distance(active,target) > range_value: return false
    if f == 35 and not sight(active,target,range_value): return false
    var value := numeric_attack_base(d,target)
-   var lost := strike(d,target,value,1 if f == 37 else 0,true)
+   var lost := strike(d,target,value,v("face37.pierce") if f == 37 else 0,true)
    if outcome != "": spend(d); return true
   42: h.block += numeric_block(d)
-  43: h.block += modified_value(d,3 if h.block == 0 else 1)
-  47: h.dr = 1; h.bulwark_weak = true
-  50: h.block += numeric_block(d,1); h.black_oath = true
+  43: h.block += modified_value(d,v("face43.empty") if h.block == 0 else v("face43.normal"))
+  47: h.dr = v("face47.reduction"); h.bulwark_weak = true
+  50: h.block += numeric_block(d,v("face50.block")); h.black_oath = true
   51: h.block += numeric_block(d); h.ward = true
   52:
    h.block += numeric_block(d); spend(d)
@@ -961,23 +998,23 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
   53:
    if destination not in leap_cells(active): return false
    h.pos = destination
-   if distance(active,3) == 1: h.num_boost += 1
+   if distance(active,3) <= v("face53.range"): h.num_boost += v("face53.boost")
   54:
    if destination.x != -99:
-    if destination not in reachable(active,1,false): return false
+    if destination not in reachable(active,v("face54.move"),false): return false
     h.pos = destination
-   h.block += 1
+   h.block += v("face54.block")
   55:
-   if target < 0 or target >= 3 or heroes[target].dead or (target != active and distance(active,target) != 1): return false
-   heal(target,numeric(h))
+   if target < 0 or target >= 3 or heroes[target].dead or (target != active and distance(active,target) > face_range(f)): return false
+   heal(target,numeric_for(f,h))
   57:
-   if destination not in reachable(active,2,false): return false
-   h.pos = destination; h.block += 1
+   if destination not in reachable(active,v("face57.move"),false): return false
+   h.pos = destination; h.block += v("face57.block")
   58:
-   if target < 0 or target >= 3 or target == active or heroes[target].dead or heroes[target].hp <= 0 or distance(active,target) > 3 or not sight(active,target,3): return false
+   if target < 0 or target >= 3 or target == active or heroes[target].dead or heroes[target].hp <= 0 or distance(active,target) > face_range(f) or not sight(active,target,face_range(f)): return false
    var old: Vector2i = h.pos
    h.pos = heroes[target].pos; heroes[target].pos = old
-   h.block += 1; heroes[target].block += 1
+   h.block += v("face58.block"); heroes[target].block += v("face58.block")
   56: pass
   _: return false
  spend(d,true)
@@ -985,9 +1022,9 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
 
 func leap_cells(id: int) -> Array:
  var result: Array = []
- for x in range(-2,3):
-  for y in range(-2,3):
-   if absi(x)+absi(y) in [1,2]:
+ for x in range(-v("face53.move"),v("face53.move")+1):
+  for y in range(-v("face53.move"),v("face53.move")+1):
+   if absi(x)+absi(y) > 0 and absi(x)+absi(y) <= v("face53.move"):
     var p: Vector2i = heroes[id].pos+Vector2i(x,y)
     if legal(id,p): result.append(p)
  return result
@@ -999,11 +1036,11 @@ func channel_choice(keep: bool) -> void:
  pending = {}
  if keep:
   if ch.face == 25:
-   h.block += ch.get("pending_blank",0); h.channel.boost = mini(2,ch.get("boost",0)+ch.get("pending_boost",0))
+   h.block += ch.get("pending_blank",0); h.channel.boost = mini(v("face25.cap"),ch.get("boost",0)+ch.get("pending_boost",0))
    h.channel.pending_blank = 0; h.channel.pending_boost = 0; h.channel.confirmed = true
    note("Maintained Contained Power: +%d held Block; Numeric +%d this turn." % [ch.get("pending_blank",0),h.channel.boost])
-  if ch.face == 31: h.block = mini(8,h.block+1)
-  if ch.face == 49: heal(active,1)
+  if ch.face == 31: h.block = mini(v("face31.cap"),h.block+v("face31.gain"))
+  if ch.face == 49: heal(active,v("face49.heal"))
   note(h.name + " maintains " + FACES[ch.face])
  else:
   h.channel = {}; h.rolls[ch.die] = rng.randi_range(0,5)
@@ -1022,12 +1059,17 @@ func choose_bind(d: int, action: String) -> void:
 
 func ember(value: int) -> void:
  var owner: int = pending.hero
- value = mini(value,mini(2,heroes[owner].block))
+ value = maxi(0,mini(value,mini(v("face52.burn"),heroes[owner].block)))
  heroes[owner].block -= value; pending = {}
- record_event("action","Ember Burst: %s burns %d Block; deals %d damage to each adjacent unit, including allies. Block %d remains." % [unit_name(owner),value,value,heroes[owner].block],owner)
+ record_event("action","Ember Burst: %s burns %d Block; deals %d damage to each other unit in its radius, including allies. Block %d remains." % [unit_name(owner),value,value*v("face52.damage"),heroes[owner].block],owner)
+ var burning: Array = []
+ for x in range(9):
+  for y in range(9):
+   if absi(x-heroes[owner].pos.x)+absi(y-heroes[owner].pos.y) <= v("face52.range"):burning.append(Vector2i(x,y))
+ if value > 0:fire_event(owner,burning,"Ember Burst")
  atomic_damage = true
  for id in range(4):
-  if id != owner and not (id < 3 and heroes[id].dead) and distance(owner,id) == 1: damage(id,value)
+  if id != owner and not (id < 3 and heroes[id].dead) and distance(owner,id) <= v("face52.range"): damage(id,value*v("face52.damage"))
  atomic_damage = false
  check_end()
 
@@ -1037,7 +1079,7 @@ func catalog_pick(hero: int, d: int, side: int = -1) -> bool:
  var h: Dictionary = heroes[active]
  var f: int = p.face
  if f == 11:
-  if heroes[hero].dead or heroes[hero].hp <= 0: return false
+  if heroes[hero].dead or heroes[hero].hp <= 0 or distance(active,hero) > v("face11.range"): return false
   var copy: int = face(hero,d)
   if not Catalog.can_copy(copy): return false
   h.results[source] = copy; pending = {}; forced_die = source
@@ -1072,7 +1114,7 @@ func catalog_pick(hero: int, d: int, side: int = -1) -> bool:
  if f == 30:
   if d == source or h.used[d] or (not Catalog.is_attack(face(active,d)) and face(active,d) not in [4,42,43,50,51,52]): return false
   var n := rng.randi_range(1,6)
-  h.mods[d] = {"value":-1 if n == 1 else (1 if n in [2,3,4] else (2 if n == 5 and Catalog.category(face(active,d)) == "Defense" else 0)),"pierce":2 if n == 5 else 0,"repeat":1 if n == 6 else 0}
+  h.mods[d] = {"value":-v("face30.bad") if n == 1 else (v("face30.good") if n in [2,3,4] else (v("face30.defense") if n == 5 and Catalog.category(face(active,d)) == "Defense" else 0)),"pierce":v("face30.pierce") if n == 5 else 0,"repeat":v("face30.repeat") if n == 6 else 0}
   note("Ill Omen rolls %d for Die %d." % [n,d+1]); pending = {}; spend(source); return true
  if f == 32:
   if d == source or h.used[d] or face(active,d) not in [2,3,4]: return false
@@ -1081,12 +1123,12 @@ func catalog_pick(hero: int, d: int, side: int = -1) -> bool:
 
 func numeric_block(d: int, extra: int = 0) -> int:
  var h: Dictionary = heroes[active]
- var value := numeric(h)
+ var value := numeric_for(face(active,d),h)
  if h.numeric_zero: return 0
  return modified_value(d,value+extra)
 
-static func bonus_build(selected_faces: Array) -> Array:
- var base := default_build()
+static func bonus_build(selected_faces: Array, profile: Dictionary = {}) -> Array:
+ var base := default_build(profile)
  if selected_faces.size() != 2 or selected_faces[0] == selected_faces[1]: return []
  for f in selected_faces:
   if f not in Catalog.extended_ids(): return []
@@ -1097,7 +1139,7 @@ static func bonus_build(selected_faces: Array) -> Array:
    var trial: Array = base.duplicate(true)
    trial[a/3][a%3] = selected_faces[0]
    trial[b/3][b%3] = selected_faces[1]
-   if validate(trial,selected_faces) != "": continue
+   if validate(trial,selected_faces,profile) != "": continue
    var score := 0
    for die in trial:
     for f in die:
@@ -1122,7 +1164,10 @@ func choose_slot(d: int, side: int) -> bool:
  mutate(p.target,d,side,p.install)
  if p.face == 12:
   heroes[p.hero].blessings += 1
-  if heroes[p.hero].blessings >= 2: mutate(p.hero,p.die,heroes[p.hero].rolls[p.die],0)
+  if heroes[p.hero].blessings >= v("face12.placements"): mutate(p.hero,p.die,heroes[p.hero].rolls[p.die],0)
+ if p.face == 33 and v("face33.placements") > 0:
+  heroes[p.hero].mutations = int(heroes[p.hero].get("mutations",0))+1
+  if heroes[p.hero].mutations >= v("face33.placements"):mutate(p.hero,p.die,heroes[p.hero].rolls[p.die],0)
  pending = {}; spend(p.die,true)
  return true
 
@@ -1134,10 +1179,11 @@ func detonate_brand() -> void:
  if brand_cells.is_empty(): return
  var marked: Array = brand_cells.duplicate(); brand_cells.clear()
  action_owner = 3; action_label = "Cinder Brand detonation"
- record_event("hazard","Cinder Brand detonates now, before boss dice resolve. Each hero on the red cross takes 1 normal damage; moving away avoids it.",3)
+ record_event("hazard","Cinder Brand detonates now, before boss dice resolve. Each hero on the red cross takes %d normal damage; moving away avoids it." % v("boss.brand.damage"),3)
+ fire_event(3,marked,"Cinder Brand detonation")
  atomic_damage = true
  for id in range(3):
-  if not heroes[id].dead and heroes[id].pos in marked: damage(id,1,false,"Cinder Brand")
+  if not heroes[id].dead and heroes[id].pos in marked: damage(id,v("boss.brand.damage"),false,"Cinder Brand")
  atomic_damage = false; check_end()
 
 func turn_explanation() -> String:
@@ -1161,26 +1207,62 @@ func present_action_roll(id: int, dice: Array, kind: String) -> void:
 
 func numeric_attack_base(d: int, target: int) -> int:
  var h: Dictionary = heroes[active]; var f := face(active,d)
- var value := numeric(h,true)
- if tuned and value > 0: value += 1
- if f == 35: value = mini(1,value)
- if f == 39 and target == 3 and rear(active): value += 1
+ var value := numeric_for(f,h,true)
+ if value > 0:value += v("numeric.tuned_bonus")
+ if f == 35: value = mini(v("face35.cap"),value)
+ if f == 39 and target == 3 and rear(active): value += v("face39.rear")
  if f == 41:
   var count: int = h.build[d].count(41)
-  value += 2 if count >= 6 else (1 if count >= 3 else 0)
+  value += v("face41.bonus2") if count >= v("face41.threshold2") else (v("face41.bonus1") if count >= v("face41.threshold1") else 0)
  return value
 
 func engrave_copy(d: int) -> void:
  var h: Dictionary = heroes[active]
- var slot: int = h.build[d].find(0)
- if slot < 0:
-  for side in range(6):
-   if h.build[d][side] not in [41,56]: slot = side; break
- if slot >= 0: mutate(active,d,slot,41)
+ for copy in range(v("face41.copies")):
+  var slot: int = h.build[d].find(0)
+  if slot < 0:
+   for side in range(6):
+    if h.build[d][side] not in [41,56]: slot = side; break
+  if slot >= 0: mutate(active,d,slot,41)
 
 
 func delay_boss_once() -> void:
- var at: int = order.find(3)
- if at > cursor and at < order.size()-1:
-  var next: int = order[at+1]; order[at+1] = 3; order[at] = next
-  note("Break Rhythm delays the upcoming boss activation one slot; original initiative returns next round.")
+ for step in range(v("face40.delay")):
+  var at: int = order.find(3)
+  if at <= cursor or at >= order.size()-1:break
+  var next: int = order[at+1];order[at+1] = 3;order[at] = next
+ note("Break Rhythm delays the upcoming boss activation up to %d slots; original initiative returns next round." % v("face40.delay"))
+
+
+func v(key: String) -> int:
+ return Balance.value(balance,key,tuned)
+func hero_weakness(h: Dictionary) -> int:
+ return maxi(v("boss.distort.weakness") if h.weak else 0,v("face47.weakness") if h.bulwark_weak else 0)
+func soul_remaining(id: int) -> int:
+ var h: Dictionary = heroes[id]
+ var used: int = int(h.get("soul_moves_used",0))
+ if h.soul_move_used:used = maxi(used,v("soul.uses"))
+ return maxi(0,v("soul.uses")-used)
+func move_steps(f: int) -> int:
+ return v("soul.move") if f == 0 else v("face%d.move" % f)
+func face_range(f: int) -> int:
+ var key := "face%d.range" % f
+ return v(key) if Balance.INDEX.has(key) else 1
+func boss_range(action: String) -> int:
+ var key := "boss."+action+".range"
+ return v(key) if Balance.INDEX.has(key) else 1
+func numeric_for(f: int, h: Dictionary, attack: bool = false) -> int:
+ var value := numeric(h,attack)
+ if h.numeric_zero:return 0
+ var prefix := "face%d." % f
+ return maxi(0,value*v(prefix+"numeric_multiplier")+v(prefix+"numeric_bonus")) if Balance.INDEX.has(prefix+"numeric_multiplier") else value
+
+func fire_event(source: int, tiles: Array, label: String, armed: bool = false) -> void:
+ record_event("fire_arm" if armed else "fire",label+" · flames flare across the marked cells.",source)
+ event_log[-1]["tiles"] = tiles.duplicate()
+func numeric_faces(gambler: bool) -> Array:
+ var result: Array = []
+ for side in range(6):
+  result.append(str(v("numeric.positive") if side < v("numeric.positive_faces") else v("numeric.blank")))
+ if gambler:result[4] = "×0";result[5] = "×"+str(v("face9.multiplier"))
+ return result

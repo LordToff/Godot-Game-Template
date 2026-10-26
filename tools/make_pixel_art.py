@@ -27,7 +27,21 @@ wren=[
 '..ofggGgggfho.o.','..offgGggfho.om.','...oogGggoo..om.','....ogGggo...o.m',
 '....ogGgggo..o.m','...oggggggo..o.m','...ogggggggo.o.m','...oggoooggo.om.',
 '....ohhohho..om.','....ohhohho...o.','....ohhohho.....','...ohhhohhho....','...ossoosso.....','...ooooooo......']
-units=Image.new('RGBA',(64,64));stamp(units,vesper,(8,4));stamp(units,rook,(40,4));stamp(units,wren,(8,36))
+# Three armoured knights; distinct tabards, plumes and equipment share a clear helmet silhouette.
+knight=[
+'......ppp.......','.....opPpo......','.....oppo.......','....ooooooo.....','...oslllllso....',
+'...ollmmlllo....','...oloooooolo...','...olwoolwolo...','....olmmllo.....','....oommmoo.....',
+'..ooolPPloloo...','..olllPPllmlo...','..olmlPPllmlo...', '..olmlPPllmlo...',
+'...oolPPlloo....','....olPPllo.....','...oplPPllpo....','...opPllPppo....',
+'....oloooolo....','....olsooslo....','....olsooslo....','...ollsoosllo...','...ommooommo....','...oooo.oooo....']
+units=Image.new('RGBA',(64,64))
+for i,(dark,bright) in enumerate([('t','T'),('p','P'),('g','G')]):
+ palette=dict(P);palette['p']=P[dark];palette['P']=P[bright]
+ at=((i%2)*32+8,(i//2)*32+4);stamp(units,knight,at,palette)
+ d=ImageDraw.Draw(units);ox,oy=at
+ # Steel sword and coloured kite shield, all drawn on the source pixel grid.
+ d.line((ox+15,oy+8,ox+15,oy+19),fill=P['l']);d.line((ox+13,oy+17,ox+17,oy+17),fill=P['g'])
+ d.rectangle((ox-1,oy+11,ox+4,oy+18),fill=P['o']);d.rectangle((ox,oy+12,ox+3,oy+17),fill=P[dark]);d.line((ox+1,oy+12,ox+1,oy+18),fill=P[bright]);d.point((ox+2,oy+19),fill=P['o'])
 # 32 x 32 skeletal monarch, hand-placed pixel geometry.
 boss=Image.new('RGBA',(32,32));d=ImageDraw.Draw(boss)
 def rect(box,c):d.rectangle(box,fill=P[c])
@@ -46,13 +60,13 @@ for y in [23,26,29]:rect((12,y,19,y),'l')
 rect((2,18,5,27),'o');rect((3,19,4,25),'w');rect((26,18,29,27),'o');rect((27,19,28,25),'w')
 units.alpha_composite(boss,(32,32));units.save(OUT/'pixel_units.png')
 # Clean 16 x 16 head icons, separately drawn for small UI panels.
-heads=[
-['......oooo......','....ootTTtoo....','...otTTtttTto...','..otTttttttTto..','..ottowwwwoTto..','..ottowffwoTto..','..ottowffwoTto..','..otTowffwoTto..','...otowwwwoTo...','...ottTttTtto...','....otTTTTto....','...oottttttoo...','..otttTtttttto..','..otttTtttttto..','..oooooooooooo..','................'],
-['.....oooooo.....','....ollllllo....','...olllmmlllo...','..ollllmmllllo..','..oloooooooo lo..'.replace(' ',''),'..olowffffwolo..','..olowffffwolo..','..olowffffwolo..','...oommmmoo.....','...opPmmPpo.....','..olllPPllllo...','.ollllPPlllllo..','.ollmmPPmmlllo..','..ooooooooooo...','................','................'],
-['.....oooooo.....','....oggggggo....','...ogGggggggo...','..ogGhhhhggggo..','..ogohfffhogg o..'.replace(' ',''),'..ogohfffhoggo..','..ogohfffhoggo..','...gohfffhogg...','...ogGgggggo....','....oGGGGGo.....','...ogGGggggo....','..ogggGgggggo...','..oggGggggggo...','..ooooooooooo...','................','................']]
+head=[
+'......ppp.......','.....opPpo......','.....oppo.......','....ooooooo.....','...oslllllso....',
+'..osllmmlllso...','..olllmmllllo...','..oloooooooolo..','..olwoollwoolo..','..olmmmmmmmlo...',
+'...olmmmmmlo....','....ollllo......','....oommoo......','...olPPPPlo.....','..ollPPPPllo....','..oooooooooo....']
 portraits=Image.new('RGBA',(32,32))
-for i,head in enumerate(heads):stamp(portraits,head,((i%2)*16,(i//2)*16))
-# Skull icon has its own pixel map, not a downsampled painted portrait.
+for i,(dark,bright) in enumerate([('t','T'),('p','P'),('g','G')]):
+ palette=dict(P);palette['p']=P[dark];palette['P']=P[bright];stamp(portraits,head,((i%2)*16,(i//2)*16),palette)
 stamp(portraits,[
 '..o..........o..','..ogo..G...ogo..','...ogoGGG.ogo...','....oggggggo....','....owwwwwo.....','...owwwwwwwo....','...owooowoowo...','...owGowGowo....','...owwwwwwwo....','....owhhwwo.....','....owowowo.....','....owwwwo......','...opwllwpo.....','..opPpwwpPpo....','..oooooooooo....','................'],(16,16))
 portraits.save(OUT/'pixel_portraits.png')

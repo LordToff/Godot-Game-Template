@@ -1,10 +1,10 @@
-# Ash & Oath v0.10 — playable prototype
+# Ash & Oath v0.11 — playable prototype
 
 [**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/) — no installation required.
 
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
 
-v0.10 replaces the painted art with original pixel sprites and tiles, nearly doubles the arena’s screen area, and simplifies combat controls. Secondary tools live under Menu; the log, dice timing labels, instant rolls and Soul toggle remain available. See [v0.10 changes](docs/Changes-v0.10.md). The older guides describe historical layouts.
+v0.11 adds a **Balance workshop** under Game options: edit implemented numeric values, save / reset settings, and import or export profiles. Applying restarts the fight or test. All heroes now use knight sprites; Cinder Brand and Ember Burst have pixel-fire effects. [Workshop guide](docs/Balance-Workshop-v0.11.md). Default balance is unchanged.
 
 This checkout now starts **Ash & Oath**, a tactical dice-building boss battler based on the supplied Master Rules v10 and Action Faces. Open `project.godot` in Godot 4.6.3 and press **F5**, or run `godot --path .`.
 

@@ -1,6 +1,12 @@
-# Ash & Oath v0.10 — playable prototype
+# Ash & Oath v0.11 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, instant rolls, painted arena and character art, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
+
+## New in v0.11
+
+**Menu → Game options → Balance workshop** edits numeric ability / passive parameters through a bounded schema, with local profile saving, section / global resets, Tuned / Original bases, and JSON import / export. Apply restarts the current battle / Lab fixture; illegal builds return to the forge. Balance profiles and build presets are separate. Lab fixture numbers have their own section. Structural rules and unsupported mechanics are explicitly identified. See the [workshop guide](../docs/Balance-Workshop-v0.11.md).
+
+`balance.gd` defines the settings schema and defaults; `battle.gd` uses an encounter-local profile snapshot. `balance_editor.gd` stages UI edits until Apply. Default values preserve prior behavior. The pixel generator now draws three knights; fire presentation consumes model events without changing rolls or damage.
 
 ## New in v0.10
 
