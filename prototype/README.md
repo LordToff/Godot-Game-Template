@@ -1,6 +1,10 @@
-# Ash & Oath v0.6 — playable prototype
+# Ash & Oath v0.7 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, dice animations, restrained graphic improvements, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
+
+## New in v0.7
+
+Downed clears stale temporary effects, lethal damage applies Channel face changes, and a second Channel cannot overwrite the first. One active Channel per hero remains a declared prototype limit. Balance values are unchanged. See the [five-page plain-language guide](../docs/AshAndOath-Plain-Language-Guide-v0.7.pdf).
 
 ## New in v0.6
 

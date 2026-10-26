@@ -799,7 +799,7 @@ func lab_ui() -> void:
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.6",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.7",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
  for i in range(Changes.SECTIONS.size()):
   button(Changes.SECTIONS[i].title,Vector2(125,190+i*75),Vector2(255,58),func(): changes_page = i; rebuild(),GOLD if i == changes_page else MUTED)

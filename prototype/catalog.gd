@@ -62,6 +62,7 @@ static func category(id: int) -> String:
  if id >= 57: return "Movement"
  return EXTRA[id-9][1] if id < 54 else GENERATED[id-54][1]
 static func text(id: int) -> String:
+ if id in [25,31,49]: return EXTRA[id-9][2] + " Prototype limit: one active Channel per hero; a second cannot replace it."
  if id >= 57: return MOVEMENT[id-57][2]
  return EXTRA[id-9][2] if id < 54 else GENERATED[id-54][2]
 static func draft_ids() -> Array:

@@ -370,6 +370,7 @@ func damage(id: int, amount: int, unavoidable: bool = false, reason: String = ""
  var h: Dictionary = boss if id == 3 else heroes[id]
  if id < 3 and h.dead: return
  amount = maxi(0,amount)
+ var broken_channel: Dictionary = h.channel.duplicate() if id < 3 else {}
  var initial_hp: int = h.hp
  var incoming: int = maxi(0,amount)
  var reduction := 0
@@ -396,6 +397,9 @@ func damage(id: int, amount: int, unavoidable: bool = false, reason: String = ""
    else:
     h.protected = true; h.block = 0; h.weak = false; h.bulwark_weak = false; h.stun = false
     h.reaction.clear(); h.channel = {}; h.dr = 0; h.rerolls = 0; h.used = [true,true,true]
+    h.ward = false; h.num_boost = 0; h.numeric_focus = false; h.stored_num = -1
+    h.backstab = 0; h.debt_buff = 0; h.debt_next = 0; h.debt_penalty = 0
+    h.defy = false; h.black_oath = false; h.echo_due = false; h.mods = {}; h.smoke = {}
     note(h.name + " is Downed. Protected until this full turn ends.")
  var lost: int = initial_hp-h.hp
  var label: String = reason if reason != "" else (action_label if action_label != "" else "Damage")
@@ -406,9 +410,9 @@ func damage(id: int, amount: int, unavoidable: bool = false, reason: String = ""
  if id < 3 and initial_hp == 0 and h.protected: result += " Downed protection prevents death this turn."
  record_event("damage" if lost > 0 else ("block" if absorbed+reduction > 0 else "info"),result,action_owner,id,lost)
  check_end()
- if id < 3 and amount > 0 and not h.channel.is_empty() and h.channel.face in [25,49]:
-  var ch: Dictionary = h.channel.duplicate(); h.channel = {}
-  h.build[ch.die][ch.side] = 56 if ch.face == 25 else 0
+ if id < 3 and lost > 0 and not broken_channel.is_empty() and broken_channel.face in [25,49]:
+  var ch: Dictionary = broken_channel; h.channel = {}
+  mutate(id,ch.die,ch.side,56 if ch.face == 25 else 0)
   if ch.face == 25 and outcome == "": damage(id,2,false,"Contained Power backlash")
 
 func heal(id: int, value: int = 1) -> void:
@@ -888,6 +892,9 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
      if outcome != "": break
     h.results[d] = 24
   25,31,49:
+   if not h.channel.is_empty():
+    note("Only one Channel per hero is supported. Maintain or release the existing Channel at your next turn; this die remains available to decline.")
+    return false
    if f == 31: h.block += 2
    h.channel = {"die":d,"side":side,"face":f,"boost":0}
    note(h.name + " begins Channel · " + FACES[f])
