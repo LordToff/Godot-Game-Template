@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b6i8hakqj5t2w"
-path="res://.godot/imported/crypt_arena.png-b1c71eb3a06645b6db285644a4b0a52f.ctex"
+uid="uid://duu218xl2gk2d"
+path="res://.godot/imported/pixel_arena.png-c35dc3d9e54f487f4630675e417f45be.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://prototype/assets/crypt_arena.png"
-dest_files=["res://.godot/imported/crypt_arena.png-b1c71eb3a06645b6db285644a4b0a52f.ctex"]
+source_file="res://prototype/assets/pixel_arena.png"
+dest_files=["res://.godot/imported/pixel_arena.png-c35dc3d9e54f487f4630675e417f45be.ctex"]
 
 [params]
 

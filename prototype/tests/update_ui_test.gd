@@ -31,6 +31,7 @@ func run():
  find_button(app,"THE HOLLOW").pressed.emit()
  check(app.dice_hero == 3 and app.ui.get_children().any(func(c):return c is Button and "Cinder Brand" in c.text),"boss inventory shows new boss faces")
  find_button(app,"Back to game").pressed.emit()
+ find_button(app,"Menu").pressed.emit()
  find_button(app,"What changed").pressed.emit()
  check(app.show_changes and app.changes_page == 0,"patch notes start on overview")
  check(find_button(app,"← Previous").disabled,"first page disables Previous")
@@ -59,7 +60,10 @@ func run():
  check(app.game.heroes[0].pos == Vector2i(3,4) and app.game.heroes[1].pos == Vector2i(4,4),"Exchange targets an ally through board input")
  app.game.active = 3;app.game.pending = {};app.game.boss_rolls = ["Cinder Brand","Ashen Chain","Grave Tithe"];app.game.boss_index = 0;app.game.boss_step();app.rebuild()
  check(not app.game.brand_cells.is_empty(),"boss Brand creates board hazard")
- check(app.ui.get_children().any(func(c):return c is Label and c.text.contains("Mark a red cross")),"boss intent explains delayed danger")
+ var brand = app.ui.get_children().filter(func(c):return c is Button and "Cinder Brand" in c.text)[0]
+ brand.pressed.emit()
+ check(app.ui.get_children().any(func(c):return c is Label and c.text.contains("Mark a red cross")),"boss intent details explain delayed danger")
+ app.inspect_action = "";app.rebuild()
  await capture("boss-brand")
  app.show_dice = true;app.dice_hero = 0;app.rebuild()
  var saved: Vector2i = app.game.heroes[0].pos

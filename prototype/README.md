@@ -1,6 +1,12 @@
-# Ash & Oath v0.9 — playable prototype
+# Ash & Oath v0.10 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, instant rolls, painted arena and character art, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
+
+## New in v0.10
+
+Original pixel maps replace the painted art. The 9×9 arena now uses 76-pixel cells (684×684 screen pixels), up from 55 (495×495). Nearest-neighbour rendering keeps the art sharp. Hero sprites use 32×32 source cells; icons use 16×16 cells. Rebuild the tiny assets with `python3 tools/make_pixel_art.py` from the repository root.
+
+The combat toolbar contains View dice, Turn help and Menu. Menu contains practice, rules, changes, options and rebuilding. Dice, selected-face instructions, reroll and End turn are grouped to the right of the arena; the log stays beside them. Party cards sit below the board. The visible Soul toggle remains above the dice. Lab testing controls are in Lab tools and do not cover the arena during play. Combat rules and balance are unchanged. See [v0.10 changes](../docs/Changes-v0.10.md).
 
 ## New in v0.9
 

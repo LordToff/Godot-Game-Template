@@ -2,9 +2,10 @@ extends Control
 
 const Catalog = preload("res://prototype/catalog.gd")
 const Model = preload("res://prototype/battle.gd")
-const TITLE = preload("res://prototype/assets/title.ttf")
-const BACKDROP = preload("res://prototype/assets/crypt_arena.png")
-const PORTRAITS = preload("res://prototype/assets/character_portraits.png")
+const TITLE = preload("res://prototype/assets/body.ttf")
+const BACKDROP = preload("res://prototype/assets/pixel_arena.png")
+const PORTRAITS = preload("res://prototype/assets/pixel_portraits.png")
+const SPRITES = preload("res://prototype/assets/pixel_units.png")
 const BODY = preload("res://prototype/assets/body.ttf")
 const GOLD = Color("d5b87a")
 const INK = Color("10151e")
@@ -12,8 +13,8 @@ const MUTED = Color("91a0af")
 const COLORS = [Color("69c7bd"),Color("c5a5e8"),Color("edbd79")]
 const FACE_COLORS = [Color("697483"),Color("df897f"),Color("6fc2b7"),Color("6fc2b7"),Color("8db7df"),Color("8db7df"),Color("c5a5e8"),Color("c5a5e8"),Color("c5a5e8")]
 const SYMBOLS = ["—","/","↑","↟","◇","↪","◎","+","»"]
-const ORIGIN = Vector2(75,239)
-const CELL = 55.0
+const ORIGIN = Vector2(40,144)
+const CELL = 76.0
 var game = Model.new()
 var dice_tray: Control
 var roll_seen := 0
@@ -38,6 +39,8 @@ var ui: Control
 var hint := "Choose a hero and customize their three dice. A balanced build is already equipped."
 var show_help := false
 var show_options := false
+var show_menu := false
+var show_lab_tools := false
 var reward_soul := false
 var audio: AudioStreamPlayer
 var music: AudioStreamPlayer
@@ -82,6 +85,7 @@ func _ready() -> void:
  theme_res.default_font = BODY
  theme_res.default_font_size = 15
  theme = theme_res
+ texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
  mouse_filter = Control.MOUSE_FILTER_PASS
  ui = Control.new(); ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); ui.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(ui)
  var sound_controller = get_node_or_null("/root/ProjectUISoundController")
@@ -160,7 +164,7 @@ func _process(delta: float) -> void:
 
  queue_redraw()
 
-func style(bg: Color, border: Color, radius: int = 7) -> StyleBoxFlat:
+func style(bg: Color, border: Color, radius: int = 0) -> StyleBoxFlat:
  var s := StyleBoxFlat.new(); s.bg_color = bg; s.border_color = border
  s.set_border_width_all(1); s.set_corner_radius_all(radius)
  s.content_margin_left = 12; s.content_margin_right = 12
@@ -191,13 +195,20 @@ func panel(rect: Rect2, color: Color = Color("161d28"), border: Color = Color("3
 func rebuild() -> void:
  sync_presentation()
  for c in ui.get_children(): ui.remove_child(c); c.queue_free()
- label_at("ASH & OATH",Vector2(42,26),27,GOLD,500,true)
- label_at("A DICE-BUILDING BOSS BATTLER · v0.9",Vector2(44,65),11,MUTED)
- button("View dice",Vector2(350,30),Vector2(235,40),func(): show_dice = true; dice_hero = game.active if page == "battle" else build_hero; rebuild(),Color("9fc7e6"))
- button("Tutorial / Ability Lab",Vector2(605,30),Vector2(245,40),start_lab,Color("82c8b9"))
- button("What changed",Vector2(866,30),Vector2(225,40),func(): show_changes = true; rebuild())
- button("?  Rules",Vector2(1114,30),Vector2(112,40),func(): show_help = not show_help; rebuild())
- button("Options",Vector2(1236,30),Vector2(110,40),open_settings,Color("9fc7e6"))
+ if page == "battle":
+  label_at("ASH & OATH",Vector2(24,16),25,GOLD,300,true)
+  label_at("v0.10 · ABILITY LAB" if lab else "v0.10 · THE HOLLOW",Vector2(26,49),12,MUTED,450)
+  button("View dice",Vector2(1016,22),Vector2(120,38),func(): show_dice = true;dice_hero = game.active;rebuild(),Color("9fc7e6"))
+  button("Turn help",Vector2(1148,22),Vector2(120,38),func():show_turn = true;rebuild(),MUTED)
+  button("Menu",Vector2(1280,22),Vector2(128,38),func():show_menu = true;rebuild(),GOLD)
+ else:
+  label_at("ASH & OATH",Vector2(42,26),27,GOLD,500,true)
+  label_at("A DICE-BUILDING BOSS BATTLER · v0.10",Vector2(44,65),11,MUTED)
+  button("View dice",Vector2(350,30),Vector2(235,40),func(): show_dice = true;dice_hero = build_hero;rebuild(),Color("9fc7e6"))
+  button("Tutorial / Ability Lab",Vector2(605,30),Vector2(245,40),start_lab,Color("82c8b9"))
+  button("What changed",Vector2(866,30),Vector2(225,40),func():show_changes = true;rebuild())
+  button("?  Rules",Vector2(1114,30),Vector2(112,40),func():show_help = true;rebuild())
+  button("Options",Vector2(1236,30),Vector2(110,40),open_settings,Color("9fc7e6"))
  if page == "forge": forge_ui()
  else: battle_ui()
  if draft_modal and page == "forge": draft_ui()
@@ -213,6 +224,8 @@ func rebuild() -> void:
  if show_turn: turn_ui()
  if show_dice: dice_ui()
  if show_lab_setup: lab_setup_ui()
+ if show_menu: menu_ui()
+ if show_lab_tools and lab and game.pending.is_empty() and game.outcome == "": lab_tools_ui()
  if show_options: options_ui()
  queue_redraw()
 
@@ -269,110 +282,96 @@ func begin() -> void:
  rebuild()
 
 func battle_ui() -> void:
- portrait_at(3,Vector2(74,102),Vector2(40,40))
- label_at("ABILITY LAB" if lab else "THE HOLLOW",Vector2(128,109),28,Color("ece6d9"),500,true)
- label_at("▶ ROUND %02d   /   %s" % [game.round_no,"ENCOUNTER ENDED" if game.outcome != "" else ("THE HOLLOW’S TURN" if game.active == 3 else game.heroes[game.active].name + "’S TURN")],Vector2(90,150),22,Color("fff0c8"))
- label_at("%d / %d HP    ·    %d BLOCK" % [game.boss.hp,game.boss.max_hp,game.boss.block],Vector2(408,119),13,Color("d78b83"))
- var x := 74.0
- for id in game.order:
-  var name_text: String = "HOLLOW" if id == 3 else game.heroes[id].name
-  var init: int = game.boss.initiative if id == 3 else game.heroes[id].initiative
-  label_at(("◆ " if id == game.active else "○ ") + name_text + "  " + str(init),Vector2(x,193),12,GOLD if id == game.active else MUTED,150)
-  x += 141
- for i in range(3):
-  var h: Dictionary = game.heroes[i]
-  var cy := 790
-  var hx := 76+i*183
-  portrait_at(i,Vector2(hx+4,cy),Vector2(40,40))
-  label_at(h.name,Vector2(hx+50,cy),15,COLORS[i],124,true)
-  label_at("%d/6 HP · %d Block" % [h.hp,h.block],Vector2(hx+50,cy+24),11,MUTED,124)
-  var statuses: String = "DEAD" if h.dead else ("DOWNED" if h.hp == 0 else ("BROKEN  " if h.broken else ""))
-  if h.weak or h.bulwark_weak: statuses += " WEAK"
-  if not h.reaction.is_empty(): statuses += " REACTION ×"+str(h.reaction.size())
-  if h.stun: statuses += " STUN"
-  if h.dr > 0: statuses += " DR " + str(h.dr)
-  if h.ward: statuses += " WARD"
-  if not h.channel.is_empty(): statuses += " CHANNEL"
-  if h.num_boost > 0: statuses += " NUM +"+str(h.num_boost)
-  label_at(statuses,Vector2(hx,cy+53),10,GOLD,175,false,true).max_lines_visible = 2
-  if not h.rolls.is_empty():
-   var public_dice: Array[String] = []
-   for d in range(3): public_dice.append(Model.FACES[game.face(i,d)].left(3) + ("·" if h.used[d] else ""))
-   label_at(" / ".join(public_dice),Vector2(hx,cy+68),10,MUTED,175)
- label_at("BOSS INTENT  /  CLICK AN ACTION TO EXPLAIN",Vector2(630,199),11,GOLD)
+ var actor: String = "ENCOUNTER ENDED" if game.outcome != "" else ("THE HOLLOW’S TURN" if game.active == 3 else game.heroes[game.active].name.to_upper()+"’S TURN")
+ label_at(actor,Vector2(40,92),22,Color("f1e8cf"),440)
+ var order_text: Array[String] = []
+ for id in game.order: order_text.append(game.unit_name(id))
+ label_at("ROUND %02d" % game.round_no,Vector2(590,97),14,GOLD,130).tooltip_text = "Initiative: "+" → ".join(order_text)
+ label_at("THE HOLLOW",Vector2(768,91),17,Color("e6c4b6"),240)
+ label_at("%d/%d HP  ·  %d Block" % [game.boss.hp,game.boss.max_hp,game.boss.block],Vector2(1120,93),16,Color("e6c4b6"),285)
  for d in range(3):
   var action: String = game.boss_rolls[d]
-  if game.active == 3:
-   var col := GOLD if d == game.boss_index else MUTED
-   label_at(["I","II","III"][d] + "   " + action + ("   ✓" if d < game.boss_index else ""),Vector2(632,235+d*109),17,col)
-   label_at(game.boss_help(action),Vector2(632,266+d*109),13,MUTED,375,false,true)
-  else:
-   button(["I","II","III"][d] + "    " + action + "    · Details",Vector2(630,231+d*41),Vector2(380,34),func(): inspect_action = action; rebuild(),MUTED).tooltip_text = game.boss_help(action)
- soul_toggle(Vector2(630,778) if game.active == 3 else Vector2(630,352),true)
- if game.active < 3: label_at("YOUR DICE · CHOOSE ONE",Vector2(630,391),12,GOLD)
+  var done: bool = game.active == 3 and d < game.boss_index
+  var intent := button(["I","II","III"][d]+" · "+action+(" ✓" if done else ""),Vector2(760+d*220,143),Vector2(208,40),func():inspect_action = action;rebuild(),GOLD if game.active == 3 and game.boss_index == d else MUTED)
+  intent.add_theme_font_size_override("font_size",14);intent.tooltip_text = game.boss_help(action)
+ soul_toggle(Vector2(760,204),true,328)
+ for i in range(3):
+  var h: Dictionary = game.heroes[i];var hx := 24+i*244
+  portrait_at(i,Vector2(hx+8,858),Vector2(32,32))
+  var status: String = "DEAD" if h.dead else ("DOWNED" if h.hp == 0 else ("BROKEN" if h.broken else ""))
+  if h.weak or h.bulwark_weak:status += " WEAK"
+  if h.stun:status += " STUN"
+  if h.ward:status += " WARD"
+  if not h.channel.is_empty():status += " CHANNEL"
+  if not h.reaction.is_empty():status += " REACTION"
+  if h.dr > 0:status += " DR "+str(h.dr)
+  if h.num_boost > 0:status += " NUM +"+str(h.num_boost)
+  var name_label := label_at(h.name+ (" · "+status.strip_edges() if status != "" else ""),Vector2(hx+48,853),14,COLORS[i],178)
+  name_label.clip_text = true;name_label.mouse_filter = Control.MOUSE_FILTER_PASS
+  var dice_info: Array[String] = []
+  for d in range(3):dice_info.append("Die %d: %s%s" % [d+1,Catalog.display_name(game.face(i,d))," · spent / held" if h.used[d] else ""])
+  name_label.tooltip_text = h.name+"\n"+status+"\n"+"\n".join(dice_info)
+  label_at("%d/6 HP · %d Block" % [h.hp,h.block],Vector2(hx+48,875),12,MUTED,178)
  if game.active < 3:
   var h: Dictionary = game.heroes[game.active]
+  label_at("YOUR DICE",Vector2(760,246),15,GOLD,320)
   for d in range(3):
    var f: int = game.face(game.active,d)
    var state: String = "CHANNEL HELD" if not h.channel.is_empty() and h.channel.die == d else ("REACTION HELD" if d in h.reaction else ("SPENT" if h.used[d] else ("RESOLVE NEXT" if game.forced_die == d else "READY")))
-   var face_name: String = "Blank → Move 2 (Movement)" if f == 0 and game.reward and not h.soul_move_used else Catalog.display_name(f)
-   var text: String = "DIE " + ["I","II","III"][d] + "  ·  " + ("SELECTED" if selected == d and not h.used[d] else state) + "\n" + face_name
-   var die_button := button(text,Vector2(630,416+d*61),Vector2(380,51),func():
+   var available_soul: bool = f == 0 and game.reward and not h.soul_move_used
+   var name_text: String = "Blank → Move 2" if available_soul else Model.FACES[f]
+   var kind: String = "(Movement)" if available_soul else ("("+Catalog.classification(f)+")" if f != 0 else "")
+   var text: String = "DIE "+["I","II","III"][d]+" · "+("SELECTED" if selected == d and not h.used[d] else state)+"\n"+name_text+"\n"+kind
+   var die_button := button(text,Vector2(760,277+d*87),Vector2(328,77),func():
     friendly_confirm = -1
     if selected >= 0 and game.face(game.active,selected) == 6 and selected != d:
-     if game.hero_action(selected,d): selected = d if not game.heroes[game.active].used[d] else -1
-    elif game.forced_die < 0 or game.forced_die == d: selected = d; shove_target = -1
-    hint = face_help(game.face(game.active,d)); rebuild(),color_for_face(f),h.used[d] or (game.forced_die >= 0 and game.forced_die != d) or not game.pending.is_empty() or game.outcome != "")
-   die_button.tooltip_text = face_help(f)
-   die_button.add_theme_font_size_override("font_size",15)
+     if game.hero_action(selected,d):selected = d if not game.heroes[game.active].used[d] else -1
+    elif game.forced_die < 0 or game.forced_die == d:selected = d;shove_target = -1
+    hint = face_help(game.face(game.active,d));rebuild(),color_for_face(f),h.used[d] or (game.forced_die >= 0 and game.forced_die != d) or not game.pending.is_empty() or game.outcome != "")
+   die_button.add_theme_font_size_override("font_size",15);die_button.tooltip_text = face_help(f)
    if selected == d and not h.used[d]:
-    var selected_style := style(Color("304151"),color_for_face(f)); selected_style.set_border_width_all(2)
-    die_button.add_theme_stylebox_override("normal",selected_style)
+    var chosen := style(Color("2b3d48"),color_for_face(f));chosen.set_border_width_all(2);die_button.add_theme_stylebox_override("normal",chosen)
+  var instruction: String = "Choose a die, then its target. You can end your turn with dice left." if selected < 0 else hint
+  if training:instruction = "Lesson %d/8: " % (training_step+1)+LESSONS[training_step]
+  var instruction_label := label_at(instruction,Vector2(760,550),15,Color("dce6ee"),328,false,true)
+  instruction_label.mouse_filter = Control.MOUSE_FILTER_PASS
+  instruction_label.max_lines_visible = 2;instruction_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS;instruction_label.tooltip_text = instruction
   if selected >= 0 and not h.used[selected]:
    var f: int = game.face(game.active,selected)
    if f in [4,9,10,11,13,14,16,17,18,20,21,22,23,24,25,26,27,29,30,31,32,33,42,43,47,49,50,51,52,54,56] or (f == 0 and (not game.reward or h.soul_move_used)):
-    button("Resolve selected face",Vector2(630,609),Vector2(225,41),func(): game.hero_action(selected); selected = -1; rebuild())
-   button("Decline",Vector2(865,609),Vector2(145,41),func(): game.decline(selected); selected = -1; rebuild(),MUTED)
-  button(("Reroll selected die" if selected >= 0 else "Select a die to reroll") + "   ·   " + str(h.rerolls) + " left",Vector2(630,737),Vector2(380,43),func():
-   if game.action_reroll(selected): selected = -1; hint = "Reroll spent. Fresh result kept."
+    button("Resolve selected face",Vector2(760,605),Vector2(211,39),func():game.hero_action(selected);selected = -1;rebuild())
+   button("Decline",Vector2(981,605),Vector2(107,39),func():game.decline(selected);selected = -1;rebuild(),MUTED)
+  var reroll_button := button(("Reroll selected" if selected >= 0 else "Select a die to reroll")+" · %d left" % h.rerolls,Vector2(760,657),Vector2(328,39),func():
+   if game.action_reroll(selected):selected = -1;hint = "Fresh result kept."
    rebuild(),Color("82c8b9"),selected < 0 or h.rerolls == 0 or not h.opening or (selected >= 0 and game.face(game.active,selected) in [9,11,15,56]) or not game.pending.is_empty() or game.outcome != "")
-  if not lab: label_at("Opening window only · no automatic refill",Vector2(637,784),10,MUTED)
-  label_at("%d dice unused · reactions stay held" % h.used.count(false),Vector2(637,655),12,MUTED,380)
-  button("End hero turn   →",Vector2(630,674),Vector2(380,50),func(): game.finish_turn(); selected = -1; rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
+  reroll_button.tooltip_text = "Opening window only: reroll before your first ordinary action. The starting charge does not refill each round."
+  button("End hero turn   →",Vector2(760,711),Vector2(328,52),func():game.finish_turn();selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
+  label_at(("Soul %d/1 left · " % int(not h.soul_move_used) if game.reward else "")+"%d dice available" % h.used.count(false),Vector2(760,776),13,MUTED,328)
  else:
-  var last: String = "No action resolved yet." if game.last_action == "" else "LAST: " + game.last_action + (" → " + ", ".join(game.last_targets.map(func(id):return game.heroes[id].name)) if not game.last_targets.is_empty() else "")
-  label_at(last,Vector2(632,574),14,Color("e1af9b"),375,false,true)
-  label_at("Watch the board and chronicle for HP, Block,\nmovement and status changes.",Vector2(632,615),12,MUTED)
-  button("Resolve " + (["I","II","III"][mini(game.boss_index,2)] if game.boss_index < 3 else "end of turn") + "   →",Vector2(630,674),Vector2(380,54),func(): game.boss_step(); selected = -1; rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
- label_at("BATTLE LOG",Vector2(1070,199),17,GOLD,170,true)
- button("Summary" if compact_log else "All events",Vector2(1245,202),Vector2(115,24),func(): compact_log = not compact_log; rebuild(),MUTED).add_theme_font_size_override("font_size",10)
- button("Full history / filters",Vector2(1070,232),Vector2(290,34),func(): show_history = true; rebuild(),MUTED)
- var latest := RichTextLabel.new(); latest.name = "SideChronicle"; latest.bbcode_enabled = true; latest.position = Vector2(1070,281); latest.size = Vector2(290,552); latest.add_theme_font_size_override("normal_font_size",16); latest.scroll_following = true
+  label_at("BOSS TURN",Vector2(760,250),16,GOLD,328)
+  var current: String = game.boss_rolls[game.boss_index] if game.boss_index < 3 else "Turn complete"
+  label_at(current,Vector2(760,294),25,Color("f1d2bc"),328,true,true)
+  label_at(game.boss_help(current) if game.boss_index < 3 else "Advance to the next hero.",Vector2(760,370),18,Color("dce6ee"),328,false,true)
+  label_at("Last: "+(game.last_action if game.last_action != "" else "No action yet"),Vector2(760,570),14,MUTED,328,false,true)
+  button("Resolve "+(["I","II","III"][game.boss_index] if game.boss_index < 3 else "end of turn")+"   →",Vector2(760,711),Vector2(328,52),func():game.boss_step();selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
+ label_at("BATTLE LOG",Vector2(1128,216),17,GOLD,280)
+ button("Summary" if compact_log else "All events",Vector2(1296,213),Vector2(104,29),func():compact_log = not compact_log;rebuild(),MUTED).add_theme_font_size_override("font_size",11)
+ button("Full history / filters",Vector2(1128,254),Vector2(272,34),func():show_history = true;rebuild(),MUTED)
+ var latest := RichTextLabel.new();latest.name = "SideChronicle";latest.bbcode_enabled = true;latest.position = Vector2(1128,306);latest.size = Vector2(272,522);latest.add_theme_font_size_override("normal_font_size",15);latest.scroll_following = true
  var formatted: Array[String] = []
  for entry in game.event_log:
-  if compact_log and entry.kind in ["guide","action","roll","info"]: continue
+  if compact_log and entry.kind in ["guide","action","roll","info"]:continue
   formatted.append(format_event(entry,true))
- latest.text = "\n\n".join(formatted); ui.add_child(latest)
- label_at("Scroll up to review · newest at bottom",Vector2(1070,847),11,MUTED,300)
- var displayed_hint: String = "Boss turn: resolve I → II → III. Reactions pause before damage." if game.active == 3 else (game.unit_name(game.active)+": optional opening reroll → resolve available dice → End hero turn." if selected < 0 else hint)
- if training: displayed_hint = "Lesson %d/%d · " % [training_step+1,LESSONS.size()] + LESSONS[training_step]
- var hint_label := label_at("Choose a push direction:" if shove_target >= 0 else displayed_hint,Vector2(630,126),15,Color("dce6ee"),380,false,true)
- hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; hint_label.size = Vector2(380,54)
- hint_label.max_lines_visible = 3; hint_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; hint_label.tooltip_text = displayed_hint
- label_at("NEXT STEP",Vector2(630,105),11,GOLD,380)
+ latest.text = "\n\n".join(formatted);ui.add_child(latest)
  if shove_target >= 0 and selected >= 0:
   for i in range(4):
    var dir: Vector2i = Model.DIRS[i]
-   button(["North","East","South","West"][i],Vector2(630+i*96,864),Vector2(90,30),func():
-    if game.hero_action(selected,shove_target,dir): selected = -1; shove_target = -1
+   button(["North","East","South","West"][i],Vector2(760+(i%2)*170,806+(i/2)*43),Vector2(158,38),func():
+    if game.hero_action(selected,shove_target,dir):selected = -1;shove_target = -1
     rebuild(),GOLD,dir not in game.away_dirs(game.active,shove_target))
- label_at(("SOUL %d/1 left · " % int(not game.heroes[game.active].soul_move_used) if game.reward and game.active < 3 else "")+"REROLL FIRST → resolve available dice → END TURN\nAll heroes roll together at the NEXT ROUND. Reactions wait for attacks.",Vector2(76,742),11,MUTED,525)
- button("Turn help",Vector2(902,387),Vector2(108,25),func(): show_turn = true; rebuild(),GOLD)
- button("Rebuild / restart",Vector2(830,811),Vector2(180,39),func(): page = "forge"; selected = -1; rebuild(),MUTED)
- button("Game options",Vector2(630,811),Vector2(185,39),open_settings,MUTED)
- if lab: lab_ui()
- if not game.pending.is_empty(): pending_ui()
- if game.outcome != "": outcome_ui()
+ elif lab:lab_ui()
+ if not game.pending.is_empty():pending_ui()
+ if game.outcome != "":outcome_ui()
 
 func open_settings() -> void:
  show_options = true
@@ -475,7 +474,7 @@ func _gui_input(event: InputEvent) -> void:
      tooltip_text = h.name+" · HP %d/6 · Block %d" % [h.hp,h.block]
      if not h.channel.is_empty():tooltip_text += "\nChannel: "+Model.FACES[h.channel.face]+"\n"+Catalog.text(h.channel.face)
  if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-  if page != "battle" or show_options or show_lab_setup or show_dice or show_turn or show_changes or show_help or show_history or inspect_action != "" or rolling_time > 0 or not game.pending.is_empty() or game.outcome != "" or game.active == 3 or selected < 0: return
+  if page != "battle" or show_menu or show_lab_tools or show_options or show_lab_setup or show_dice or show_turn or show_changes or show_help or show_history or inspect_action != "" or rolling_time > 0 or not game.pending.is_empty() or game.outcome != "" or game.active == 3 or selected < 0: return
   var c := Vector2i((event.position-ORIGIN)/CELL)
   if not Rect2(ORIGIN,Vector2.ONE*CELL*9).has_point(event.position): return
   var f: int = game.face(game.active,selected)
@@ -505,33 +504,29 @@ func _gui_input(event: InputEvent) -> void:
 
 func _unhandled_key_input(event: InputEvent) -> void:
  if event.is_action_pressed("ui_cancel"):
-  selected = -1; shove_target = -1; show_options = false; show_help = false; inspect_action = ""; show_history = false; show_changes = false; show_dice = false; show_turn = false; show_lab_setup = false; rebuild()
+  selected = -1; shove_target = -1; show_options = false; show_menu = false; show_lab_tools = false; show_help = false; inspect_action = ""; show_history = false; show_changes = false; show_dice = false; show_turn = false; show_lab_setup = false; rebuild()
 
 func _draw() -> void:
  draw_rect(Rect2(Vector2.ZERO,Vector2(1440,900)),Color("10151e"))
- if page == "battle": draw_texture_rect(BACKDROP,Rect2(0,0,1440,900),false,Color(0.16,0.20,0.24,0.35))
- for i in range(28):
-  var p := Vector2(fmod(i*131.73,1400.0),fmod(i*79.37+t*3,900.0))
-  draw_circle(p,1.2,Color(0.8,0.6,0.35,0.16+sin(t+i)*0.08))
- draw_line(Vector2(42,92),Vector2(1346,92),Color("303846"))
+ draw_line(Vector2(24,76),Vector2(1408,76),Color("303846"))
  if page == "forge":
   panel(Rect2(68,351,736,336)); panel(Rect2(850,278,472,563))
   for d in range(3):
    draw_line(Vector2(150,452+d*111),Vector2(781,452+d*111),Color("2b3542"))
  else:
-  panel(Rect2(610,95,420,90),Color("182632"),Color("354653"))
-  panel(Rect2(610,190,420,157),Color("18212c"),Color("354653"))
-  if game.active == 3: panel(Rect2(610,190,420,605),Color("18212c"),Color("354653"))
-  if game.active < 3: panel(Rect2(610,350,420,445),Color("1b2935"),Color("354653"))
-  panel(Rect2(1050,190,330,690),Color("14212c"),Color("354653"))
   var turn_color: Color = Color("ed9986") if game.active == 3 else COLORS[maxi(0,game.active)]
-  panel(Rect2(74,145,496,39),Color("29333e"),turn_color)
-  for i in range(3): panel(Rect2(68+i*183,780,178,107),Color("202d37") if i == game.active else Color("161d28"),COLORS[i] if i == game.active else Color("303a48"))
+  panel(Rect2(24,86,716,38),Color("202d37"),turn_color)
+  panel(Rect2(752,86,664,106),Color("18222d"),Color("354653"))
+  draw_rect(Rect2(760,121,648,6),Color("303846"))
+  draw_rect(Rect2(760,121,int(648.0*maxi(0,game.boss.hp)/game.boss.max_hp),6),Color("b76a65"))
+  panel(Rect2(752,240,344,567),Color("18222d"),Color("354653"))
+  panel(Rect2(1112,202,304,642),Color("14212a"),Color("354653"))
+  for i in range(3):panel(Rect2(24+i*244,850,232,46),Color("243641") if i == game.active else Color("17212d"),COLORS[i] if i == game.active else Color("354653"))
   draw_board()
   draw_effects()
 
 func draw_board() -> void:
- draw_texture_rect(BACKDROP,Rect2(35,199,575,575),false)
+ draw_texture_rect(BACKDROP,Rect2(24,128,716,716),false)
  var highlights: Array = []
  if selected >= 0 and game.active < 3 and game.pending.is_empty():
   var f: int = game.face(game.active,selected)
@@ -570,8 +565,7 @@ func draw_board() -> void:
  # Portrait tokens use the same art as the party panels and drafting tabs.
  var bp: Vector2 = ORIGIN+Vector2(visual_positions.get(3,Vector2(game.boss.pos)))*CELL+Vector2.ONE*CELL+attack_nudge(3)
  draw_circle(bp+Vector2(0,26),43,Color(0.02,0.02,0.04,0.65))
- draw_portrait(3,Rect2(bp-Vector2.ONE*45,Vector2.ONE*90))
- draw_rect(Rect2(bp-Vector2.ONE*45,Vector2.ONE*90),Color("b18c79"),false,2)
+ draw_unit_sprite(3,Rect2(bp-Vector2.ONE*64,Vector2.ONE*128))
  for i in range(3):
   var h: Dictionary = game.heroes[i]
   if h.dead: continue
@@ -586,18 +580,17 @@ func draw_board() -> void:
    for rune in range(6):
     var at := p+Vector2.from_angle(rune*TAU/6+t*0.45)*33
     draw_line(at+Vector2(-3,-3),at+Vector2(3,3),Color(col,glow),2,true)
-   draw_string(BODY,p+Vector2(-45,44),Model.FACES[ch_face] if ch_face > 0 else "Channel ended",HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color(col,glow))
+
   if game.active == i:
    draw_arc(p,26,0,TAU,64,Color(COLORS[i],0.8+sin(t*2)*0.15),3)
    draw_colored_polygon(PackedVector2Array([p+Vector2(-7,-42),p+Vector2(7,-42),p+Vector2(0,-32)]),COLORS[i])
    draw_string(BODY,p+Vector2(-24,-49),"TURN",HORIZONTAL_ALIGNMENT_LEFT,-1,12,COLORS[i])
-  draw_circle(p,19,Color("111923")); draw_arc(p,19,0,TAU,48,COLORS[i],2)
+  draw_circle(p+Vector2(0,21),21,Color(0.04,0.05,0.08,0.5))
   if h.hp == 0:
    draw_line(p+Vector2(-8,-8),p+Vector2(8,8),COLORS[i],3); draw_line(p+Vector2(8,-8),p+Vector2(-8,8),COLORS[i],3)
   else:
-   draw_portrait(i,Rect2(p-Vector2.ONE*18,Vector2.ONE*36))
-   draw_rect(Rect2(p-Vector2.ONE*18,Vector2.ONE*36),COLORS[i],false,1.5)
-  for hp in range(6): draw_rect(Rect2(p+Vector2(-18+hp*6,24),Vector2(4,3)),COLORS[i] if hp < h.hp else Color("3d434b"))
+   draw_unit_sprite(i,Rect2(p-Vector2.ONE*32,Vector2.ONE*64))
+  for hp in range(6): draw_rect(Rect2(p+Vector2(-18+hp*6,33),Vector2(4,3)),COLORS[i] if hp < h.hp else Color("3d434b"))
 
 func sync_presentation() -> void:
  if page != "battle": return
@@ -727,7 +720,7 @@ func confirm_gifts() -> void:
 
 func draft_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101922"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("BUILD YOUR INHERITANCE · v0.9",Vector2(60,30),30,GOLD,900,true)
+ label_at("BUILD YOUR INHERITANCE · v0.10",Vector2(60,30),30,GOLD,900,true)
  label_at("Pick two bonus faces per hero. Click a card to inspect; use Add / Remove on the right.",Vector2(62,76),16,MUTED,1250)
  button("Back to forge",Vector2(1150,30),Vector2(230,42),func(): draft_modal = false; rebuild(),MUTED)
  for hero in range(3):
@@ -850,26 +843,30 @@ func reset_lab() -> void:
  rebuild()
 
 func lab_ui() -> void:
- # A persistent strip replaces party cards only in the isolated testing arena.
- var cover := ColorRect.new(); cover.position = Vector2(67,774); cover.size = Vector2(540,126); cover.color = Color("16232d"); ui.add_child(cover)
- button("Roll chosen face again",Vector2(630,864),Vector2(235,30),func(): Lab.roll_test_face(game,lab_face,lab_numeric); selected = -1; rebuild(),Color("82c8b9"),not game.pending.is_empty() or game.outcome != "")
- button("Combine faces",Vector2(870,864),Vector2(150,30),func(): show_lab_setup = true; rebuild(),MUTED)
- if training: button("Next lesson →" if training_step < LESSON_FACES.size()-1 else "Play preset →",Vector2(870,864),Vector2(150,30),next_lesson,GOLD,not lesson_done())
- label_at("LAB · Vesper %d/6 HP · %d Block · %s" % [game.heroes[0].hp,game.heroes[0].block,Model.FACES[lab_face]],Vector2(77,780),12,Color("82c8b9"),520)
- var picker := OptionButton.new(); picker.name = "LabAbilities"; picker.position = Vector2(77,806); picker.size = Vector2(315,35)
- for id in range(59): picker.add_item(Catalog.display_name(id),id)
- picker.select(lab_face); picker.item_selected.connect(func(index): training = false; lab_face = index; reset_lab()); ui.add_child(picker)
- var num := OptionButton.new(); num.position = Vector2(403,806); num.size = Vector2(186,35)
- for title in ["Numeric: random","Numeric: force 0","Numeric: force 1"]: num.add_item(title)
- num.select(lab_numeric+1); num.item_selected.connect(func(index): lab_numeric = index-1; reset_lab()); ui.add_child(num)
- button("Reset test",Vector2(77,850),Vector2(125,35),reset_lab)
- button("Boss hits",Vector2(210,850),Vector2(110,35),func(): Lab.attack(game,lab_face); selected = -1; rebuild(),Color("ed9986"),not game.pending.is_empty() or game.outcome != "")
- button("Next turn",Vector2(328,850),Vector2(115,35),func(): Lab.next_turn(game,lab_numeric); selected = -1; rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
- button("Copy test log",Vector2(451,850),Vector2(138,35),func(): DisplayServer.clipboard_set("Ash & Oath v0.4 · Ability: "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
+ button("Lab tools",Vector2(760,847),Vector2(158 if training else 328,43),func():show_lab_tools = true;rebuild(),Color("82c8b9"))
+ if training:button("Next lesson →" if training_step < LESSON_FACES.size()-1 else "Play preset →",Vector2(930,847),Vector2(158,43),next_lesson,GOLD,not lesson_done())
+
+func lab_tools_ui() -> void:
+ overlay()
+ label_at("ABILITY LAB TOOLS",Vector2(399,253),26,GOLD,600,true)
+ label_at("Vesper: %d/6 HP · %d Block" % [game.heroes[0].hp,game.heroes[0].block],Vector2(399,293),15,MUTED,570)
+ var picker := OptionButton.new();picker.name = "LabAbilities";picker.position = Vector2(399,333);picker.size = Vector2(575,39)
+ for id in range(59):picker.add_item(Catalog.display_name(id),id)
+ picker.select(lab_face);picker.item_selected.connect(func(index):training = false;lab_face = index;reset_lab());ui.add_child(picker)
+ var num := OptionButton.new();num.position = Vector2(399,390);num.size = Vector2(275,39)
+ for title in ["Numeric: random","Numeric: force 0","Numeric: force 1"]:num.add_item(title)
+ num.select(lab_numeric+1);num.item_selected.connect(func(index):lab_numeric = index-1;reset_lab());ui.add_child(num)
+ button("Reset test",Vector2(689,390),Vector2(285,39),reset_lab)
+ button("Boss hits",Vector2(399,446),Vector2(275,39),func():show_lab_tools = false;Lab.attack(game,lab_face);selected = -1;rebuild(),Color("ed9986"),not game.pending.is_empty() or game.outcome != "")
+ button("Next turn",Vector2(689,446),Vector2(285,39),func():show_lab_tools = false;Lab.next_turn(game,lab_numeric);selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
+ button("Roll chosen face again",Vector2(399,502),Vector2(275,39),func():show_lab_tools = false;Lab.roll_test_face(game,lab_face,lab_numeric);selected = -1;rebuild(),Color("82c8b9"))
+ button("Combine faces",Vector2(689,502),Vector2(285,39),func():show_lab_tools = false;show_lab_setup = true;rebuild(),MUTED)
+ button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.10 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
+ button("Back to battle",Vector2(689,570),Vector2(285,43),func():show_lab_tools = false;rebuild())
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.9",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.10",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
  var nav_step := minf(75,610.0/Changes.SECTIONS.size())
  for i in range(Changes.SECTIONS.size()):
@@ -912,7 +909,7 @@ func turn_ui() -> void:
   text.text += ("Resolve boss die %s: %s.\n%s" % [["I","II","III"][game.boss_index],game.boss_rolls[game.boss_index],game.boss_help(game.boss_rolls[game.boss_index])]) if game.boss_index < 3 else "All three boss dice are finished. Click Resolve end of turn to move to the next hero."
  else:
   var h: Dictionary = game.heroes[game.active]
-  text.text += "Choose a bright, unspent die. Its description appears above the action panel. Movement needs an empty highlighted cell; attacks and healing need a legal unit; setup effects use Resolve. Grey dice are spent, held as reactions or channelled. You may End turn without using every die."
+  text.text += "Choose a bright, unspent die. Its description appears below your dice. Movement needs an empty highlighted cell; attacks and healing need a legal unit; setup effects use Resolve. Grey dice are spent, held as reactions or channelled. You may End turn without using every die."
   if game.reward: text.text += "\n\nReward Soul: " + ("0/1" if h.soul_move_used else "1/1") + " Blank-to-Move-2 conversions remain this hero turn.\n"
   text.text += "\n\nReroll window: " + ("OPEN" if h.opening else "CLOSED after your first ordinary resolution") + " · saved charges: " + str(h.rerolls) + ". A starting charge does not refill each round."
  text.text += "\n\n[b]Between turns[/b]\nInitiative stays fixed for this encounter. New round = everyone rolls available dice together. Your next turn start clears old Block and temporary defenses; Channels can pause for maintain / release. HP damage, mitigation and expiry are recorded in the chronicle."
@@ -1040,11 +1037,11 @@ func lab_setup_ui() -> void:
  button("Back",Vector2(585,460),Vector2(380,50),func():show_lab_setup = false;rebuild(),MUTED)
 
 
-func soul_toggle(at: Vector2, in_lab: bool) -> void:
+func soul_toggle(at: Vector2, in_lab: bool, width: float = 0) -> void:
  var toggle := CheckButton.new();toggle.name = "TestSoulToggle"
- toggle.text = "Soul: Blank → Move 2  ·  " + ("ON" if (game.reward if in_lab else reward_soul) else "OFF") + " · 1/turn"
- toggle.position = at;toggle.size = Vector2(380 if in_lab else 430,30 if in_lab else 44)
- toggle.add_theme_font_size_override("font_size",15)
+ toggle.text = "Soul: Blank → Move 2 · " + ("ON" if (game.reward if in_lab else reward_soul) else "OFF")
+ toggle.position = at;toggle.size = Vector2(width if width > 0 else (380 if in_lab else 430),30 if in_lab else 44)
+ toggle.add_theme_font_size_override("font_size",14)
  toggle.button_pressed = game.reward if in_lab else reward_soul
  toggle.tooltip_text = "Each hero may spend ONE rolled Blank as Move 2 per own turn. Normal and recovery turns refresh it. Toggling does not refill a spent allowance."
  toggle.toggled.connect(func(enabled):
@@ -1073,7 +1070,7 @@ func options_ui() -> void:
 
 func portrait_region(id: int) -> Rect2:
  var half := Vector2(PORTRAITS.get_size())/2.0
- return Rect2(Vector2(id%2,id/2)*half+Vector2(0.18,0.0)*half,half*0.74)
+ return Rect2(Vector2(id%2,id/2)*half,half)
 
 func draw_portrait(id: int, rect: Rect2) -> void:
  draw_texture_rect_region(PORTRAITS,rect,portrait_region(id))
@@ -1081,3 +1078,19 @@ func draw_portrait(id: int, rect: Rect2) -> void:
 func portrait_at(id: int, at: Vector2, dimensions: Vector2) -> void:
  var atlas := AtlasTexture.new();atlas.atlas = PORTRAITS;atlas.region = portrait_region(id)
  var picture := TextureRect.new();picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE;picture.texture = atlas;picture.position = at;picture.size = dimensions;picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED;picture.mouse_filter = Control.MOUSE_FILTER_IGNORE;ui.add_child(picture)
+
+
+func draw_unit_sprite(id: int, rect: Rect2) -> void:
+ var half := Vector2(SPRITES.get_size())/2.0
+ draw_texture_rect_region(SPRITES,rect,Rect2(Vector2(id%2,id/2)*half,half))
+
+func menu_ui() -> void:
+ overlay()
+ label_at("GAME MENU",Vector2(399,255),27,GOLD,600,true)
+ button("Tutorial / Ability Lab",Vector2(399,325),Vector2(275,45),func():show_menu = false;start_lab(),Color("82c8b9"))
+ button("Guided practice",Vector2(689,325),Vector2(285,45),func():show_menu = false;start_training(),Color("82c8b9"))
+ button("What changed",Vector2(399,388),Vector2(275,45),func():show_menu = false;show_changes = true;rebuild())
+ button("Rules",Vector2(689,388),Vector2(285,45),func():show_menu = false;show_help = true;rebuild(),MUTED)
+ button("Game options",Vector2(399,451),Vector2(275,45),func():show_menu = false;open_settings(),MUTED)
+ button("Rebuild / restart",Vector2(689,451),Vector2(285,45),func():show_menu = false;page = "forge";selected = -1;rebuild(),MUTED)
+ button("Return to battle",Vector2(399,570),Vector2(575,46),func():show_menu = false;rebuild())

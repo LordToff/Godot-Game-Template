@@ -40,9 +40,9 @@ func run():
  check(app.rolling_time == 0 and not app.dice_tray.busy and not app.dice_tray.visible,"encounter has no rolling overlay or delay")
  check(app.game.heroes.all(func(h):return h.rolls.size() == 3),"all real action results still exist")
  app.start_lab();app.lab_face = 25;app.reset_lab()
- check(app.ui.get_children().any(func(c):return c is Button and "Contained Power (Skill - Channel)" in c.text),"battle dice show name, category and timing")
+ check(app.ui.get_children().any(func(c):return c is Button and "Contained Power" in c.text and "(Skill - Channel)" in c.text),"battle dice show name, category and timing")
  check(app.ui.get_children().filter(func(c):return c is TextureRect).all(func(c):return c.size.x <= 40 and c.size.y <= 40),"portrait widgets fit their panels")
- check(app.PORTRAITS.get_width() > 1000 and app.BACKDROP.get_height() > 1000,"painted game art loads")
+ check(app.PORTRAITS.get_width() == 32 and app.BACKDROP.get_height() == 179 and app.SPRITES.get_width() == 64,"painted game art loads")
  current_scene.queue_free()
  for i in range(3):await process_frame
  print("CLARITY UI: %d checks, %d failures" % [checks,failures]);quit(1 if failures else 0)
