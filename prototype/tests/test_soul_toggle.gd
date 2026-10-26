@@ -15,6 +15,15 @@ func run():
  check(app.reward_soul,"forge toggle enables Soul")
  app.begin();app.dice_tray.finish()
  check(app.game.reward,"battle starts with selected Soul")
+ check(app.ui.get_node("TestSoulToggle").button_pressed,"normal battle exposes enabled toggle")
+ app.ui.get_node("TestSoulToggle").toggled.emit(false)
+ check(not app.game.reward and "OFF" in app.ui.get_node("TestSoulToggle").text,"normal battle can disable Soul immediately")
+ app.open_settings()
+ check(app.show_options,"Game options opens during combat")
+ var option = app.ui.get_children().filter(func(c):return c is Button and c.text.begins_with("Blank → Move 2: "))[0]
+ option.pressed.emit()
+ check(app.game.reward,"Game options can enable Soul immediately")
+ app.show_options = false;app.rebuild()
  app.start_lab();check(app.game.reward and app.ui.get_node("TestSoulToggle").button_pressed,"Lab inherits enabled Soul")
  var h: Dictionary = app.game.heroes[0];h.results[0] = 0;h.used[0] = false
  check(app.game.hero_action(0,-1,Vector2i(4,5)),"test Soul converts Blank")

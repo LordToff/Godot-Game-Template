@@ -42,7 +42,7 @@ func run():
  find_button(app,"Fixes & previous").pressed.emit()
  check(find_button(app,"Next →").disabled,"last page disables Next")
  find_button(app,"Back to game").pressed.emit()
- find_button(app,"Explain this turn · steps & timing").pressed.emit()
+ find_button(app,"Turn help").pressed.emit()
  check(app.show_turn and app.ui.get_node("TurnGuide").text.contains("Reroll window"),"turn guide shows current window and charges")
  await capture("turn-guide")
  var escape := InputEventKey.new();escape.keycode = KEY_ESCAPE;escape.pressed = true
