@@ -1,0 +1,125 @@
+Ash & Oath v0.8.1 · changes and reasons
+
+Test Soul · v0.8.1
+Enable the reward Soul before fighting
+The forge now has a Test Soul checkbox beside Restore balanced build. ON lets each hero spend one rolled Blank as Move 2 per own turn, without first beating the boss. OFF uses the normal starting Soul.
+
+The Lab has the same toggle, and the board shows the active hero’s remaining allowance. Switching it off and on does not refill a spent conversion. Normal and recovery turns refresh it.
+
+Build presets save this choice. Why: make the reward Soul easy to test without a full victory first.
+
+Dice & clarity · v0.8
+Real 3D dice, readable results
+Hero and boss dice settle on their recorded ability faces. Numeric rolls and individual rerolls show only the affected dice. Fast rolls and Skip keep results unchanged.
+
+Channel visibility
+Persistent rune rings identify Stonewake (blue), Contained Power (purple) and Last Pulse (green). Hover for its effect. Rings fade and pulse when the Channel ends.
+
+More helpful controls
+Ready / Spent / Reaction held / Channel held / Resolve next labels, legal-target highlights, specific error messages, friendly-fire confirmation, and a Summary / All-events log toggle.
+
+Practice and presets
+Eight guided lessons, a two-face Lab combination setup, ability readiness labels and Save / Load build presets. Why: make each decision visible instead of relying on the full history.
+
+Rule fixes · v0.8
+Pierce and Downed
+Bypassed Block is no longer restored to a hero who was Downed or killed by the hit.
+
+Break Rhythm
+Delays the upcoming boss activation by one slot. The original initiative order returns at the next round.
+
+Short Shot cap ruling
+The cap of 1 includes Mark Prey. A damaging hit consumes the mark, but the extra damage cannot take Short Shot above 1.
+
+Channel timing ruling
+Contained Power benefits from the shared roll wait for Maintain at the hero’s next turn. Releasing the Channel forfeits them.
+
+Repeated Attacks
+Each repetition rechecks its target and rolls fresh Numeric damage. Hooked Slash and Engrave apply their riders to each hit.
+
+Balance constants remain unchanged; these interaction rules can still affect outcomes.
+
+Reliability · v0.7
+Downed heroes lose temporary effects
+Reviving no longer keeps stale Numeric buffs, marks, wards, Debt or stored reaction modifiers. Physical die mutations remain.
+
+Channels break on a lethal hit too
+Contained Power now leaves its Red Tile and Last Pulse becomes Blank even when the triggering hit Downs or kills its hero. Damage prevention does not falsely break a Channel.
+
+No silent Channel replacement
+A second Channel cannot overwrite an existing one. The game explains the current one-Channel limit; the new die can be declined.
+
+Clearer documentation
+The new short playtest guide separates current rules, ability interpretations and unfinished features. Balance values are unchanged. Why: prevent hidden state changes during ordinary play.
+
+Reward Soul · v0.6
+One Blank conversion per hero turn
+
+The first boss reward Soul lets each hero spend at most ONE rolled Action Die Blank as Move 2 during their turn. The installed face stays Blank. Other Blanks may be spent without an effect.
+
+The allowance resets at that hero’s next normal turn or full recovery turn. It is independent for each hero. Failed moves do not spend it. Rerolls and shared rolls do not refill it during the same turn.
+
+Why
+Keeps the reward useful without letting multiple Blank rolls replace dedicated movement faces. The starting Soul still gives no Blank movement.
+
+A separate Word comparison documents changes from Master Rules v10 and Action Faces, including unresolved-design interpretations and omitted systems.
+
+Overview
+v0.5 · More choices, clearer turns
+
+• Two Blanks minimum per die, with fuller default builds.
+• Ashstep and Oathbound Exchange join the full starter-choice pool.
+• View dice shows every installed side, its die, current result and encounter changes.
+• Explain this turn gives steps, timing and the next action.
+• The boss pulls, steals Block and marks delayed explosions.
+
+Why
+Fewer dead rolls, more useful movement and fewer hidden rules. Use the topic buttons to jump directly to details.
+
+Dice & turn flow
+Two Blanks instead of three.
+Each die may now hold four abilities: up to 12 total. Default builds add a fourth Strike, a second Step and a second Guard. Ownership and the three-per-category caps still apply.
+
+Why
+Empty rolls dominated play. Extra useful faces create more decisions; one saved starting reroll remains. This construction change applies in both encounter modes.
+
+Turn explanations
+The chronicle explains turn starts; Explain this turn covers rerolls, available dice, targets, reactions, Block expiry and shared round rolls. View dice distinguishes installed faces from already-recorded results.
+
+New movement
+Ashstep
+Move up to 2 orthogonal spaces, turning allowed, then gain 1 Block. Occupied cells block the path.
+
+Oathbound Exchange
+Swap with a standing ally within 3 and clear sight. Both heroes gain 1 Block. Cannot target the boss, a dead ally or a Downed ally.
+
+Why
+Ashstep supports safe repositioning. Exchange rescues an ally or changes the front line. Both help escape Cinder Brand. Choose them from the 47-face extended pool or try them in the Lab.
+
+Boss changes
+Ashen Chain
+Pull the nearest hero within 3 one legal cell closer and strip 1 Block. No HP damage.
+
+Cinder Brand
+Mark a red cross under a hero within 3. At the next boss turn start, heroes still on it take 1 normal damage. Move away to evade. Brands cannot stack.
+
+Grave Tithe
+Steal 1 Block from each standing hero within 2, gaining at most 2 Block.
+
+Why
+The boss now pressures positioning and defense instead of repeating attacks. Tuned HP is 16 to account for fuller hero dice. Original encounter mode retains the previous boss dice and 18 HP.
+
+Fixes & previous
+Navigation
+Patch notes have topic buttons, Previous / Next and a page counter. Short pages replace one long scroll. Escape closes reference windows.
+
+Live dice inspection
+Gold marks mutations and displays the original face. Blue marks rolled sides. Details explain generated Bone / Recovery, locked Red Tiles, reaction / Channel holds and results recorded before a mutation.
+
+Earlier updates
+v0.4: Ability Lab, side chronicle, turn banner, eased animations, explicit mutation / conversion choices and Numeric attack tuning.
+v0.3: two-face gifts, causal combat logs and battlefield art.
+v0.2: boss explanations and starting rerolls.
+
+Scope
+A local single-boss prototype. Gold has no shop; Cleave has no secondary enemy. All extended effects print their playable interpretations.
