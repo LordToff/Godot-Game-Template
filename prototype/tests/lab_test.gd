@@ -53,7 +53,7 @@ func run():
  # Balance and restrictions must hold for both zero and positive results.
  for tuned in [true,false]:
   var g = Lab.create(34,1);g.tuned = tuned;g.hero_action(0,3)
-  check(g.boss.hp == (28 if tuned else 29),"Numeric attack balance mode")
+  check(g.boss.hp == 29,"Numeric attack balance mode")
   g = Lab.create(34,0);g.tuned = tuned;g.hero_action(0,3)
   check(g.boss.hp == 30,"Numeric zero stays zero")
   g = Lab.create(35,1);g.tuned = tuned;g.hero_action(0,3)

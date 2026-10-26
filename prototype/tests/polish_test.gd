@@ -8,10 +8,10 @@ func check(ok: bool, text: String):
 func _initialize():call_deferred("run")
 func run():
  var g = Lab.create(35,1);g.boss.mark = true;g.hero_action(0,3)
- check(g.boss.hp == 29 and not g.boss.mark,"Short Shot cap includes mark and consumes mark")
+ check(g.boss.hp == 28 and not g.boss.mark,"Short Shot cap includes mark and consumes mark")
  g = Lab.create(37,1);g.heroes[1].hp = 1;g.heroes[1].block = 1;g.hero_action(0,1)
  check(g.heroes[1].hp == 0 and g.heroes[1].block == 0,"Pierce cannot restore Block to a Downed hero")
- g = Lab.create(40,1);g.boss.block = 1;g.order = [0,3,1,2];g.initiative_base = g.order.duplicate();g.cursor = 0;g.hero_action(0,3)
+ g = Lab.create(40,2);g.boss.block = 1;g.order = [0,3,1,2];g.initiative_base = g.order.duplicate();g.cursor = 0;g.hero_action(0,3)
  check(g.order == [0,1,3,2],"Rhythm delays upcoming activation")
  g.new_round();check(g.order == [0,3,1,2],"next round restores initiative")
  for keep in [true,false]:

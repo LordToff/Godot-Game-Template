@@ -28,14 +28,14 @@ static func create(id: int, forced_numeric: int = -1, profile: Dictionary = {}, 
  g.record_event("turn","ABILITY LAB: " + Battle.FACES[id] + ". Vesper is active. This is an isolated test; normal builds are preserved.",0)
  g.record_event("info",guide(id),0)
  g.record_event("info",Catalog.text(id) if id >= 9 else "Select Die I, then use its highlighted board target or Resolve button. Invalid targets do not spend the die.",0)
- g.record_event("info","Tuned rules: a positive Numeric Attack gets +1 damage; Short Shot is still capped at 1. Numeric 0/1 selector supplies the next roll only. Reset to repeat.",0)
+ g.record_event("info","Numeric die: 2, 2, 1, 1, 1, 0 by default; Short Shot caps at 2. Numeric selector forces only the next roll. Reset to repeat.",0)
  return g
 
 static func guide(id: int) -> String:
  if Catalog.is_reaction(id): return "Stored reaction: press Boss hits. Respond in the window; compare HP / Block and the log. Reset to repeat."
  if id in [0,56]: return "This face is intentionally inert. Blank is not a failure; Red Tile is also locked against rerolls."
  if id in [2,3,53,54,57]: return "Select Die I, then a highlighted empty cell." + (" Bone may also Resolve to stay and gain Block." if id == 54 else "")
- if id in [1,34,35,36,37,38,39,40,41]: return "Select Die I, then click the boss. Try force 0 / 1 and reset. Cleave has no second enemy in this encounter."
+ if id in [1,34,35,36,37,38,39,40,41]: return "Select Die I, then click the boss. Try force 0 / 1 / 2 and reset. Cleave has no second enemy in this encounter."
  if id == 58: return "Select Die I and click a standing ally within 3. Positions swap; both gain 1 Block. Dead / Downed allies are ineligible."
  if id in [7,12,15,19,55]: return "Select Die I, then an injured ally. First Aid / Recovery may target self. Blessing then asks for a Blank slot."
  if id == 8: return "Select Die I, click the adjacent ally, then pick a legal push direction beneath the action panel."

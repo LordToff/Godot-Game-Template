@@ -32,7 +32,7 @@ func run():
  g = fresh();g.active = 3;g.boss_rolls = ["Advance","Brace","Strike"];g.boss_index = 0
  g.boss_step();check(g.boss.block == 0,"adjacent Advance cannot farm Block in tuned mode")
  g.boss_step();check(g.boss.block == 1,"tuned Brace gives one Block")
- g = fresh(1);g.hero_action(0,3);check(g.boss.hp == 14,"tuned Strike deals two")
+ g = fresh(1);g.hero_action(0,3);check(g.boss.hp == g.boss.max_hp-1,"Strike deals one")
  for id in range(9,57):
   g = fresh(id)
   if Catalog.is_reaction(id):

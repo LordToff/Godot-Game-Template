@@ -23,10 +23,10 @@ func run():
    tested += 1
  check(Battle.bonus_build([1,9]).is_empty(),"starter excluded from extended bonus pair")
  check(Battle.bonus_build([9,9]).is_empty(),"duplicate bonus disallowed")
- var g = fresh();g.boss.block = 1;g.hero_action(0,3)
+ var g = fresh();g.balance["face1.damage"] = 2;g.boss.block = 1;g.hero_action(0,3)
  var hits: Array = g.event_log.filter(func(e):return e.kind == "damage")
  check(hits.size() == 1 and hits[0].source == 0 and hits[0].target == 3 and hits[0].value == 1,"damage event attributes actor, target and actual HP loss")
- check(hits[0].text.contains("1 blocked") and hits[0].text.contains("HP 15/16"),"readable damage summary includes mitigation and remaining HP")
+ check(hits[0].text.contains("1 blocked") and hits[0].text.contains("HP 11/12"),"readable damage summary includes mitigation and remaining HP")
  check(g.event_log.any(func(e):return e.kind == "attack" and e.action == "Strike"),"Attack has a distinct animation event")
  g.hero_action(1)
  check(g.event_log.any(func(e):return e.kind == "block_gain" and e.value == 1),"Block gain has a distinct event")
@@ -37,7 +37,7 @@ func run():
  check(g.event_log.any(func(e):return e.kind == "debuff" and e.target == 0 and e.text.contains("Distort")),"boss debuff names source and target")
  g = fresh();g.heroes[0].results[0] = 35;g.heroes[0].debt_buff = 2
  g.hero_action(0,3)
- check(g.boss.max_hp-g.boss.hp <= 1,"Short Shot respects final damage cap even under buffs")
+ check(g.boss.max_hp-g.boss.hp <= 2,"Short Shot respects final damage cap even under buffs")
  g = fresh();g.heroes[0].block = 1;g.damage(0,-3)
  check(g.heroes[0].block == 1 and g.heroes[0].hp == 6,"negative damage cannot create Block or healing")
  g = fresh();g.order = [0,1,2,3];g.cursor = 0;g.heroes[0].results[0] = 29

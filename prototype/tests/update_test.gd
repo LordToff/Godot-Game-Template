@@ -39,7 +39,7 @@ func run():
  check(g.heroes[1].pos == Vector2i(3,3) and g.legal(0,g.heroes[0].pos),"Chain never forces an illegal overlap")
  g = Lab.create(1);g.heroes[1].pos = Vector2i(0,8);g.heroes[2].pos = Vector2i(8,8);boss_action(g,"Cinder Brand")
  var hp: int = g.heroes[0].hp
- check(g.brand_cells.size() == 5 and g.heroes[0].pos in g.brand_cells and hp == 3,"Brand telegraphs a cross without immediate damage")
+ check(g.brand_cells.size() == 9 and g.heroes[0].pos in g.brand_cells and hp == 3,"Brand telegraphs a 3×3 square without immediate damage")
  var marked: Array = g.brand_cells.duplicate()
  boss_action(g,"Cinder Brand")
  check(g.brand_cells == marked,"Brand cannot stack or replace an existing warning")

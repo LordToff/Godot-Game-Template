@@ -48,6 +48,8 @@ var brand_cells: Array = []
 var boss_sides: Array = []
 var roll_presentations: Array = []
 var initiative_base: Array = []
+var phase_two := false
+var roar_queued := false
 
 static func default_build(profile: Dictionary = {}) -> Array:
  var result: Array = [[1,2,4,1,0,0], [1,3,5,2,0,0], [1,7,6,4,0,0]]
@@ -89,6 +91,7 @@ static func validate(build: Array, gift: Variant = -1, profile: Dictionary = {})
 
 func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: bool = true, profile: Dictionary = {}) -> void:
  balance = profile.duplicate(true)
+ phase_two = false; roar_queued = false
  rng.randomize()
  if seed_value: rng.seed = seed_value
  initial_builds = builds.duplicate(true); brand_cells.clear(); roll_presentations.clear()
@@ -100,7 +103,7 @@ func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: boo
  heroes.clear(); order.clear(); log_lines.clear(); event_log.clear(); event_id = 0; action_owner = -1; action_label = ""; action_before = {}; recovery.clear(); replaced.clear()
  pending = {}; outcome = ""; atomic_damage = false; forced_die = -1; stun_queue.clear(); cursor = 0; round_no = 0; recovery_active = false
  for i in range(3):
-  heroes.append({"name":["VESPER","ROOK","WREN"][i], "hp":v("hero.hp"),"max_hp":v("hero.hp"),"block":0,"pos":Vector2i(2+i*2,7),"dead":false,"broken":false,"protected":false,"weak":false,"stun":false,"setaside":-1,"build":builds[i].duplicate(true),"rolls":[],"results":[],"used":[],"reaction":[],"initiative":rng.randi_range(v("initiative.min"),v("initiative.max")),"rerolls":mini(v("hero.rerolls"),v("hero.reroll_cap")),"opening":true,"soul_move_used":false,"soul_moves_used":0,"channel":{},"taken":0,"dr":0,"ward":false,"num_boost":0,"numeric_focus":false,"numeric_zero":false,"bulwark_weak":false,"stored_num":-1,"gambler":false,"gold":0,"backstab":0,"debt_buff":0,"debt_next":0,"debt_penalty":0,"echo_due":false,"defy":false,"black_oath":false,"smoke":{},"mods":{},"blessings":0,"mutations":0})
+  heroes.append({"name":["VESPER","ROOK","WREN"][i], "hp":v("hero.hp"),"max_hp":v("hero.hp"),"block":0,"pos":Vector2i(2+i*2,7),"dead":false,"broken":false,"protected":false,"weak":false,"stun":false,"setaside":-1,"build":builds[i].duplicate(true),"rolls":[],"results":[],"used":[],"reaction":[],"initiative":rng.randi_range(v("initiative.min"),v("initiative.max")),"rerolls":mini(v("hero.rerolls"),v("hero.reroll_cap")),"opening":true,"soul_move_used":false,"soul_moves_used":0,"channel":{},"taken":0,"dr":0,"ward":false,"num_boost":0,"numeric_focus":false,"numeric_zero":false,"bulwark_weak":false,"stored_num":-1,"gambler":false,"gold":0,"backstab":0,"debt_buff":0,"debt_next":0,"debt_penalty":0,"echo_due":false,"defy":false,"black_oath":false,"smoke":{},"mods":{},"blessings":0,"mutations":0,"engrave_growth":0})
   order.append(i)
  boss = {"hp":v("boss.hp"),"max_hp":v("boss.hp"),"block":0,"mark":false,"bargain":{},"weak":false,"binds":[],"pos":Vector2i(3,3),"initiative":rng.randi_range(v("initiative.min"),v("initiative.max"))}
  order.append(3)
@@ -159,6 +162,11 @@ func status_map(id: int) -> Dictionary:
   result["Stunned"] = h.stun
   result["Broken"] = h.broken
   result["Gambler Armed"] = h.gambler
+  result["Stored Numeric"] = h.stored_num >= 0
+  result["Debt Owed"] = h.debt_next > 0
+  result["Black Oath"] = h.black_oath
+  result["Echo Backlash"] = h.echo_due
+  result["Defy Death"] = h.defy
  else:
   result["Marked"] = h.mark
   result["Blood Bargain"] = not h.bargain.is_empty()
@@ -223,6 +231,8 @@ func shared_roll() -> void:
    if bind.die == index and bind.action == action:
     action = "Bound"; damage(bind.owner,v("face18.backlash")); break
   boss_rolls.append(action)
+ if roar_queued:
+  boss_rolls[0] = "Furnace Roar";boss_sides[0] = 4;roar_queued = false
  for id in range(3):
   var h: Dictionary = heroes[id]
   if h.hp <= 0 or h.dead: continue
@@ -288,8 +298,10 @@ func activate() -> void:
   if h.channel.is_empty() or h.channel.face != 31:
    if h.block > 0: record_event("expire","%s loses %d unspent Block at turn start." % [unit_name(active),h.block],active,active)
    h.block = 0
-  h.opening = true; h.soul_move_used = false; h.soul_moves_used = 0
-  if not h.channel.is_empty(): pending = {"kind":"channel","hero":active}
+  h.opening = true; h.soul_move_used = false; h.soul_moves_used = 0; h.engrave_growth = 0
+  if not h.channel.is_empty():
+   h.channel.block_lost = 0
+   pending = {"kind":"channel","hero":active}
 
 func finish_turn() -> void:
  if outcome != "" or not pending.is_empty(): return
@@ -441,6 +453,8 @@ func damage(id: int, amount: int, unavoidable: bool = false, reason: String = ""
  if unavoidable: result += " Unavoidable: bypasses Block and ordinary reduction."
  if id < 3 and initial_hp == 0 and h.protected: result += " Downed protection prevents death this turn."
  record_event("damage" if lost > 0 else ("block" if absorbed+reduction > 0 else "info"),result,action_owner,id,lost)
+ if id < 3:stonewake_loss(id,absorbed,lost)
+ if id == 3:check_phase()
  check_end()
  if id < 3 and lost > 0 and not broken_channel.is_empty() and broken_channel.face in [25,49]:
   var ch: Dictionary = broken_channel; h.channel = {}
@@ -551,6 +565,8 @@ func away_dirs(source: int, target: int) -> Array:
 func boss_step() -> void:
  if active != 3 or outcome != "" or not pending.is_empty(): return
  if boss_index >= 3: finish_turn(); return
+ if roar_queued:
+  boss_rolls[boss_index] = "Furnace Roar";roar_queued = false
  var action: String = boss_rolls[boss_index]
  begin_action(3,action,-1,boss_index)
  boss_index += 1
@@ -573,7 +589,7 @@ func boss_step() -> void:
      if next == best:break
      best = next
     h.pos = best
-    var lost: int = mini(v("boss.chain.strip"),h.block); h.block -= lost
+    var lost: int = remove_block(target,v("boss.chain.strip"))
     record_event("debuff","Ashen Chain pulls %s %s → %s and removes %d Block. No HP damage; occupied cells stop the pull." % [unit_name(target),cell_name(origin),cell_name(best),lost],3,target)
   "Cinder Brand":
    var target := nearest(targets(v("boss.brand.range")))
@@ -581,24 +597,31 @@ func boss_step() -> void:
    elif not brand_cells.is_empty(): note("Cinder Brand is already armed; the marked cells remain unchanged.")
    else:
     var at: Vector2i = heroes[target].pos
-    var offsets: Array = [Vector2i.ZERO]
-    for direction in DIRS:
-     for step in range(1,v("boss.brand.radius")+1):offsets.append(direction*step)
+    var offsets: Array = []
+    for x in range(-v("boss.brand.radius"),v("boss.brand.radius")+1):
+     for y in range(-v("boss.brand.radius"),v("boss.brand.radius")+1):offsets.append(Vector2i(x,y))
     for offset in offsets:
      var cell: Vector2i = at+offset
      if cell.x in range(9) and cell.y in range(9): brand_cells.append(cell)
     var names: Array[String] = []
     for cell in brand_cells: names.append(cell_name(cell))
     fire_event(3,brand_cells,"Cinder Brand armed",true)
-    record_event("hazard","Cinder Brand marks " + ", ".join(names) + ". At the START of the next boss turn, each hero still on a marked cell takes %d normal damage. Move off the red cross to evade; no immediate damage." % v("boss.brand.damage"),3,target)
+    record_event("hazard","Cinder Brand marks " + ", ".join(names) + ". At the START of the next boss turn, each hero still on a marked cell takes %d normal damage. Move off the marked square to evade; no immediate damage." % v("boss.brand.damage"),3,target)
   "Grave Tithe":
    var stolen := 0
    for target in targets(v("boss.tithe.range")):
-    var lost: int = mini(v("boss.tithe.strip"),heroes[target].block); heroes[target].block -= lost; stolen += lost
+    var lost: int = remove_block(target,v("boss.tithe.strip")); stolen += lost
     if lost: record_event("debuff","Grave Tithe removes %d Block from %s." % [lost,unit_name(target)],3,target)
    boss.block += mini(v("boss.tithe.cap"),stolen)
    note("Grave Tithe steals %d Block; The Hollow gains %d (cap %d). No HP damage." % [stolen,mini(v("boss.tithe.cap"),stolen),v("boss.tithe.cap")])
   "Bound": note("Lethargic Bind suppresses this action.")
+  "Furnace Roar":
+   var victims := targets(boss_range(action))
+   last_targets = victims.duplicate()
+   if victims.is_empty():fallback()
+   else:
+    pending = {"kind":"attack","action":action,"victims":victims,"reacted":[],"amount":v("boss.Furnace Roar.damage")}
+    continue_attack()
   "Advance":
    if not boss_move(v("boss.advance.move")): fallback()
   "Brace":
@@ -642,14 +665,14 @@ func continue_attack() -> void:
     var f: int = face(actor,die)
     var trigger: bool = actor == victim and (f in [5,28] or heroes[actor].smoke.has(die))
     if f == 44: trigger = actor != victim and distance(actor,victim) <= v("face44.range") and sight(actor,victim,v("face44.range"))
-    if f == 45: trigger = actor != victim and distance(actor,3) <= mini(v("face45.range"),boss_range(pending.action)) and pending.action != "Sweep"
+    if f == 45: trigger = actor != victim and distance(actor,3) <= mini(v("face45.range"),boss_range(pending.action)) and pending.action not in ["Sweep","Furnace Roar"]
     if f == 46: trigger = actor == victim and pending.amount-(v("face51.weakness") if boss.weak else 0)-heroes[actor].block-heroes[actor].dr >= heroes[actor].hp
     if f == 48: trigger = true
     if trigger:
      pending.kind = "reaction"; pending.hero = actor; pending.die = die; pending.victim = victim
      return
  var victims: Array = pending.victims.duplicate()
- if action != "Sweep" and (heroes[victims[0]].hp <= 0 or distance(3,victims[0]) > boss_range(action)):
+ if action not in ["Sweep","Furnace Roar"] and (heroes[victims[0]].hp <= 0 or distance(3,victims[0]) > boss_range(action)):
   var ts := targets(boss_range(action))
   if ts.is_empty():
    note(action + " has no legal adjacent target after Reactions; " + ("completed movement is kept, attack ends." if action == "Skirmish" else "attack is replaced by fallback."))
@@ -663,10 +686,17 @@ func continue_attack() -> void:
  pending = {}
  for t in victims:
   # Sweep locks its area after all reactions, and hits each adjacent unit once.
-  if action == "Sweep" and distance(3,t) > boss_range(action): continue
+  if action in ["Sweep","Furnace Roar"] and distance(3,t) > boss_range(action): continue
   record_event("attack","The Hollow attacks %s with %s for %d damage." % [unit_name(t),action,maxi(0,amount-(v("face51.weakness") if boss.weak else 0))],3,t,amount)
   damage(t,maxi(0,amount-(v("face51.weakness") if boss.weak else 0)))
   if outcome != "": return
+  if action == "Furnace Roar" and heroes[t].hp > 0:
+   for step in range(v("boss.roar.push")):
+    var dirs := away_dirs(3,t)
+    var moved := false
+    for dir in dirs:
+     if legal(t,heroes[t].pos+dir):heroes[t].pos += dir;moved = true;break
+    if not moved:break
   if action == "Drive Back": pending = {"kind":"push","hero":t}; return
 
 func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
@@ -740,9 +770,10 @@ func stun_die(d: int) -> void:
  pending = {}
 
 func action_reroll(d: int) -> bool:
- if active >= 3 or outcome != "" or not pending.is_empty(): return false
+ if reroll_reason(d) != "":return false
  var h: Dictionary = heroes[active]
- if not h.opening or h.rerolls < v("hero.reroll_cost") or h.used[d] or face(active,d) in [9,11,15,56]: return false
+ var old_face := face(active,d)
+ var old_side: int = h.rolls[d]
  h.rerolls -= v("hero.reroll_cost")
  action_owner = active; action_label = "Action Reroll"; action_before = {}
  h.rolls[d] = rng.randi_range(0,5)
@@ -753,6 +784,7 @@ func action_reroll(d: int) -> bool:
  roll_serial += 1
  present_action_roll(active,[d],"Action reroll")
  record_event("roll",h.name.capitalize() + " spends %d Action Reroll: Die %s → %s. Charges left: %d." % [v("hero.reroll_cost"),["I","II","III"][d],FACES[face(active,d)],h.rerolls],active,active)
+ record_event("roll","Die %s: side %d %s → side %d %s.%s" % [["I","II","III"][d],old_side+1,FACES[old_face],h.rolls[d]+1,FACES[face(active,d)]," Same ability rolled again; a reroll can land on another Blank or the same side." if old_face == face(active,d) else ""],active,active)
  return true
 
 func boss_help(action: String) -> String:
@@ -765,11 +797,12 @@ func boss_help(action: String) -> String:
 func default_boss_help(action: String) -> String:
  match action:
   "Ashen Chain": return "Pull the closest standing hero within 3 one legal cell closer; strip 1 Block. Units stop the pull. No HP damage."
-  "Cinder Brand": return "Mark a red cross beneath the closest hero within 3. At NEXT boss turn start, each hero on any marked cell takes 1 normal damage. Move away to evade. A second Brand cannot stack."
+  "Furnace Roar": return "Unlocked at %d%% boss HP. Attack every standing hero within %d for %d damage, then push survivors up to %d cells away. Reactions apply; occupied cells stop the push without collision damage. Replaces Brace on Die I for the rest of the fight. The first Roar replaces the next unresolved boss die." % [v("boss.phase.percent"),v("boss.Furnace Roar.range"),v("boss.Furnace Roar.damage"),v("boss.roar.push")]
+  "Cinder Brand": return "Mark a 3×3 square beneath the closest hero within 3. At NEXT boss turn start, each hero on any marked cell takes 1 normal damage. Move away to evade. A second Brand cannot stack."
   "Grave Tithe": return "Remove 1 Block from each standing hero within 2. Gain the stolen Block, capped at 2. No HP damage."
   "Advance": return "Move up to 2 toward the closest standing hero. Already adjacent? Hold position." if tuned else "Move up to 2 toward the closest standing hero; if impossible, use fallback."
   "Skirmish": return "Move 1 toward the closest hero, then attack an adjacent hero for 1. Reactions happen before damage."
-  "Strike": return "Attack the closest adjacent standing hero for 2 damage. Ties: lowest Block, then random."
+  "Strike": return "Attack the closest standing hero within %d for %d damage. Ties: lowest Block, then random." % [v("boss.Strike.range"),v("boss.Strike.damage")]
   "Sweep": return "Attack EVERY adjacent hero for 1 each, including Downed heroes. Each hero is hit once."
   "Drive Back": return "Attack an adjacent hero for 1, then push 1 directly away. Collision: 1 unavoidable damage + Stunned."
   "Brace": return "Gain %d Block. Damage consumes Block; any left expires at the boss’s next turn." % v("boss.brace.block")
@@ -801,9 +834,9 @@ func numeric(h: Dictionary, damage_value: bool = false) -> int:
   numeric_side = side
   if h.gambler and side == 4: absolute_zero = true
   elif h.gambler and side == 5:
-   var base := rng.randi_range(0,4)
-   value = v("face9.multiplier")*(v("numeric.positive") if base < v("numeric.positive_faces") else (v("face20.blank_value") if h.numeric_focus else v("numeric.blank")))
-  else: value = v("numeric.positive") if side < v("numeric.positive_faces") else (v("face20.blank_value") if h.numeric_focus else v("numeric.blank"))
+   var base := rng.randi_range(0,5)
+   value = v("face9.multiplier")*(ordinary_numeric(base,h.numeric_focus))
+  else: value = ordinary_numeric(side,h.numeric_focus)
  var rolled_value := value
  h.numeric_focus = false
  if not absolute_zero:
@@ -849,17 +882,18 @@ func strike(d: int, target: int, base: int, pierce: int = 0, numeric_attack: boo
   var marked: bool = target == 3 and boss.mark and unit.block == 0 and value > 0
   var bargained: bool = target == 3 and not boss.bargain.is_empty() and not (numeric_attack and h.numeric_zero)
   var power := v("face27.damage") if bargained else 0
+  var shot_mark := v("face21.damage") if marked and face(active,d) == 35 else 0
   var bypass := mini(unit.block,pierce)
   unit.block -= bypass
-  record_event("attack","%s attacks %s with %s for %d damage%s." % [unit_name(active),unit_name(target),action_label,mini(v("face35.cap"),value+power) if face(active,d) == 35 else value+power," (Pierce %d)" % pierce if pierce > 0 else ""],active,target,value+power)
-  damage(target,mini(v("face35.cap"),value+power) if face(active,d) == 35 else value+power)
+  record_event("attack","%s attacks %s with %s for %d damage%s." % [unit_name(active),unit_name(target),action_label,mini(v("face35.cap"),value+power+shot_mark) if face(active,d) == 35 else value+power," (Pierce %d)" % pierce if pierce > 0 else ""],active,target,value+power)
+  damage(target,mini(v("face35.cap"),value+power+shot_mark) if face(active,d) == 35 else value+power)
   if target == 3 or (unit.hp > 0 and not unit.dead): unit.block += bypass
   var hit_loss: int = maxi(0,before-unit.hp)
   lost += hit_loss
   if outcome != "": break
   if face(active,d) == 40 and target == 3 and hit_had_block and unit.block == 0 and hit_loss > 0: delay_boss_once()
   if face(active,d) == 36 and hit_loss >= v("face36.threshold"): h.block += hit_loss*v("face36.multiplier")
-  if face(active,d) == 41: engrave_copy(d)
+  if face(active,d) == 41 and hit_loss > 0: engrave_copy(d)
   if outcome != "": break
   if marked and before > unit.hp:
    boss.mark = false
@@ -942,7 +976,7 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
    heal(target,value)
    if f == 15: mutate(active,d,side,0); add_to_blank(target,15)
   17:
-   if h.stored_num < 0: h.stored_num = v("numeric.positive") if rng.randi_range(0,5) < v("numeric.positive_faces") else v("numeric.blank")
+   if h.stored_num < 0: h.stored_num = ordinary_numeric(rng.randi_range(0,5))
   18:
    pending = {"kind":"bind","hero":active,"die":d}
    return true
@@ -1060,7 +1094,7 @@ func choose_bind(d: int, action: String) -> void:
 func ember(value: int) -> void:
  var owner: int = pending.hero
  value = maxi(0,mini(value,mini(v("face52.burn"),heroes[owner].block)))
- heroes[owner].block -= value; pending = {}
+ remove_block(owner,value); pending = {}
  record_event("action","Ember Burst: %s burns %d Block; deals %d damage to each other unit in its radius, including allies. Block %d remains." % [unit_name(owner),value,value*v("face52.damage"),heroes[owner].block],owner)
  var burning: Array = []
  for x in range(9):
@@ -1173,13 +1207,15 @@ func choose_slot(d: int, side: int) -> bool:
 
 
 func boss_dice() -> Array:
- return TUNED_BOSS_DICE if tuned else BOSS_DICE
+ var dice: Array = (TUNED_BOSS_DICE if tuned else BOSS_DICE).duplicate(true)
+ if phase_two:dice[0][4] = "Furnace Roar"
+ return dice
 
 func detonate_brand() -> void:
  if brand_cells.is_empty(): return
  var marked: Array = brand_cells.duplicate(); brand_cells.clear()
  action_owner = 3; action_label = "Cinder Brand detonation"
- record_event("hazard","Cinder Brand detonates now, before boss dice resolve. Each hero on the red cross takes %d normal damage; moving away avoids it." % v("boss.brand.damage"),3)
+ record_event("hazard","Cinder Brand detonates now, before boss dice resolve. Each hero on the marked square takes %d normal damage; moving away avoids it." % v("boss.brand.damage"),3)
  fire_event(3,marked,"Cinder Brand detonation")
  atomic_damage = true
  for id in range(3):
@@ -1218,12 +1254,14 @@ func numeric_attack_base(d: int, target: int) -> int:
 
 func engrave_copy(d: int) -> void:
  var h: Dictionary = heroes[active]
+ if h.engrave_growth >= v("face41.growth"):return
+ var grown := 0
  for copy in range(v("face41.copies")):
+  if h.build[d].count(41) >= v("face41.cap"):break
   var slot: int = h.build[d].find(0)
-  if slot < 0:
-   for side in range(6):
-    if h.build[d][side] not in [41,56]: slot = side; break
-  if slot >= 0: mutate(active,d,slot,41)
+  if slot < 0:break
+  mutate(active,d,slot,41);grown += 1
+ if grown > 0:h.engrave_growth += 1
 
 
 func delay_boss_once() -> void:
@@ -1263,6 +1301,80 @@ func fire_event(source: int, tiles: Array, label: String, armed: bool = false) -
 func numeric_faces(gambler: bool) -> Array:
  var result: Array = []
  for side in range(6):
-  result.append(str(v("numeric.positive") if side < v("numeric.positive_faces") else v("numeric.blank")))
+  result.append(str(ordinary_numeric(side)))
  if gambler:result[4] = "×0";result[5] = "×"+str(v("face9.multiplier"))
  return result
+
+func ordinary_numeric(side: int, focus: bool = false) -> int:
+ if side < v("numeric.high_faces"):return v("numeric.high")
+ if side < v("numeric.positive_faces"):return v("numeric.positive")
+ return v("face20.blank_value") if focus else v("numeric.blank")
+
+func stonewake_loss(id: int, block_loss: int, hp_loss: int = 0) -> void:
+ var h: Dictionary = heroes[id]
+ if h.channel.is_empty() or h.channel.face != 31:return
+ h.channel.block_lost = int(h.channel.get("block_lost",0))+block_loss
+ if hp_loss > 0 or (block_loss > 0 and h.channel.block_lost >= v("face31.break_block")):
+  var lost: int = h.channel.block_lost;h.channel = {}
+  record_event("expire","%s stops channeling Stonewake: %d HP and %d cumulative Block lost since their last turn. Held die stays spent until the next shared roll." % [unit_name(id),hp_loss,lost],id,id)
+
+func remove_block(id: int, amount: int) -> int:
+ var h: Dictionary = boss if id == 3 else heroes[id]
+ var removed := mini(h.block,maxi(0,amount));h.block -= removed
+ if id < 3:stonewake_loss(id,removed)
+ return removed
+
+func check_phase() -> void:
+ if phase_two or boss.hp <= 0 or boss.hp*100 > boss.max_hp*v("boss.phase.percent"):return
+ phase_two = true
+ var next_die := boss_index if active == 3 else 0
+ if next_die < boss_rolls.size():
+  boss_rolls[next_die] = "Furnace Roar"
+  if next_die == 0 and boss_sides.size() == 3:boss_sides[0] = 4
+ else:roar_queued = true
+ record_event("phase","HALF-HEALTH PHASE: The Hollow unlocks Furnace Roar. Its next unresolved die becomes Roar; Brace on Die I is replaced for future rolls. Inspect the boss intent for damage and push range.",3)
+
+func reroll_reason(d: int) -> String:
+ if active not in [0,1,2] or outcome != "":return "No active hero turn."
+ if not pending.is_empty():return "Finish the pending choice first."
+ if d not in [0,1,2]:return "Select a die first."
+ var h: Dictionary = heroes[active]
+ if h.used[d]:return "This die is already spent or held as a reaction / Channel."
+ if forced_die >= 0:return "Resolve the forced result before using an Action Reroll."
+ if not h.opening:return "Opening window closed: use your Action Reroll before resolving an ordinary action. Focus can still reroll another unresolved die."
+ if h.rerolls < v("hero.reroll_cost"):return "Not enough Action Rerolls. The starting charge does not refill each round."
+ if face(active,d) in [9,11,15,56]:return "This face cannot use an Action Reroll."
+ return ""
+
+func status_description(id: int) -> String:
+ var h: Dictionary = boss if id == 3 else heroes[id]
+ var lines: Array[String] = []
+ if id < 3:
+  if h.dead:lines.append("Dead: cannot act or be revived.")
+  elif h.hp == 0:lines.append("Downed: heal to revive with Broken.")
+  if h.broken:lines.append("Broken: the next Downing is lethal.")
+  if hero_weakness(h) > 0:lines.append("Weakness −%d Attack damage." % hero_weakness(h))
+  if h.dr > 0:lines.append("Damage Reduction %d after Block; ends at own turn." % h.dr)
+  if h.ward:lines.append("Wither Ward: HP damage near boss inflicts Weakness.")
+  if h.stun:lines.append("Stunned: set aside one die at next shared roll.")
+  if not h.channel.is_empty():
+   lines.append("Channel: "+FACES[h.channel.face]+(" · Block loss %d/%d; any HP loss breaks it." % [h.channel.get("block_lost",0),v("face31.break_block")] if h.channel.face == 31 else ""))
+  if not h.reaction.is_empty():lines.append("Held reactions: "+", ".join(h.reaction.map(func(d):return FACES[face(id,d)])))
+  if h.num_boost > 0:lines.append("Numeric damage +%d on next roll this turn." % h.num_boost)
+  if h.numeric_focus:lines.append("Numeric Focus: next Blank counts as %d." % v("face20.blank_value"))
+  if h.stored_num >= 0:lines.append("Stored Numeric: %d." % h.stored_num)
+  if h.gambler:lines.append("Gambler: Numeric die has ×0 and ×%d." % v("face9.multiplier"))
+  if h.backstab >= round_no and h.backstab > 0:lines.append("Weak Point: next rear Attack repeats.")
+  if h.debt_buff > 0:lines.append("Debt: next Attack/Defense +%d." % h.debt_buff)
+  if h.debt_penalty > 0:lines.append("Debt: next Attack/Defense −%d." % h.debt_penalty)
+  if h.debt_next > 0:lines.append("Debt owed next turn: −%d." % h.debt_next)
+  if h.defy:lines.append("Defy Death armed.")
+  if h.black_oath:lines.append("Black Oath: leftover Block costs HP at turn end.")
+  if h.echo_due:lines.append("Echo of Pain: unused retaliation costs HP next turn.")
+ else:
+  if phase_two:lines.append("Phase II: Furnace Roar unlocked.")
+  if h.weak:lines.append("Weakness −%d damage." % v("face51.weakness"))
+  if h.mark:lines.append("Mark Prey: next damaging unblocked hit gains damage.")
+  if not h.bargain.is_empty():lines.append("Blood Bargain: %d charges." % h.bargain.charges)
+ if lines.is_empty():return "No active buffs or debuffs."
+ return "\n".join(lines)

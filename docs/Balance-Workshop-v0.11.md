@@ -1,3 +1,5 @@
+> Updated for v0.12: the workshop also includes Stonewake interruption, Engrave growth limits, two-valued Numeric sides and the half-health boss phase. [See current defaults and changes](Changes-v0.12.md). Saved overrides take precedence; Reset all loads current defaults.
+
 # Balance Workshop · v0.11
 
 Open **Menu → Game options → Balance workshop**. From the opening screens, use **Game options / Options → Balance workshop**.

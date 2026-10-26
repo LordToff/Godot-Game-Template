@@ -173,9 +173,10 @@ const DEFINITIONS = [
   "key": "numeric.positive_faces",
   "group": "Numeric die",
   "label": "Positive sides on the ordinary d6",
-  "default": 4,
+  "default": 5,
   "min": 0,
-  "max": 6
+  "max": 6,
+  "original": 4
  },
  {
   "key": "numeric.positive",
@@ -197,7 +198,7 @@ const DEFINITIONS = [
   "key": "numeric.tuned_bonus",
   "group": "Numeric die",
   "label": "Positive Numeric Attack bonus",
-  "default": 1,
+  "default": 0,
   "min": 0,
   "max": 99,
   "original": 0
@@ -206,7 +207,7 @@ const DEFINITIONS = [
   "key": "face1.damage",
   "group": "01 · Strike",
   "label": "Damage",
-  "default": 2,
+  "default": 1,
   "min": 0,
   "max": 99,
   "original": 1
@@ -663,7 +664,7 @@ const DEFINITIONS = [
   "key": "face35.cap",
   "group": "35 · Short Shot",
   "label": "Final damage cap",
-  "default": 1,
+  "default": 2,
   "min": 0,
   "max": 99
  },
@@ -744,7 +745,7 @@ const DEFINITIONS = [
   "key": "face41.bonus2",
   "group": "41 · Engrave",
   "label": "Second threshold damage bonus",
-  "default": 2,
+  "default": 1,
   "min": 0,
   "max": 99
  },
@@ -1224,7 +1225,7 @@ const DEFINITIONS = [
   "key": "boss.hp",
   "group": "Boss · general",
   "label": "Encounter maximum / starting HP",
-  "default": 16,
+  "default": 12,
   "min": 1,
   "max": 999,
   "original": 18
@@ -1258,9 +1259,10 @@ const DEFINITIONS = [
   "key": "boss.Strike.damage",
   "group": "Boss · Strike",
   "label": "Attack damage",
-  "default": 2,
+  "default": 1,
   "min": 0,
-  "max": 99
+  "max": 99,
+  "original": 2
  },
  {
   "key": "boss.Strike.range",
@@ -1378,7 +1380,7 @@ const DEFINITIONS = [
  {
   "key": "boss.brand.radius",
   "group": "Boss · Cinder Brand",
-  "label": "Arms of the marked cross",
+  "label": "Square radius (1 = 3×3 cells)",
   "default": 1,
   "min": 0,
   "max": 8
@@ -1518,6 +1520,79 @@ const DEFINITIONS = [
   "default": 2,
   "min": 0,
   "max": 999
+ },
+ {
+  "key": "numeric.high_faces",
+  "group": "Numeric die",
+  "label": "Leading sides using the higher value",
+  "default": 2,
+  "min": 0,
+  "max": 6,
+  "original": 0
+ },
+ {
+  "key": "numeric.high",
+  "group": "Numeric die",
+  "label": "Higher side value",
+  "default": 2,
+  "min": 0,
+  "max": 99
+ },
+ {
+  "key": "face31.break_block",
+  "group": "31 · Stonewake",
+  "label": "Cumulative Block loss that breaks Channel",
+  "default": 2,
+  "min": 0,
+  "max": 99
+ },
+ {
+  "key": "face41.cap",
+  "group": "41 · Engrave",
+  "label": "Maximum copies on one die",
+  "default": 3,
+  "min": 0,
+  "max": 6
+ },
+ {
+  "key": "face41.growth",
+  "group": "41 · Engrave",
+  "label": "Growth triggers per hero turn",
+  "default": 1,
+  "min": 0,
+  "max": 18
+ },
+ {
+  "key": "boss.phase.percent",
+  "group": "Boss · phase change",
+  "label": "HP percent that unlocks Furnace Roar",
+  "default": 50,
+  "min": 0,
+  "max": 100
+ },
+ {
+  "key": "boss.Furnace Roar.damage",
+  "group": "Boss · Furnace Roar",
+  "label": "Attack damage per hero",
+  "default": 1,
+  "min": 0,
+  "max": 99
+ },
+ {
+  "key": "boss.Furnace Roar.range",
+  "group": "Boss · Furnace Roar",
+  "label": "Area range from boss footprint",
+  "default": 2,
+  "min": 0,
+  "max": 16
+ },
+ {
+  "key": "boss.roar.push",
+  "group": "Boss · Furnace Roar",
+  "label": "Push distance (blocked cells stop it)",
+  "default": 1,
+  "min": 0,
+  "max": 16
  }
 ]
 

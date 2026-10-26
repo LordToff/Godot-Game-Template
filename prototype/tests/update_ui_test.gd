@@ -26,7 +26,7 @@ func run():
  check(app.ui.get_children().filter(func(c):return c is Button and c.text.begins_with("SIDE ")).size() == 18,"all 18 installed faces assigned to three dice")
  changed[0].pressed.emit()
  check(app.dice_inspected == Vector2i(2,5),"face inspection identifies die and side")
- check(app.ui.get_children().any(func(c):return c is Label and "Bone" in c.text and "Recorded roll:" in c.text),"details distinguish installed effect and earlier result")
+ check(app.ui.get_children().any(func(c):return c is RichTextLabel and "Bone" in c.text and "Recorded roll:" in c.text),"details distinguish installed effect and earlier result")
  await capture("dice")
  find_button(app,"THE HOLLOW").pressed.emit()
  check(app.dice_hero == 3 and app.ui.get_children().any(func(c):return c is Button and "Cinder Brand" in c.text),"boss inventory shows new boss faces")
@@ -62,7 +62,7 @@ func run():
  check(not app.game.brand_cells.is_empty(),"boss Brand creates board hazard")
  var brand = app.ui.get_children().filter(func(c):return c is Button and "Cinder Brand" in c.text)[0]
  brand.pressed.emit()
- check(app.ui.get_children().any(func(c):return c is RichTextLabel and c.text.contains("Mark a red cross")),"boss intent details explain delayed danger")
+ check(app.ui.get_children().any(func(c):return c is RichTextLabel and c.text.contains("Mark a 3×3 square")),"boss intent details explain delayed danger")
  app.inspect_action = "";app.rebuild()
  await capture("boss-brand")
  app.show_dice = true;app.dice_hero = 0;app.rebuild()

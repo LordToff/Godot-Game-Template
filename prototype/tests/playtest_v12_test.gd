@@ -1,0 +1,78 @@
+extends SceneTree
+const Lab = preload("res://prototype/lab.gd")
+const Battle = preload("res://prototype/battle.gd")
+var checks := 0
+var failures := 0
+func check(ok: bool, what: String):
+ checks += 1
+ if not ok:failures += 1;printerr("V12 FAIL: ",what)
+func _initialize():call_deferred("run")
+func stone():
+ var g = Lab.create(31);g.hero_action(0);return g
+func run():
+ var g = stone();g.damage(0,1)
+ check(not g.heroes[0].channel.is_empty() and g.heroes[0].channel.block_lost == 1,"one Block lost preserves Stonewake")
+ g.damage(0,1)
+ check(g.heroes[0].channel.is_empty() and g.heroes[0].hp == 3,"two separate blocked hits cumulatively break Stonewake")
+ check(g.heroes[0].used[0] and g.heroes[0].build[0][0] == 31,"broken Channel stays spent without destroying the face")
+ g = stone();g.damage(0,1,true)
+ check(g.heroes[0].channel.is_empty() and g.heroes[0].block == 2,"unavoidable HP loss breaks Stonewake")
+ g = stone();g.heroes[0].dr = 1;g.heroes[0].block = 0;g.damage(0,1)
+ check(not g.heroes[0].channel.is_empty(),"fully reduced hit does not falsely break Stonewake")
+ g = stone();g.heroes[0].block = 5;g.remove_block(0,1)
+ g.cursor = 0;g.active = 0;g.activate();g.channel_choice(true)
+ check(g.heroes[0].channel.block_lost == 0,"next own turn resets cumulative loss after successful survival")
+ g.remove_block(0,1);check(not g.heroes[0].channel.is_empty(),"one loss in new window is allowed")
+ g.remove_block(0,1);check(g.heroes[0].channel.is_empty(),"stripped Block also breaks Stonewake")
+ g = Lab.create(31,-1,{"face31.break_block":3});g.hero_action(0);g.heroes[0].block = 5;g.remove_block(0,2)
+ check(not g.heroes[0].channel.is_empty(),"Stonewake interruption threshold is tunable")
+ g.remove_block(0,1);check(g.heroes[0].channel.is_empty(),"custom interruption threshold enforced")
+ g = Lab.create(1);g.hero_action(0,3)
+ check(g.boss.hp == 29,"Basic Strike default is one")
+ check(g.numeric_faces(false) == ["2","2","1","1","1","0"],"Numeric die shows all six requested values")
+ for side in range(6):check(g.ordinary_numeric(side) == [2,2,1,1,1,0][side],"Numeric side %d is actually used by rolls" % side)
+ var values := {};for side in range(600):values[g.numeric(g.heroes[0])] = true
+ check(values.size() == 3 and values.has(0) and values.has(1) and values.has(2),"real Numeric rolls produce zero, one and two")
+ for face_id in [34,42,19]:
+  g = Lab.create(face_id,2)
+  if face_id == 34:g.hero_action(0,3);check(g.boss.hp == 28,"Numeric attack deals printed two without hidden flat bonus")
+  elif face_id == 42:g.hero_action(0);check(g.heroes[0].block == 2,"Numeric Defense benefits from two")
+  else:g.hero_action(0,1);check(g.heroes[1].hp == 5,"Numeric healing benefits from two")
+ g = Lab.create(35,2);g.boss.mark = true;g.hero_action(0,3)
+ check(g.boss.hp == 28 and not g.boss.mark,"Short Shot remains capped at two including Mark")
+ g = Lab.create(41,1);g.hero_action(0,3)
+ check(g.heroes[0].build[0].count(41) == 2,"Engrave grows on HP damage")
+ Lab.roll_test_face(g,41,1);g.hero_action(0,3)
+ check(g.heroes[0].build[0].count(41) == 2,"repeat in same turn cannot grow again")
+ g.cursor = 0;g.activate();g.pending = {};Lab.roll_test_face(g,41,1);g.hero_action(0,3)
+ check(g.heroes[0].build[0].count(41) == 3,"next own turn allows one further growth")
+ g.cursor = 0;g.activate();g.pending = {};Lab.roll_test_face(g,41,1);g.hero_action(0,3)
+ check(g.heroes[0].build[0].count(41) == 3,"Engrave stops at three copies")
+ g = Lab.create(41,1);g.heroes[0].build[0] = [41,1,2,3,4,7];var original: Array = g.heroes[0].build[0].duplicate();g.hero_action(0,3)
+ check(g.heroes[0].build[0] == original,"Engrave cannot overwrite non-Blank abilities")
+ g = Lab.create(41,1);g.boss.block = 4;g.hero_action(0,3)
+ check(g.heroes[0].build[0].count(41) == 1,"blocked hits cannot grow Engrave")
+ g = Lab.create(1);g.heroes[1].pos = Vector2i(0,8);g.heroes[2].pos = Vector2i(8,8);g.active = 3;g.boss_rolls = ["Cinder Brand","Brace","Strike"];g.boss_step()
+ check(g.brand_cells.size() == 9 and Vector2i(3,3) in g.brand_cells and Vector2i(5,5) in g.brand_cells,"Brand marks all nine cells including corners")
+ check(g.heroes[0].hp == 3,"Brand still gives time to move")
+ g.heroes[1].pos = Vector2i(3,3);g.detonate_brand();check(g.heroes[1].hp == 2,"Brand damage includes square corners")
+ g = Lab.create(1);g.boss.hp = 16;g.boss.max_hp = 30;g.damage(3,1)
+ check(g.phase_two and g.boss_rolls[0] == "Furnace Roar" and g.boss_dice()[0][4] == "Furnace Roar","exact half HP unlocks and previews one new ability")
+ var phase_count: int = g.event_log.filter(func(e):return e.kind == "phase").size();g.damage(3,1)
+ check(g.event_log.filter(func(e):return e.kind == "phase").size() == phase_count,"phase triggers once")
+ g = Lab.create(1);g.active = 3;g.boss_rolls = ["Furnace Roar","Brace","Strike"];g.boss_step()
+ check(g.heroes[0].hp == 2 and g.heroes[0].pos == Vector2i(4,5),"Roar damages and pushes a nearby hero")
+ g = Lab.create(1);g.heroes[0].results[0] = 5;g.heroes[0].reaction = [0];g.heroes[0].used[0] = true;g.active = 3;g.boss_rolls = ["Furnace Roar","Brace","Strike"];g.boss_step()
+ check(g.pending.get("kind","") == "reaction","Roar allows normal defensive reactions")
+ for seed_value in range(1,7):
+  g = Lab.create(0);g.rng.seed = seed_value;g.heroes[0].build[0] = [0,0,0,0,0,0]
+  check(g.action_reroll(0) and g.heroes[0].rerolls == 0 and g.face(0,0) == 0,"Blank reroll succeeds and spends exactly one charge even when Blank repeats")
+  check(g.event_log.back().text.contains("Same ability rolled again"),"same-face reroll is explained")
+ g = Lab.create(0);g.heroes[0].build[0] = [1,1,1,1,1,1]
+ check(g.action_reroll(0) and g.face(0,0) == 1,"Blank reroll can produce and retain a usable face")
+ g = Lab.create(6);g.heroes[0].build[1] = [0,0,0,0,0,0];g.hero_action(0,1)
+ check(g.forced_die == 1 and not g.action_reroll(1) and not g.reroll_reason(1).is_empty(),"Focus result cannot be bypassed by Action Reroll")
+ g = Lab.create(1);var h: Dictionary = g.heroes[0];h.weak = true;h.dr = 2;h.numeric_focus = true;h.stored_num = 2;h.debt_next = 2;h.ward = true
+ var status: String = g.status_description(0)
+ check(status.contains("Weakness") and status.contains("Reduction 2") and status.contains("Numeric Focus") and status.contains("Stored Numeric: 2") and status.contains("Debt owed") and status.contains("Wither Ward"),"status descriptions include numerical buffs and debuffs")
+ print("V0.12 PLAYTEST: %d checks, %d failures" % [checks,failures]);quit(1 if failures else 0)
