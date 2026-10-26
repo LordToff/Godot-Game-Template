@@ -1257,7 +1257,7 @@ const DEFINITIONS = [
  },
  {
   "key": "boss.Strike.damage",
-  "group": "Boss · Strike",
+  "group": "Boss · Smoking Strike",
   "label": "Attack damage",
   "default": 1,
   "min": 0,
@@ -1266,7 +1266,7 @@ const DEFINITIONS = [
  },
  {
   "key": "boss.Strike.range",
-  "group": "Boss · Strike",
+  "group": "Boss · Smoking Strike",
   "label": "Attack range",
   "default": 1,
   "min": 0,
@@ -1380,7 +1380,7 @@ const DEFINITIONS = [
  {
   "key": "boss.brand.radius",
   "group": "Boss · Cinder Brand",
-  "label": "Square radius (1 = 3×3 cells)",
+  "label": "Cross arms in phase I / square radius in phase II",
   "default": 1,
   "min": 0,
   "max": 8
@@ -1593,6 +1593,30 @@ const DEFINITIONS = [
   "default": 1,
   "min": 0,
   "max": 16
+ },
+ {
+  "key": "boss.advance.block",
+  "group": "Boss · Advance",
+  "label": "Block when adjacent to any highest-HP hero",
+  "default": 1,
+  "min": 0,
+  "max": 99
+ },
+ {
+  "key": "boss.chain.root",
+  "group": "Boss · Ashen Chain",
+  "label": "Rooted stacks in phase II (expires next boss turn)",
+  "default": 1,
+  "min": 0,
+  "max": 99
+ },
+ {
+  "key": "boss.smoking.fire_damage",
+  "group": "Boss · Smoking Strike",
+  "label": "Damage from a consumed fire tile",
+  "default": 1,
+  "min": 0,
+  "max": 99
  }
 ]
 

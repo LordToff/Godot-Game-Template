@@ -62,7 +62,7 @@ func run():
  check(not app.game.brand_cells.is_empty(),"boss Brand creates board hazard")
  var brand = app.ui.get_children().filter(func(c):return c is Button and "Cinder Brand" in c.text)[0]
  brand.pressed.emit()
- check(app.ui.get_children().any(func(c):return c is RichTextLabel and c.text.contains("Mark a 3×3 square")),"boss intent details explain delayed danger")
+ check(app.ui.get_children().any(func(c):return c is RichTextLabel and c.text.contains("Mark a cross")),"boss intent details explain delayed danger")
  app.inspect_action = "";app.rebuild()
  await capture("boss-brand")
  app.show_dice = true;app.dice_hero = 0;app.rebuild()

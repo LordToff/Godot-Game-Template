@@ -59,7 +59,7 @@ func run():
  check(g.heroes[0].block == 3 and g.heroes[0].channel.boost == 2,"Contained Power passive values effective")
  g = fresh(44,{"face44.self":2,"face44.ally":3,"boss.Strike.damage":2});Lab.attack(g,44);g.react(true)
  check(g.heroes[0].block == 2 and g.heroes[1].block == 1,"Shield Wall independently tunes both Block gains before damage")
- g = fresh(1,{"boss.brand.damage":3,"boss.brand.radius":2});g.active = 3;g.boss_rolls = ["Cinder Brand","Brace","Strike"];g.boss_step()
+ g = fresh(1,{"boss.brand.damage":3,"boss.brand.radius":2});g.phase_two = true;g.active = 3;g.boss_rolls = ["Cinder Brand","Brace","Strike"];g.boss_step()
  check(g.brand_cells.size() == 25 and g.heroes[0].hp == 3,"Brand radius changes without immediate damage")
  check(g.event_log.any(func(e):return e.kind == "fire_arm" and e.tiles.size() == 25),"arming fire snapshots marked cells")
  g.detonate_brand()

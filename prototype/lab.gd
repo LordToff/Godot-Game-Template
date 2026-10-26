@@ -6,7 +6,7 @@ static func create(id: int, forced_numeric: int = -1, profile: Dictionary = {}, 
  var g = Battle.new()
  g.start([Battle.default_build(),Battle.default_build(),Battle.default_build()],417,false,balanced,profile)
  g.pending = {}; g.outcome = ""; g.order = [0,1,2,3]; g.initiative_base = g.order.duplicate(); g.cursor = 0; g.active = 0; g.forced_die = -1
- g.boss.pos = Vector2i(4,2); g.boss.hp = g.v("lab.boss_hp"); g.boss.max_hp = g.boss.hp; g.boss.block = g.v("lab.boss_block"); g.boss_rolls = ["Strike","Grave Tithe","Sweep"]
+ g.boss.pos = Vector2i(4,2); g.boss.hp = g.v("lab.boss_hp"); g.boss.max_hp = g.boss.hp; g.boss.block = g.v("lab.boss_block"); g.boss_rolls = ["Smoking Strike","Grave Tithe","Sweep"]
  g.boss_sides = [2,4,3]
  for i in range(3):
   var h: Dictionary = g.heroes[i]
@@ -55,9 +55,9 @@ static func attack(g, id: int) -> void:
  if id in [44,45]:
   g.heroes[2].pos = Vector2i(6,5); g.heroes[1].pos = Vector2i(5,4); victim = 1
  if id == 28: g.heroes[2].pos = Vector2i(6,5); g.heroes[1].pos = Vector2i(5,4)
- g.begin_action(3,"Lab Strike")
- g.last_action = "Lab Strike"; g.last_targets = [victim]
- g.pending = {"kind":"attack","action":"Strike","victims":[victim],"reacted":[],"amount":g.v("boss.Strike.damage")}
+ g.begin_action(3,"Lab Smoking Strike")
+ g.last_action = "Lab Smoking Strike"; g.last_targets = [victim]
+ g.pending = {"kind":"attack","action":"Smoking Strike","victims":[victim],"reacted":[],"amount":g.v("boss.Strike.damage")}
  g.continue_attack(); g.report_changes()
 
 static func next_turn(g, forced_numeric: int = -1) -> void:

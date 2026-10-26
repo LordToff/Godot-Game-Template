@@ -52,7 +52,7 @@ func run():
  check(g.heroes[0].build[0] == original,"Engrave cannot overwrite non-Blank abilities")
  g = Lab.create(41,1);g.boss.block = 4;g.hero_action(0,3)
  check(g.heroes[0].build[0].count(41) == 1,"blocked hits cannot grow Engrave")
- g = Lab.create(1);g.heroes[1].pos = Vector2i(0,8);g.heroes[2].pos = Vector2i(8,8);g.active = 3;g.boss_rolls = ["Cinder Brand","Brace","Strike"];g.boss_step()
+ g = Lab.create(1);g.phase_two = true;g.heroes[1].pos = Vector2i(0,8);g.heroes[2].pos = Vector2i(8,8);g.active = 3;g.boss_rolls = ["Cinder Brand","Brace","Strike"];g.boss_step()
  check(g.brand_cells.size() == 9 and Vector2i(3,3) in g.brand_cells and Vector2i(5,5) in g.brand_cells,"Brand marks all nine cells including corners")
  check(g.heroes[0].hp == 3,"Brand still gives time to move")
  g.heroes[1].pos = Vector2i(3,3);g.detonate_brand();check(g.heroes[1].hp == 2,"Brand damage includes square corners")

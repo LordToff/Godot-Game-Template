@@ -30,8 +30,8 @@ func run():
  g = fresh();g.damage(0,100)
  check(g.heroes[0].rerolls == 0,"Downed clears the reroll bank")
  g = fresh();g.active = 3;g.boss_rolls = ["Advance","Brace","Strike"];g.boss_index = 0
- g.boss_step();check(g.boss.block == 0,"adjacent Advance cannot farm Block in tuned mode")
- g.boss_step();check(g.boss.block == 1,"tuned Brace gives one Block")
+ g.boss_step();check(g.boss.block == 1,"Advance adjacent to a tied highest-HP hero gains one Block")
+ g.boss.block = 0;g.boss_step();check(g.boss.block == 1,"tuned Brace independently gives one Block")
  g = fresh(1);g.hero_action(0,3);check(g.boss.hp == g.boss.max_hp-1,"Strike deals one")
  for id in range(9,57):
   g = fresh(id)

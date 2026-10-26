@@ -1,10 +1,10 @@
-# Ash & Oath v0.12 — playable prototype
+# Ash & Oath v0.13 — playable prototype
 
 [**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/) — no installation required.
 
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
 
-v0.12 revises Stonewake, Engrave, Strike and Numeric dice; adds a half-health boss phase and 3×3 fire, restores HP dots, and introduces combat descriptions beside the arena and unfolded dice templates. [What changed and why](docs/Changes-v0.12.md). Saved custom balance values are preserved; Reset all in the workshop to use the new defaults. The [Balance workshop](docs/Balance-Workshop-v0.11.md) remains under Game options.
+v0.13 gates boss upgrades at half HP, adds highest-HP targeting and automatic Drive Back pushes, replaces boss Strike with Smoking Strike and persistent fire, and gives phase two a burning-crown sprite and transition effect. Boss HP / Block also appear beneath its sprite. [What changed and why](docs/Changes-v0.13.md). Try **Lab tools → Test boss phase II**. The [Balance workshop](docs/Balance-Workshop-v0.11.md) retains your saved settings.
 
 This checkout now starts **Ash & Oath**, a tactical dice-building boss battler based on the supplied Master Rules v10 and Action Faces. Open `project.godot` in Godot 4.6.3 and press **F5**, or run `godot --path .`.
 

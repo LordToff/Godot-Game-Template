@@ -1,8 +1,19 @@
-# Ash & Oath v0.12 — playable prototype
+# Ash & Oath v0.13 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, instant rolls, pixel arena and knight sprites, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
 
-## Current v0.12
+## Current v0.13
+
+See [the v0.13 boss guide](../docs/Changes-v0.13.md). Phase I Brand is a cross, phase II Brand is a square. Phase II Chain adds Rooted until next boss turn; voluntary movement stops while forced movement remains legal. Advance pursues highest current HP and gains 1 Block if already adjacent to any tied highest-HP hero. Distort prefers highest HP if reachable, otherwise closest in range. Drive Back pushes automatically along the hit direction. Smoking Strike causes persistent cell fire only on HP damage, consuming existing fire for normal detonation damage.
+
+The boss has HP / Block beneath its sprite and a separate phase-II sprite and ember animation. Lab tools can trigger the real half-HP threshold. New numeric parameters use the existing workshop; legacy `boss.Strike.damage` / `range` keys remain compatible. Earlier sections below describe historical versions.
+
+```bash
+godot --headless --path . --script prototype/tests/boss_v13_test.gd
+godot --path . --audio-driver Dummy --script prototype/tests/boss_v13_ui_test.gd
+```
+
+## Historical v0.12
 
 See [the short v0.12 change guide](../docs/Changes-v0.12.md) for exact before/after rules, reasons and test results. Strike 1; Numeric 2/2/1/1/1/0 without the former extra attack bonus; Short Shot cap 2. Stonewake breaks on HP damage or 2 cumulative Block lost per own-turn window. Engrave grows only once per turn on HP damage, into Blanks, up to 3 copies. Tuned boss 12 HP / Strike 1; Cinder Brand is 3×3; Furnace Roar unlocks once at half HP. New numbers are exposed in the balance workshop.
 

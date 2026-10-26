@@ -59,6 +59,26 @@ rect((15,22,16,30),'w')
 for y in [23,26,29]:rect((12,y,19,y),'l')
 rect((2,18,5,27),'o');rect((3,19,4,25),'w');rect((26,18,29,27),'o');rect((27,19,28,25),'w')
 units.alpha_composite(boss,(32,32));units.save(OUT/'pixel_units.png')
+# Phase II: a separate hand-drawn ember monarch with a burning crown and torn mantle.
+phase=Image.new('RGBA',(32,32));fd=ImageDraw.Draw(phase)
+fd.polygon([(4,30),(7,19),(11,18),(16,23),(21,18),(25,19),(29,30)],fill='#15121c')
+fd.polygon([(5,29),(8,20),(11,20),(15,24),(12,30)],fill='#9b3d32')
+fd.polygon([(27,29),(23,20),(20,20),(17,24),(20,30)],fill='#9b3d32')
+fd.rectangle((11,9,20,18),fill='#d6b788');fd.rectangle((10,11,21,15),fill='#d6b788')
+for x in (11,17):
+ fd.rectangle((x,12,x+3,14),fill='#43282a');fd.rectangle((x+1,13,x+2,13),fill='#ffb342')
+fd.rectangle((15,15,16,16),fill='#5a282b');fd.rectangle((12,18,19,19),fill='#7e6560')
+for x in range(13,20,2):fd.line((x,17,x,19),fill='#211622')
+fd.rectangle((9,6,22,8),fill='#d1833b')
+for x,y in [(5,2),(10,0),(16,1),(22,0),(26,3)]:
+ fd.polygon([(x,8),(x-1,4),(x,y),(x+2,4),(x+2,8)],fill='#d44c31')
+ fd.line((x+1,4,x+1,7),fill='#ffd07a')
+fd.rectangle((15,22,16,30),fill='#efc28a')
+for y in (23,26,29):fd.line((12,y,19,y),fill='#d68143')
+for x in (3,27):
+ fd.rectangle((x,19,x+1,25),fill='#d6b788');fd.point((x,18),fill='#ffcd7a')
+for x,y in [(7,26),(24,24),(9,22),(22,28),(14,10),(19,16)]:fd.point((x,y),fill='#ffca62')
+phase.save(OUT/'pixel_boss_phase2.png')
 # Clean 16 x 16 head icons, separately drawn for small UI panels.
 head=[
 '......ppp.......','.....opPpo......','.....oppo.......','....ooooooo.....','...oslllllso....',
