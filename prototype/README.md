@@ -1,6 +1,10 @@
-# Ash & Oath v0.8 — playable prototype
+# Ash & Oath v0.8.1 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, dice animations, restrained graphic improvements, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
+
+## New in v0.8.1
+
+Use the Test Soul checkbox beside Restore balanced build in the forge to enable Blank → Move 2 once per hero turn without winning first. The Lab has the same toggle. Presets save the choice; switching off/on does not refill a used allowance.
 
 ## New in v0.8
 

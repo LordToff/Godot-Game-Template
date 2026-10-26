@@ -236,6 +236,7 @@ func forge_ui() -> void:
  button("Guided practice",Vector2(350,811),Vector2(200,40),start_training,Color("82c8b9"))
  button("Save build preset",Vector2(75,811),Vector2(245,40),save_preset,MUTED)
  button("Load preset",Vector2(560,811),Vector2(220,40),load_preset,MUTED)
+ soul_toggle(Vector2(350,756),false)
  button("Restore balanced build",Vector2(75,756),Vector2(245,46),func(): builds[build_hero] = Model.default_build(); rebuild(),MUTED)
  label_at("YOUR INHERITANCE",Vector2(886,300),13,GOLD)
  label_at("Memory   /   Empty\nSoul          /   6 HP · 2+ Blanks per die\nBody         /   Broken Body",Vector2(886,335),16,Color("d2d8df"))
@@ -321,7 +322,7 @@ func battle_ui() -> void:
   button(("Reroll selected die" if selected >= 0 else "Select a die to reroll") + "   ·   " + str(h.rerolls) + " left",Vector2(630,737),Vector2(380,43),func():
    if game.action_reroll(selected): selected = -1; hint = "Reroll spent. Fresh result kept."
    rebuild(),Color("82c8b9"),selected < 0 or h.rerolls == 0 or not h.opening or (selected >= 0 and game.face(game.active,selected) in [9,11,15,56]) or not game.pending.is_empty() or game.outcome != "")
-  label_at("Opening window only · no automatic refill",Vector2(637,784),10,MUTED)
+  if not lab: label_at("Opening window only · no automatic refill",Vector2(637,784),10,MUTED)
   label_at("%d dice unused · held reactions remain available" % h.used.count(false),Vector2(637,655),10,MUTED,380)
   button("End hero turn   →",Vector2(630,674),Vector2(380,50),func(): game.finish_turn(); selected = -1; rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
  else:
@@ -349,7 +350,7 @@ func battle_ui() -> void:
    button(["North","East","South","West"][i],Vector2(630+i*96,864),Vector2(90,30),func():
     if game.hero_action(selected,shove_target,dir): selected = -1; shove_target = -1
     rebuild(),GOLD,dir not in game.away_dirs(game.active,shove_target))
- label_at("REROLL FIRST → resolve available dice → END TURN\nAll heroes roll together at the NEXT ROUND. Reactions wait for attacks.",Vector2(76,742),11,MUTED,525)
+ label_at(("SOUL %d/1 left · " % int(not game.heroes[game.active].soul_move_used) if game.reward and game.active < 3 else "")+"REROLL FIRST → resolve available dice → END TURN\nAll heroes roll together at the NEXT ROUND. Reactions wait for attacks.",Vector2(76,742),11,MUTED,525)
  button("Explain this turn · steps & timing",Vector2(630,150),Vector2(380,28),func(): show_turn = true; rebuild(),GOLD)
  button("Rebuild / restart",Vector2(830,811),Vector2(180,39),func(): page = "forge"; selected = -1; rebuild(),MUTED)
  button("Settings",Vector2(630,811),Vector2(185,39),open_settings,MUTED)
@@ -833,6 +834,7 @@ func start_lab() -> void:
 
 func reset_lab() -> void:
  game = Lab.create(lab_face,lab_numeric)
+ game.reward = reward_soul
  if lab_support != 34:
   game.heroes[0].build[1][0] = lab_support; game.heroes[0].results[1] = lab_support;game.heroes[0].used[1] = Catalog.is_reaction(lab_support)
   game.heroes[0].reaction.erase(1)
@@ -843,6 +845,7 @@ func reset_lab() -> void:
  rebuild()
 
 func lab_ui() -> void:
+ soul_toggle(Vector2(630,784),true)
  # A persistent strip replaces party cards only in the isolated testing arena.
  var cover := ColorRect.new(); cover.position = Vector2(67,774); cover.size = Vector2(540,126); cover.color = Color("16232d"); ui.add_child(cover)
  button("Roll chosen face again",Vector2(630,864),Vector2(235,30),func(): Lab.roll_test_face(game,lab_face,lab_numeric); selected = -1; rebuild(),Color("82c8b9"),not game.pending.is_empty() or game.outcome != "")
@@ -862,10 +865,11 @@ func lab_ui() -> void:
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.8",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.8.1",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
+ var nav_step := minf(75,610.0/Changes.SECTIONS.size())
  for i in range(Changes.SECTIONS.size()):
-  button(Changes.SECTIONS[i].title,Vector2(125,190+i*75),Vector2(255,58),func(): changes_page = i; rebuild(),GOLD if i == changes_page else MUTED)
+  button(Changes.SECTIONS[i].title,Vector2(125,190+i*nav_step),Vector2(255,minf(58,nav_step-8)),func(): changes_page = i; rebuild(),GOLD if i == changes_page else MUTED)
  var section: Dictionary = Changes.SECTIONS[changes_page]
  label_at(section.title,Vector2(420,190),28,GOLD,880,true)
  var text := RichTextLabel.new(); text.name = "ChangeLog"; text.bbcode_enabled = true; text.position = Vector2(420,250); text.size = Vector2(880,455); text.add_theme_font_size_override("normal_font_size",20); text.text = section.body; ui.add_child(text)
@@ -975,7 +979,7 @@ func save_preset() -> void:
   if Model.validate(builds[hero],gifts[hero]) != "": hint = "Fix illegal builds before saving."; rebuild(); return
  var file := FileAccess.open("user://ash_build_preset.json",FileAccess.WRITE)
  if not file: hint = "Could not save preset."; rebuild(); return
- file.store_string(JSON.stringify({"builds":builds,"gifts":gifts,"balanced":balanced}));file.close()
+ file.store_string(JSON.stringify({"builds":builds,"gifts":gifts,"balanced":balanced,"test_soul":reward_soul}));file.close()
  hint = "Saved all three heroes’ builds on this device."; rebuild()
 
 func load_preset() -> void:
@@ -992,7 +996,7 @@ func load_preset() -> void:
    for side in range(6):die[side] = int(die[side])
   for i in range(saved.gifts[hero].size()):saved.gifts[hero][i] = int(saved.gifts[hero][i])
   if saved.gifts[hero].size() != 2 or saved.gifts[hero][0] == saved.gifts[hero][1] or not saved.gifts[hero].all(func(id):return id in Catalog.extended_ids()) or Model.validate(saved.builds[hero],saved.gifts[hero]) != "":hint = "Preset contains an illegal build."; rebuild(); return
- builds = saved.builds;gifts = saved.gifts;balanced = saved.get("balanced",true);draft_modal = false
+ builds = saved.builds;gifts = saved.gifts;balanced = saved.get("balanced",true);reward_soul = saved.get("test_soul",false);draft_modal = false
  hint = "Loaded all three heroes’ saved builds."; rebuild()
 
 func start_training() -> void:
@@ -1029,3 +1033,17 @@ func lab_setup_ui() -> void:
  picker.select(lab_support);picker.item_selected.connect(func(index):lab_support = index);ui.add_child(picker)
  button("Apply and reset test",Vector2(165,460),Vector2(400,50),func(): show_lab_setup = false;reset_lab())
  button("Back",Vector2(585,460),Vector2(380,50),func():show_lab_setup = false;rebuild(),MUTED)
+
+
+func soul_toggle(at: Vector2, in_lab: bool) -> void:
+ var toggle := CheckButton.new();toggle.name = "TestSoulToggle"
+ toggle.text = "Test Soul: Blank → Move 2 · once/turn"
+ toggle.position = at;toggle.size = Vector2(380 if in_lab else 430,30 if in_lab else 44)
+ toggle.add_theme_font_size_override("font_size",12 if in_lab else 14)
+ toggle.button_pressed = game.reward if in_lab else reward_soul
+ toggle.tooltip_text = "Each hero may spend ONE rolled Blank as Move 2 per own turn. Normal and recovery turns refresh it. Toggling does not refill a spent allowance."
+ toggle.toggled.connect(func(enabled):
+  reward_soul = enabled
+  if in_lab: game.reward = enabled
+  rebuild())
+ ui.add_child(toggle)

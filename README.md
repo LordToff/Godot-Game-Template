@@ -1,8 +1,8 @@
-# Ash & Oath v0.8 — playable prototype
+# Ash & Oath v0.8.1 — playable prototype
 
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
 
-v0.8 adds real 3D dice with readable results, persistent Channel rings, guided practice, build presets, Lab combinations and combat interaction fixes. The [six-page plain-language guide](docs/AshAndOath-Plain-Language-Guide-v0.8.pdf) explains the current rules and remaining limits.
+v0.8.1 adds a Test Soul toggle in the forge and Lab (one Blank becomes Move 2 per hero turn). v0.8 added real 3D dice with readable results, persistent Channel rings, guided practice, build presets, Lab combinations and combat interaction fixes. The [six-page plain-language guide](docs/AshAndOath-Plain-Language-Guide-v0.8.pdf) explains the current rules and remaining limits.
 
 This checkout now starts **Ash & Oath**, a tactical dice-building boss battler based on the supplied Master Rules v10 and Action Faces. Open `project.godot` in Godot 4.6.3 and press **F5**, or run `godot --path .`.
 
