@@ -1,5 +1,7 @@
 # Download Ash & Oath v0.8.1 for Windows
 
+[**Play the hosted browser version**](https://lordtoff.github.io/Godot-Game-Template/) — no download or Godot installation required.
+
 [**Download Windows v0.8.1 (ZIP)**](https://github.com/LordToff/Godot-Game-Template/raw/refs/heads/ash-and-oath-prototype/downloads/AshAndOath-Windows-v0.8.1.zip)
 
 1. Download the ZIP above. Sign in to GitHub if asked.
