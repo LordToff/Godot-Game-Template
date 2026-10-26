@@ -1,6 +1,16 @@
-# Ash & Oath v0.7 — playable prototype
+# Ash & Oath v0.8 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, dice animations, restrained graphic improvements, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
+
+## New in v0.8
+
+Real 3D cubes display the actual recorded ability faces, including Numeric rolls, single-die rerolls, released Channels and recovery rolls. Fast / Skip controls preserve results. Persistent colored rune rings identify Channels; hover the hero for its effect. Dice labels distinguish ready, spent, held and forced next results. Legal targets highlight and friendly attacks require a second click.
+
+The opening Tutorial offers eight guided lessons and can launch a practice preset. The top-bar Ability Lab remains freely selectable; Combine faces sets Die II for interaction tests. Save / Load preset stores all three heroes’ legal builds, gifts and balance setting locally, not campaign or in-progress encounter state. The chronicle toggles Summary / All events. Ability choices now carry readiness labels.
+
+Interaction rulings: Short Shot’s cap includes Mark Prey and consumes the mark on a damaging shot; Pierce cannot restore Block after Downed; Break Rhythm restores original initiative next round; Contained Power shared-roll bonuses wait for Maintain. Repeated Attacks recheck targets and reroll Numeric separately; Hooked Slash / Engrave riders apply per hit. Balance constants stay unchanged.
+
+Read the [six-page plain-language guide](../docs/AshAndOath-Plain-Language-Guide-v0.8.pdf). `dice_tray.gd` contains the separate 3D presentation layer. `polish_test.gd` and `polish_ui_test.gd` exercise interaction fixes, real meshes, settled results, Channels, practice progression, presets and friendly-fire confirmation.
 
 ## New in v0.7
 

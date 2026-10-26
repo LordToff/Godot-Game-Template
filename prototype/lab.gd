@@ -5,7 +5,7 @@ const Catalog = preload("res://prototype/catalog.gd")
 static func create(id: int, forced_numeric: int = -1):
  var g = Battle.new()
  g.start([Battle.default_build(),Battle.default_build(),Battle.default_build()],417)
- g.pending = {}; g.outcome = ""; g.order = [0,1,2,3]; g.cursor = 0; g.active = 0; g.forced_die = -1
+ g.pending = {}; g.outcome = ""; g.order = [0,1,2,3]; g.initiative_base = g.order.duplicate(); g.cursor = 0; g.active = 0; g.forced_die = -1
  g.boss.pos = Vector2i(4,2); g.boss.hp = 30; g.boss.max_hp = 30; g.boss.block = 0; g.boss_rolls = ["Strike","Grave Tithe","Sweep"]
  g.boss_sides = [2,4,3]
  for i in range(3):
@@ -86,4 +86,4 @@ static func roll_test_face(g, id: int, forced_numeric: int = -1) -> void:
  h.reaction.erase(0)
  if Catalog.is_reaction(id): h.reaction.append(0)
  g.record_event("roll","LAB OVERRIDE: roll " + Battle.FACES[id] + " again while keeping current statuses. Normal turn / roll timing is bypassed for testing.",0)
- g.on_roll(h,0);g.roll_serial += 1
+ g.on_roll(h,0);g.roll_serial += 1;g.present_action_roll(0,[0],"Lab · chosen face roll")

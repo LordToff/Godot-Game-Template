@@ -44,6 +44,8 @@ var atomic_damage := false
 var initial_builds: Array = []
 var brand_cells: Array = []
 var boss_sides: Array = []
+var roll_presentations: Array = []
+var initiative_base: Array = []
 
 static func default_build() -> Array:
  return [[1,2,4,1,0,0], [1,3,5,2,0,0], [1,7,6,4,0,0]]
@@ -71,7 +73,7 @@ static func validate(build: Array, gift: Variant = -1) -> String:
 func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: bool = true) -> void:
  rng.randomize()
  if seed_value: rng.seed = seed_value
- initial_builds = builds.duplicate(true); brand_cells.clear()
+ initial_builds = builds.duplicate(true); brand_cells.clear(); roll_presentations.clear()
  reward = soul
  tuned = balanced
  roll_serial = 0
@@ -88,6 +90,7 @@ func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: boo
   var av: int = boss.initiative if a == 3 else heroes[a].initiative
   var bv: int = boss.initiative if b == 3 else heroes[b].initiative
   return av > bv if av != bv else (a == 3 or (b != 3 and a < b)))
+ initiative_base = order.duplicate()
  note("The dice remember. Initiative is fixed for this encounter.")
  new_round()
 
@@ -175,6 +178,7 @@ static func cell_name(p: Vector2i) -> String:
 func new_round() -> void:
  action_owner = -1; action_label = "Round preparation"; action_before = {}
  round_no += 1; cursor = 0; replaced.clear()
+ if not initiative_base.is_empty(): order = initiative_base.duplicate()
  boss.mark = false
  stun_queue.clear()
  for i in range(3):
@@ -201,6 +205,14 @@ func shared_roll() -> void:
    if bind.die == index and bind.action == action:
     action = "Bound"; damage(bind.owner,1); break
   boss_rolls.append(action)
+ for id in range(3):
+  var h: Dictionary = heroes[id]
+  if h.hp <= 0 or h.dead: continue
+  var dice: Array = []
+  for d in range(3):
+   if d != h.setaside and (h.channel.is_empty() or h.channel.die != d): dice.append(d)
+  present_action_roll(id,dice,"Shared roll")
+ roll_presentations.append({"actor":"The Hollow","kind":"Shared roll","faces":boss_dice().duplicate(true),"sides":boss_sides.duplicate(),"results":boss_rolls.duplicate(),"dice":[0,1,2]})
  record_event("round","Round %d begins. All available Action Dice roll together." % round_no)
  for id in range(3):
   if heroes[id].hp <= 0 or heroes[id].dead: continue
@@ -215,7 +227,7 @@ func roll_hero(h: Dictionary) -> void:
  h.rolls = []; h.results = []; h.used = []; h.reaction = []; h.taken = 0; h.mods = {}; h.smoke = {}
  h.num_boost = 0; h.numeric_focus = false
  if not h.channel.is_empty() and h.channel.face == 25:
-  h.channel.boost = 0
+  h.channel.boost = 0; h.channel.confirmed = false; h.channel.pending_blank = 0; h.channel.pending_boost = 0
  for d in range(3):
   var kept: bool = not h.channel.is_empty() and h.channel.die == d
   var side: int = previous[d] if kept and previous.size() == 3 else rng.randi_range(0,5)
@@ -289,6 +301,7 @@ func finish_turn() -> void:
   roll_serial += 1
   heroes[active].setaside = -1
   roll_hero(heroes[active])
+  present_action_roll(active,[0,1,2],"Recovery roll")
   note(heroes[active].name + " · Immediate recovery turn. Broken: next zero HP is death.")
  else: activate()
 
@@ -463,6 +476,7 @@ func hero_action(d: int, target: int = -1, destination: Vector2i = Vector2i(-99,
    h.rolls[target] = rng.randi_range(0,5)
    h.results[target] = h.build[target][h.rolls[target]]
    on_roll(h,target)
+   present_action_roll(active,[target],"Focus reroll")
    note(h.name + " focuses Die " + str(target+1) + " → " + FACES[face(active,target)])
    if Catalog.is_reaction(face(active,target)): h.used[target] = true; h.reaction.append(target)
    else: forced_die = target
@@ -708,6 +722,7 @@ func action_reroll(d: int) -> bool:
  on_roll(h,d)
  roll_context = "Action Reroll · keep the new result"
  roll_serial += 1
+ present_action_roll(active,[d],"Action reroll")
  record_event("roll",h.name.capitalize() + " spends 1 Action Reroll: Die %s → %s. Charges left: %d." % [["I","II","III"][d],FACES[face(active,d)],h.rerolls],active,active)
  return true
 
@@ -734,25 +749,32 @@ func on_roll(h: Dictionary, d: int) -> void:
   record_event("buff" if before == 0 else "info",h.name.capitalize()+ (" gains 1 Action Reroll from Clairvoyance." if before == 0 else " rolls Clairvoyance, but the Action Reroll bank is already full (1/1)."),heroes.find(h),heroes.find(h))
  if f == 48: h.echo_due = true
  if not h.channel.is_empty() and h.channel.face == 25 and h.channel.die != d:
-  if f == 0: h.block += 1
-  else: h.channel.boost = mini(2,h.channel.get("boost",0)+1)
+  if h.channel.get("confirmed",true):
+   if f == 0: h.block += 1
+   else: h.channel.boost = mini(2,h.channel.get("boost",0)+1)
+  elif f == 0: h.channel.pending_blank = h.channel.get("pending_blank",0)+1
+  else: h.channel.pending_boost = mini(2,h.channel.get("pending_boost",0)+1)
 
 func numeric(h: Dictionary, damage_value: bool = false) -> int:
  var value := 0
  var absolute_zero := false
- if h.stored_num >= 0: value = h.stored_num; h.stored_num = -1
+ var numeric_side := 0
+ if h.stored_num >= 0: value = h.stored_num; numeric_side = 0 if value > 0 else 4; h.stored_num = -1
  else:
   var side := rng.randi_range(0,5)
+  numeric_side = side
   if h.gambler and side == 4: absolute_zero = true
   elif h.gambler and side == 5:
    var base := rng.randi_range(0,4)
    value = 2*(1 if base < 4 or h.numeric_focus else 0)
   else: value = 1 if side < 4 or h.numeric_focus else 0
+ var rolled_value := value
  h.numeric_focus = false
  if not absolute_zero:
   if not h.channel.is_empty() and h.channel.face == 25: value += h.channel.get("boost",0)
   if damage_value: value += h.num_boost; h.num_boost = 0
  h.numeric_zero = absolute_zero
+ roll_presentations.append({"actor":h.name.capitalize(),"kind":("Numeric · base %d → value %d" % [rolled_value,value]) + (" · Attack modifiers follow" if damage_value else ""),"faces":[["1","1","1","1","×0" if h.gambler else "0","×2" if h.gambler else "0"]],"sides":[numeric_side],"results":[str(value)],"dice":[0]})
  note(h.name + " rolls Numeric → " + str(value))
  roll_context = "Numeric Die · result " + str(value)
  roll_serial += 1
@@ -777,19 +799,34 @@ func strike(d: int, target: int, base: int, pierce: int = 0, numeric_attack: boo
   pierce += h.mods[d].get("pierce",0); repeats += h.mods[d].get("repeat",0)
  var lost := 0
  for n in range(repeats):
-  if outcome != "": break
+  if outcome != "" or h.hp <= 0 or h.dead: break
+  if target < 3 and heroes[target].dead: break
+  if distance(active,target) > (2 if face(active,d) == 35 else 1): break
+  if face(active,d) == 35 and not sight(active,target,2): break
+  if n > 0:
+   var next_base: int = numeric_attack_base(d,target) if numeric_attack else base
+   value = maxi(0,modified_value(d,next_base)-int(h.weak or h.bulwark_weak))
+   if numeric_attack and h.numeric_zero: value = 0
   var unit: Dictionary = boss if target == 3 else heroes[target]
   var before: int = unit.hp
+  var hit_had_block: bool = unit.block > 0
   var marked: bool = target == 3 and boss.mark and unit.block == 0 and value > 0
   var power := 1 if target == 3 and not boss.bargain.is_empty() and not (numeric_attack and h.numeric_zero) else 0
   var bypass := mini(unit.block,pierce)
   unit.block -= bypass
   record_event("attack","%s attacks %s with %s for %d damage%s." % [unit_name(active),unit_name(target),action_label,mini(1,value+power) if face(active,d) == 35 else value+power," (Pierce %d)" % pierce if pierce > 0 else ""],active,target,value+power)
   damage(target,mini(1,value+power) if face(active,d) == 35 else value+power)
-  unit.block += bypass
-  lost += maxi(0,before-unit.hp)
+  if target == 3 or (unit.hp > 0 and not unit.dead): unit.block += bypass
+  var hit_loss: int = maxi(0,before-unit.hp)
+  lost += hit_loss
   if outcome != "": break
-  if marked and before > unit.hp: boss.mark = false; damage(3,1)
+  if face(active,d) == 40 and target == 3 and hit_had_block and unit.block == 0 and hit_loss > 0: delay_boss_once()
+  if face(active,d) == 36 and hit_loss >= 2: h.block += hit_loss
+  if face(active,d) == 41: engrave_copy(d)
+  if outcome != "": break
+  if marked and before > unit.hp:
+   boss.mark = false
+   if face(active,d) != 35: damage(3,1)
   if power > 0 and outcome == "":
    boss.bargain.charges -= 1
    if boss.bargain.charges == 0:
@@ -896,7 +933,7 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
     note("Only one Channel per hero is supported. Maintain or release the existing Channel at your next turn; this die remains available to decline.")
     return false
    if f == 31: h.block += 2
-   h.channel = {"die":d,"side":side,"face":f,"boost":0}
+   h.channel = {"die":d,"side":side,"face":f,"boost":0,"confirmed":true,"pending_blank":0,"pending_boost":0}
    note(h.name + " begins Channel · " + FACES[f])
   27: boss.bargain = {"owner":active,"charges":2}
   28,44,45,46,48: return false # Stored automatically by the roll.
@@ -909,28 +946,9 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
    var range_value := 2 if f == 35 else 1
    if target < 0 or target == active or (target < 3 and heroes[target].dead) or distance(active,target) > range_value: return false
    if f == 35 and not sight(active,target,range_value): return false
-   var value := numeric(h,true)
-   if tuned and value > 0: value += 1
-   if f == 35: value = mini(1,value)
-   if f == 39 and target == 3 and rear(active): value += 1
-   if f == 41:
-    var count: int = h.build[d].count(41)
-    value += 2 if count >= 6 else (1 if count >= 3 else 0)
-   var had_block: bool = (boss.block if target == 3 else heroes[target].block) > 0
+   var value := numeric_attack_base(d,target)
    var lost := strike(d,target,value,1 if f == 37 else 0,true)
    if outcome != "": spend(d); return true
-   if f == 36 and lost >= 2: h.block += lost
-   if f == 40 and target == 3 and had_block and boss.block == 0 and lost > 0:
-    var at: int = order.find(3)
-    if at > cursor and at < order.size()-1:
-     var next: int = order[at+1]; order[at+1] = 3; order[at] = next
-     note("Break Rhythm delays the next boss activation one slot.")
-   if f == 41:
-    var slot: int = h.build[d].find(0)
-    if slot < 0:
-     for i in range(6):
-      if h.build[d][i] not in [41,56]: slot = i; break
-    if slot >= 0: mutate(active,d,slot,41)
   42: h.block += numeric_block(d)
   43: h.block += modified_value(d,3 if h.block == 0 else 1)
   47: h.dr = 1; h.bulwark_weak = true
@@ -980,6 +998,10 @@ func channel_choice(keep: bool) -> void:
  var ch: Dictionary = h.channel.duplicate()
  pending = {}
  if keep:
+  if ch.face == 25:
+   h.block += ch.get("pending_blank",0); h.channel.boost = mini(2,ch.get("boost",0)+ch.get("pending_boost",0))
+   h.channel.pending_blank = 0; h.channel.pending_boost = 0; h.channel.confirmed = true
+   note("Maintained Contained Power: +%d held Block; Numeric +%d this turn." % [ch.get("pending_blank",0),h.channel.boost])
   if ch.face == 31: h.block = mini(8,h.block+1)
   if ch.face == 49: heal(active,1)
   note(h.name + " maintains " + FACES[ch.face])
@@ -988,6 +1010,7 @@ func channel_choice(keep: bool) -> void:
   h.results[ch.die] = h.build[ch.die][h.rolls[ch.die]]; h.used[ch.die] = false
   if Catalog.is_reaction(h.results[ch.die]): h.reaction.append(ch.die); h.used[ch.die] = true
   on_roll(h,ch.die); roll_serial += 1
+  present_action_roll(active,[ch.die],"Released Channel die")
   note(h.name + " ends Channel and rolls the released die.")
  report_changes()
 
@@ -1025,7 +1048,7 @@ func catalog_pick(hero: int, d: int, side: int = -1) -> bool:
   spend(source); h.rolls[d] = side; h.results[d] = h.build[d][side]; pending = {}; roll_serial += 1
   if Catalog.is_reaction(h.results[d]): h.reaction.append(d); h.used[d] = true
   else: forced_die = d
-  on_roll(h,d); return true
+  on_roll(h,d); present_action_roll(active,[d],"Borrow Shape · chosen face"); return true
  if f == 23:
   if p.stage == 0:
    if d == source or h.used[d] or face(active,d) == 0: return false
@@ -1126,3 +1149,38 @@ func turn_explanation() -> String:
  for used in h.used:
   if not used: available += 1
  return "%s TURN: old Block expires (Stonewake can preserve it); temporary defenses end. Reroll first if you want to use your saved charge (%d left). Resolve up to %d available dice in any order, choosing board targets or Resolve. Stored reactions wait for attacks. End hero turn when finished; unused immediate results are lost at the next shared roll. Next round rolls all heroes together, not at each hero turn." % [unit_name(active),h.rerolls,available]
+
+
+func present_action_roll(id: int, dice: Array, kind: String) -> void:
+ if dice.is_empty(): return
+ var h: Dictionary = heroes[id]
+ var faces: Array = []; var sides: Array = []; var results: Array = []
+ for d in dice:
+  faces.append(h.build[d].map(func(f):return FACES[f])); sides.append(h.rolls[d]); results.append(FACES[face(id,d)])
+ roll_presentations.append({"actor":unit_name(id),"kind":kind,"faces":faces,"sides":sides,"results":results,"dice":dice.duplicate()})
+
+func numeric_attack_base(d: int, target: int) -> int:
+ var h: Dictionary = heroes[active]; var f := face(active,d)
+ var value := numeric(h,true)
+ if tuned and value > 0: value += 1
+ if f == 35: value = mini(1,value)
+ if f == 39 and target == 3 and rear(active): value += 1
+ if f == 41:
+  var count: int = h.build[d].count(41)
+  value += 2 if count >= 6 else (1 if count >= 3 else 0)
+ return value
+
+func engrave_copy(d: int) -> void:
+ var h: Dictionary = heroes[active]
+ var slot: int = h.build[d].find(0)
+ if slot < 0:
+  for side in range(6):
+   if h.build[d][side] not in [41,56]: slot = side; break
+ if slot >= 0: mutate(active,d,slot,41)
+
+
+func delay_boss_once() -> void:
+ var at: int = order.find(3)
+ if at > cursor and at < order.size()-1:
+  var next: int = order[at+1]; order[at+1] = 3; order[at] = next
+  note("Break Rhythm delays the upcoming boss activation one slot; original initiative returns next round.")

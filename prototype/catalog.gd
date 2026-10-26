@@ -4,7 +4,7 @@ extends RefCounted
 # and printed on the offer card rather than silently altering the source document.
 const EXTRA = [
  ["Gambler's Coin","Skill","Arm Numeric with x0 and x2. Roll again to gain 1 Gold and blank this face for the fight."],
- ["Weak Point","Skill","Gain a personal backstab marker through next round. Your next adjacent Attack from below the north-facing boss repeats once."],
+ ["Weak Point","Skill","Gain a personal backstab marker through next round. Your next adjacent Attack from below the north-facing boss repeats once, with fresh Numeric rolls for each resolution."],
  ["Conjure","Skill","Copy another visible immediate hero face. Select its hero and die; resolve the copy now. No setup/copy loops."],
  ["Blessing of Recovery","Skill","Choose a hero and a specific Blank slot: install Recovery there. Recovery heals Numeric at range 1. After two placements this face becomes Blank."],
  ["Clairvoyance","Skill","Prototype: when rolled, gain 1 Action Reroll (cap 1). The bank begins with 1, so save this for replenishment."],
@@ -19,7 +19,7 @@ const EXTRA = [
  ["Last Word","Skill","After all your other non-Blank dice resolve, deal 1 unavoidable damage to the boss. Prototype range: visible anywhere."],
  ["Second Chance","Skill","Skip another unresolved non-Blank die, then repeat one already spent immediate face. Copy/repeat faces cannot chain into themselves."],
  ["Spiral Instability","Skill","Roll this die until an Attack appears, then resolve it twice at random legal adjacent units, including allies. No Attack on this die: no effect."],
- ["Contained Power","Skill","Channel: each future Blank grants 1 Block and each non-Blank adds Numeric +1 for that turn, capped +2. HP damage breaks it, deals 2 more and leaves a Red Tile."],
+ ["Contained Power","Skill","Channel: after maintaining at turn start, each future Blank grants 1 Block and each non-Blank adds Numeric +1 for that turn, capped +2. HP damage breaks it, deals 2 more and leaves a Red Tile."],
  ["Corruption Conversion","Skill","Prototype on resolution: choose an unresolved Blank die, then choose an installed ability on it and resolve that face. This face becomes a locked Red Tile for the fight."],
  ["Blood Bargain","Skill","Empower the next two Attacks against the boss by +1 damage. After the second, take 1 unavoidable damage."],
  ["Target Override","Skill","Reaction when personally targeted: force a different legal adjacent hero to be targeted. With no alternative the original target remains."],
@@ -29,12 +29,12 @@ const EXTRA = [
  ["Oath of Smoke","Skill","Prototype: resolve another rolled Step, Stride or Guard now; store it as a Reaction until the next shared roll. Movement reaction steps 1; Defense grants 1 Block."],
  ["Bone Mutation","Skill","Choose a Blank on one of your dice and replace it with Bone for this fight. Bone grants 1 Block, then optionally steps 1."],
  ["Strike Numeric","Attack","Adjacent unit: roll Numeric and deal that much damage."],
- ["Short Shot","Attack","Target a visible unit within 2. Numeric damage capped at 1 per resolution. Units block sight; no diagonal corner shooting."],
+ ["Short Shot","Attack","Target a visible unit within 2. Damage capped at 1 per resolution, including Mark Prey; the mark is consumed on a damaging hit. Units block sight; no diagonal corner shooting."],
  ["Hooked Slash","Attack","Catalog variant: adjacent Numeric Attack. If at least 2 HP damage is dealt, gain that much Block."],
  ["Piercing Thrust","Attack","Adjacent Numeric Attack. Bypass 1 Block without destroying the bypassed portion."],
  ["Cleave","Attack","Adjacent Numeric Attack. A second enemy adjacent to that target takes 1. This encounter has only one enemy."],
  ["Flanking Blow","Attack","Prototype: adjacent Numeric Attack; add 1 when standing below the north-facing boss. Rear means its southern edge."],
- ["Break Rhythm","Attack","Adjacent Numeric Attack. If you break existing Block and deal HP damage, delay an upcoming boss activation one initiative slot when possible."],
+ ["Break Rhythm","Attack","Adjacent Numeric Attack. If you break existing Block and deal HP damage, delay an upcoming boss activation one initiative slot when possible; normal initiative returns next round."],
  ["Engrave","Attack","Prototype adjacent Numeric Attack. After damage, copy Engrave into a Blank on this die (otherwise overwrite an unlocked non-Engrave). 3 copies: +1; 6 copies: +2."],
  ["Guard Numeric","Defense","Gain Block equal to a Numeric roll."],
  ["Brace Hero","Defense","If at zero Block, gain 3; otherwise gain 1."],
@@ -73,3 +73,8 @@ static func is_attack(id: int) -> bool:
  return category(id) == "Attack"
 static func can_copy(id: int) -> bool:
  return id in [1,2,3,4,7,8,19,20,21,22,34,35,36,37,38,39,40,42,43,47,50,51,52,53,54,55,57,58]
+
+static func readiness(id: int) -> String:
+ if id in [9,11,38]: return "LIMITED · see effect notes"
+ if id < 9 or id in [42,43,44,47,54,55,56,57,58]: return "IMPLEMENTED"
+ return "PLAYTEST VERSION"
