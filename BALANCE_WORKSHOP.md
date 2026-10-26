@@ -1,6 +1,6 @@
-> Updated for v0.12: the workshop also includes Stonewake interruption, Engrave growth limits, two-valued Numeric sides and the half-health boss phase. [See current defaults and changes](CHANGES_v0.12.md). Saved overrides take precedence; Reset all loads current defaults.
+> Updated for v0.13: adds Advance adjacency Block, phase-II Chain Rooted and Smoking Strike fire damage. [See current boss rules](CHANGES_v0.13.md). Saved overrides remain in force.
 
-# Balance Workshop · v0.12
+# Balance Workshop · v0.13
 
 Open **Menu → Game options → Balance workshop**. From the opening screens, use **Game options / Options → Balance workshop**.
 
@@ -14,8 +14,8 @@ Open **Menu → Game options → Balance workshop**. From the opening screens, u
 
 **Lab setup:** Lab fixtures have their own starting HP and Block section. The Lab normally uses a 30 HP boss and injured 3 HP heroes so abilities can be tested repeatedly; encounter maximum HP and Lab fixture starting HP are separate settings. Fixture hero HP is capped by the hero maximum. Defy Death / Echo of Pain fixtures also have their own setup values.
 
-**What is covered:** 198 numeric fields for implemented effects and passives, including HP, resource banks, inventory / body limits, movement, attack and healing ranges, damage, Numeric dice and per-ability scaling, Block, reactions, Channels, repeat counts, growth thresholds and boss actions. Shared Numeric settings affect every Numeric ability; individual Numeric abilities also have a multiplier and flat bonus.
+**What is covered:** 201 numeric fields for implemented effects and passives, including HP, resource banks, inventory / body limits, movement, attack and healing ranges, damage, Numeric dice and per-ability scaling, Block, reactions, Channels, repeat counts, growth thresholds and boss actions. Shared Numeric settings affect every Numeric ability; individual Numeric abilities also have a multiplier and flat bonus.
 
 **Limits:** values are bounded whole numbers. Structural rules (9×9 board, six-sided dice, one-die copy choices, trigger / expiry rules and one active Channel) are fixed. Cleave’s secondary-enemy value is shown as inactive because this encounter has one boss. Build presets and balance profiles are separate. Custom help lists active values above the historical default-number rules reference.
 
-The initial profile preserves the previous balance. The heroes are now knight sprites, and fire visuals accompany Cinder Brand arming / detonation and Ember Burst.
+The initial profile uses the current Tuned / Original defaults. The heroes are now knight sprites, and fire visuals accompany Cinder Brand arming / detonation and Ember Burst.
