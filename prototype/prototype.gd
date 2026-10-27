@@ -7,6 +7,7 @@ var balance_editor: Control
 var draft_error := ""
 const Catalog = preload("res://prototype/catalog.gd")
 const Model = preload("res://prototype/battle.gd")
+const FaceLoadout = preload("res://prototype/face_loadout.gd")
 const TITLE = preload("res://prototype/assets/body.ttf")
 const BACKDROP = preload("res://prototype/assets/pixel_arena.png")
 const PORTRAITS = preload("res://prototype/assets/pixel_portraits.png")
@@ -207,13 +208,13 @@ func rebuild() -> void:
  for c in ui.get_children(): ui.remove_child(c); c.queue_free()
  if page == "battle":
   label_at("ASH & OATH",Vector2(24,16),25,GOLD,300,true)
-  label_at("v0.13 · ABILITY LAB" if lab else "v0.13 · THE HOLLOW",Vector2(26,49),12,MUTED,450)
+  label_at("v0.14 · ABILITY LAB" if lab else "v0.14 · THE HOLLOW",Vector2(26,49),12,MUTED,450)
   button("View dice",Vector2(1016,22),Vector2(120,38),func(): show_dice = true;dice_hero = game.active;rebuild(),Color("9fc7e6"))
   button("Turn help",Vector2(1148,22),Vector2(120,38),func():show_turn = true;rebuild(),MUTED)
   button("Menu",Vector2(1280,22),Vector2(128,38),func():show_menu = true;rebuild(),GOLD)
  else:
   label_at("ASH & OATH",Vector2(42,26),27,GOLD,500,true)
-  label_at("A DICE-BUILDING BOSS BATTLER · v0.13",Vector2(44,65),11,MUTED)
+  label_at("A DICE-BUILDING BOSS BATTLER · v0.14",Vector2(44,65),11,MUTED)
   button("View dice",Vector2(350,30),Vector2(235,40),func(): show_dice = true;dice_hero = build_hero;rebuild(),Color("9fc7e6"))
   button("Tutorial / Ability Lab",Vector2(605,30),Vector2(245,40),start_lab,Color("82c8b9"))
   button("What changed",Vector2(866,30),Vector2(225,40),func():show_changes = true;rebuild())
@@ -257,6 +258,7 @@ func forge_ui() -> void:
    o.item_selected.connect(func(index): builds[build_hero][d][side] = o.get_item_id(index); rebuild())
    o.get_popup().min_size = Vector2i(440,0)
    o.tooltip_text = "SIDE %d · " % (side+1)+Catalog.display_name(f) + "\n" + face_help(f); ui.add_child(o)
+   o.set_drag_forwarding(func(_at):return face_drag_data(o,f,d,side),func(_at,data):return face_drop_allowed(d,side,data),func(_at,data):place_dragged_face(d,side,data))
  var error := Model.validate(builds[build_hero],gifts[build_hero],balance_values)
  label_at("✓ Legal build · %d/%d ability faces" % [18-builds[build_hero].reduce(func(a,d): return a+d.count(0),0),18-3*balance_number("body.blanks")] if error == "" else error,Vector2(75,706),14,COLORS[build_hero] if error == "" else Color("ef8e87"),730)
  button("Guided practice",Vector2(350,811),Vector2(200,40),start_training,Color("82c8b9"))
@@ -340,7 +342,7 @@ func battle_ui() -> void:
     if selected >= 0 and game.face(game.active,selected) == 6 and selected != d:
      if game.hero_action(selected,d):selected = d if not game.heroes[game.active].used[d] else -1
     elif game.forced_die < 0 or game.forced_die == d:selected = d;shove_target = -1
-    hint = face_help(game.face(game.active,d));rebuild(),color_for_face(f),not game.pending.is_empty() or game.outcome != "")
+    hint = selected_die_help(d);rebuild(),color_for_face(f),not game.pending.is_empty() or game.outcome != "")
    die_button.add_theme_font_size_override("font_size",15);die_button.tooltip_text = face_help(f)
    if selected == d and not h.used[d]:
     var chosen := style(Color("2b3d48"),color_for_face(f));chosen.set_border_width_all(2);die_button.add_theme_stylebox_override("normal",chosen)
@@ -364,7 +366,7 @@ func battle_ui() -> void:
   reroll_button.tooltip_text = game.reroll_reason(selected) if game.reroll_reason(selected) != "" else "Spend a charge to roll all six sides again. A new Blank or the same side is a valid result."
 
   button("End hero turn   →",Vector2(760,711),Vector2(328,52),func():game.finish_turn();selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
-  label_at(("Soul %d/%d left · " % [game.soul_remaining(game.active),game.v("soul.uses")] if game.reward else "")+"%d dice available" % h.used.count(false),Vector2(760,776),13,MUTED,328)
+  label_at(("Blank moves %d/%d · " % [game.soul_remaining(game.active),game.v("soul.uses")] if game.reward else "")+"%d dice available" % h.used.count(false),Vector2(760,776),13,MUTED,328)
   var tags: Array[String] = []
   for tag in game.status_map(game.active):
    if game.status_map(game.active)[tag]:tags.append(tag)
@@ -408,6 +410,13 @@ func open_audio_settings() -> void:
  options.show()
 
 func face_help(f: int) -> String:
+ if f == 0:
+  var count := balance_number("soul.uses");var distance := balance_number("soul.move")
+  var text := "Blank: with Soul ON, spend %s rolled Blank%s per hero turn as Move %d. Your allowance refreshes at every own turn, including recovery turns. The die stays Blank and can roll again next round." % ["ONE" if count == 1 else str(count),"" if count == 1 else "s",distance]
+  if page == "battle":
+   text += "\n\n"+("Soul is OFF: Blanks do not grant movement." if not game.reward else ("%d/%d Blank moves remain this turn." % [game.soul_remaining(game.active),game.v("soul.uses")] if game.active < 3 else "Wait for a hero turn."))
+   if game.active < 3 and game.heroes[game.active].get("rooted",0) > 0:text += "\nRooted currently prevents voluntary movement until the boss’s next turn."
+  return text
  var base := default_face_help(f)
  var profile := active_balance()
  if profile.is_empty():return base
@@ -628,9 +637,7 @@ func draw_board() -> void:
   else:
    draw_unit_sprite(i,Rect2(p-Vector2.ONE*32,Vector2.ONE*64))
   draw_hp_dots(p+Vector2(0,35),h.hp,h.max_hp,COLORS[i])
-  if h.get("rooted",0) > 0:
-   draw_rect(Rect2(p+Vector2(-22,18),Vector2(44,6)),Color("b7a49a"),false,2)
-   for link in range(5):draw_line(p+Vector2(-20+link*10,15),p+Vector2(-20+link*10,27),Color("d2bfa3"),2)
+  draw_hero_debuffs(i,p)
 
 func sync_presentation() -> void:
  if page != "battle": return
@@ -751,50 +758,55 @@ func make_offers() -> void:
  offers = [Catalog.extended_ids(),Catalog.extended_ids(),Catalog.extended_ids()]
 
 func choose_gift(id: int) -> void:
- draft_error = ""
- if id not in Catalog.extended_ids(): return
- if id in gifts[build_hero]: gifts[build_hero].erase(id)
- elif gifts[build_hero].size() < 2: gifts[build_hero].append(id)
- inspected_gift = id
+ draft_error = "";inspected_gift = id
+ if id not in Catalog.extended_ids():return
+ if id in gifts[build_hero]:
+  gifts[build_hero].erase(id)
+  for die in builds[build_hero]:
+   for side in range(6):
+    if die[side] == id:die[side] = 0
+ else:
+  var result := FaceLoadout.quick_equip(builds[build_hero],gifts[build_hero],balance_values,id)
+  if result.error != "":draft_error = result.error
+  else:builds[build_hero] = result.build;gifts[build_hero] = result.gifts
  rebuild()
 
 func confirm_gifts() -> void:
- var legal: Array = Model.bonus_build(gifts[build_hero],balance_values)
- if legal.is_empty():
-  draft_error = "No legal build under these body / copy limits. Adjust the profile or pick different faces.";rebuild();return
- builds[build_hero] = legal
+ if gifts[build_hero].size() != 2:return
+ var error := Model.validate(builds[build_hero],gifts[build_hero],balance_values)
+ if error != "" or not gifts[build_hero].all(func(id):return builds[build_hero].any(func(die):return id in die)):
+  draft_error = error if error != "" else "Place both chosen designs on the dice first.";rebuild();return
  var next := -1
  for i in range(3):
-  if gifts[i].size() != 2: next = i; break
- if next >= 0: build_hero = next; draft_search = ""; draft_scroll = 0
- else: draft_modal = false
+  if gifts[i].size() != 2:next = i;break
+ if next >= 0:build_hero = next;draft_search = "";draft_scroll = 0
+ else:draft_modal = false
  rebuild()
 
 func draft_ui() -> void:
- var shade := ColorRect.new(); shade.color = Color("101922"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("BUILD YOUR INHERITANCE · v0.13",Vector2(60,30),30,GOLD,900,true)
- label_at("Pick two bonus faces per hero. Click a card to inspect; use Add / Remove on the right.",Vector2(62,76),16,MUTED,1250)
- button("Back to forge",Vector2(1150,30),Vector2(230,42),func(): draft_modal = false; rebuild(),MUTED)
+ var shade := ColorRect.new();shade.color = Color("101922");shade.size = Vector2(1440,900);ui.add_child(shade)
+ label_at("CHOOSE TWO FACES · v0.14",Vector2(60,27),29,GOLD,1000,true)
+ label_at("Click to quick equip. Drag a card onto a die or a square. Drag installed faces to swap them.",Vector2(62,74),15,MUTED,1300)
+ button("Back to forge",Vector2(1150,26),Vector2(230,40),func():draft_modal = false;rebuild(),MUTED)
  for hero in range(3):
-  button(["VESPER","ROOK","WREN"][hero]+"  ·  %d/2" % gifts[hero].size(),Vector2(60+hero*292,113),Vector2(280,44),func(): build_hero = hero; draft_scroll = 0; rebuild(),COLORS[hero] if build_hero == hero else MUTED)
- for hero in range(3):portrait_at(hero,Vector2(70+hero*292,120),Vector2(30,30))
- var search := LineEdit.new(); search.name = "GiftSearch"; search.placeholder_text = "Search ability names…"; search.text = draft_search; search.position = Vector2(60,178); search.size = Vector2(360,42); ui.add_child(search)
+  button(["VESPER","ROOK","WREN"][hero]+" · %d/2" % gifts[hero].size(),Vector2(60+hero*440,113),Vector2(424,44),func():build_hero = hero;draft_scroll = 0;draft_error = "";rebuild(),COLORS[hero] if build_hero == hero else MUTED)
+  portrait_at(hero,Vector2(72+hero*440,120),Vector2(30,30))
+ var search := LineEdit.new();search.name = "GiftSearch";search.placeholder_text = "Search abilities…";search.text = draft_search;search.position = Vector2(60,178);search.size = Vector2(242,42);ui.add_child(search)
  search.text_changed.connect(func(value):
-  draft_search = value; draft_scroll = 0; rebuild()
+  draft_search = value;draft_scroll = 0;rebuild()
   var field = ui.get_node("GiftSearch");field.grab_focus();field.caret_column = value.length())
- var filter := OptionButton.new(); filter.name = "GiftCategory"; filter.position = Vector2(434,178); filter.size = Vector2(225,42)
- for cat in ["All","Attack","Defense","Movement","Skill"]: filter.add_item(cat)
+ var filter := OptionButton.new();filter.name = "GiftCategory";filter.position = Vector2(314,178);filter.size = Vector2(162,42)
+ for cat in ["All","Attack","Defense","Movement","Skill"]:filter.add_item(cat)
  filter.select(["All","Attack","Defense","Movement","Skill"].find(draft_category))
- filter.item_selected.connect(func(index): draft_category = ["All","Attack","Defense","Movement","Skill"][index];draft_scroll = 0;rebuild());ui.add_child(filter)
- var timing_filter := OptionButton.new();timing_filter.name = "GiftTiming";timing_filter.position = Vector2(673,178);timing_filter.size = Vector2(251,42)
+ filter.item_selected.connect(func(index):draft_category = ["All","Attack","Defense","Movement","Skill"][index];draft_scroll = 0;rebuild());ui.add_child(filter)
+ var timing_filter := OptionButton.new();timing_filter.name = "GiftTiming";timing_filter.position = Vector2(488,178);timing_filter.size = Vector2(176,42)
  for value in ["All timings","Action","Reaction","Channel"]:timing_filter.add_item(value)
  timing_filter.select(["All timings","Action","Reaction","Channel"].find(draft_timing))
  timing_filter.item_selected.connect(func(index):draft_timing = ["All timings","Action","Reaction","Channel"][index];draft_scroll = 0;rebuild());ui.add_child(timing_filter)
- var scroll := ScrollContainer.new();scroll.name = "GiftCards";scroll.position = Vector2(60,240);scroll.size = Vector2(864,522);ui.add_child(scroll)
+ var scroll := ScrollContainer.new();scroll.name = "GiftCards";scroll.position = Vector2(60,240);scroll.size = Vector2(604,514);ui.add_child(scroll)
  var saved_scroll := draft_scroll
- scroll.get_v_scroll_bar().value_changed.connect(func(value):draft_scroll = int(value))
- scroll.set_deferred("scroll_vertical",saved_scroll)
- var cards := GridContainer.new();cards.columns = 2;cards.add_theme_constant_override("h_separation",12);cards.add_theme_constant_override("v_separation",12);scroll.add_child(cards)
+ scroll.get_v_scroll_bar().value_changed.connect(func(value):draft_scroll = int(value));scroll.set_deferred("scroll_vertical",saved_scroll)
+ var cards := GridContainer.new();cards.columns = 2;cards.add_theme_constant_override("h_separation",10);cards.add_theme_constant_override("v_separation",10);scroll.add_child(cards)
  var count := 0
  for id in Catalog.extended_ids():
   if draft_category != "All" and Catalog.category(id) != draft_category:continue
@@ -802,26 +814,63 @@ func draft_ui() -> void:
   if draft_search != "" and not Model.FACES[id].to_lower().contains(draft_search.to_lower()):continue
   count += 1
   var chosen: bool = id in gifts[build_hero]
-  var card := Button.new();card.name = "Face"+str(id);card.text = Model.FACES[id]+"\n("+Catalog.classification(id)+")\n"+("SELECTED" if chosen else "Inspect ability")
-  card.custom_minimum_size = Vector2(414,105);card.alignment = HORIZONTAL_ALIGNMENT_LEFT;card.add_theme_font_size_override("font_size",16)
-  card.add_theme_color_override("font_color",color_for_face(id));card.add_theme_stylebox_override("normal",style(Color("2b3c47") if inspected_gift == id else Color("1a2732"),GOLD if chosen else (color_for_face(id) if inspected_gift == id else Color("354653"))))
-  card.add_theme_stylebox_override("hover",style(Color("304351"),color_for_face(id)));card.tooltip_text = face_help(id)
-  card.pressed.connect(func():inspected_gift = id;rebuild());cards.add_child(card)
- if count == 0:label_at("No matching abilities. Try different filters.",Vector2(85,285),19,MUTED,800)
- label_at(draft_error if draft_error != "" else "%d abilities · starter faces excluded" % count,Vector2(65,775),13,MUTED,850)
- var detail_box := Panel.new();detail_box.position = Vector2(950,113);detail_box.size = Vector2(430,649);detail_box.add_theme_stylebox_override("panel",style(Color("1a2732"),Color("43515d")));ui.add_child(detail_box)
- label_at(Model.FACES[inspected_gift],Vector2(976,145),26,color_for_face(inspected_gift),378,true,true)
- label_at("("+Catalog.classification(inspected_gift)+")",Vector2(976,216),17,GOLD,378)
- var detail := RichTextLabel.new();detail.name = "GiftDetail";detail.position = Vector2(976,259);detail.size = Vector2(378,225);detail.add_theme_font_size_override("normal_font_size",18);detail.text = face_help(inspected_gift);ui.add_child(detail)
- label_at(Catalog.readiness(inspected_gift),Vector2(976,502),12,MUTED,378)
- var selected_names: Array[String] = []
- for id in gifts[build_hero]:selected_names.append(Model.FACES[id])
- label_at("YOUR TWO FACES\n"+(" · ".join(selected_names) if not selected_names.is_empty() else "None selected yet"),Vector2(976,548),15,GOLD,378,false,true)
+  var card := Button.new();card.name = "Face"+str(id);card.text = Model.FACES[id]+"\n("+Catalog.classification(id)+")\n"+("EQUIPPED · drag to move" if chosen else "Click to equip · or drag")
+  card.custom_minimum_size = Vector2(288,96);card.clip_text = true;card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;card.alignment = HORIZONTAL_ALIGNMENT_LEFT;card.add_theme_font_size_override("font_size",14)
+  card.add_theme_color_override("font_color",color_for_face(id));card.add_theme_stylebox_override("normal",style(Color("2b3c47") if chosen else Color("1a2732"),GOLD if chosen else Color("354653")));card.add_theme_stylebox_override("hover",style(Color("304351"),color_for_face(id)));card.tooltip_text = face_help(id)
+  card.pressed.connect(func():
+   inspected_gift = id
+   if id not in gifts[build_hero] and gifts[build_hero].size() < 2:choose_gift(id)
+   else:rebuild())
+  card.set_drag_forwarding(func(_at):return face_drag_data(card,id),Callable(),Callable());cards.add_child(card)
+ label_at("%d bonus designs · two per hero" % count,Vector2(62,766),13,MUTED,600)
+ label_at("YOUR LIVE DICE",Vector2(700,178),16,COLORS[build_hero],680)
+ label_at("Drop on the die to auto-fit, or on a square for exact placement.",Vector2(700,204),13,MUTED,680)
+ for die in range(3):
+  var base := Vector2(700+die*224,250)
+  var pad := Panel.new();pad.name = "DraftDie"+str(die);pad.position = base-Vector2(4,28);pad.size = Vector2(220,314);pad.add_theme_stylebox_override("panel",style(Color("14212b"),Color("354653")));ui.add_child(pad)
+  pad.set_drag_forwarding(Callable(),func(_at,data):return face_drop_allowed(die,-1,data),func(_at,data):place_dragged_face(die,-1,data))
+  label_at("DIE "+["I","II","III"][die],base-Vector2(0,24),13,GOLD,200)
+  for side in range(6):
+   var face: int = builds[build_hero][die][side]
+   var slot := button("%d\n%s" % [side+1,Model.FACES[face]],base+Vector2(NET[side])*72,Vector2(70,70),func():
+    inspected_gift = face;rebuild(),color_for_face(face))
+   slot.name = "DraftDie%dSide%d" % [die,side];slot.clip_text = true;slot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;slot.add_theme_font_size_override("font_size",10);slot.size = Vector2(70,70);slot.tooltip_text = face_help(face)
+   slot.set_drag_forwarding(func(_at):return face_drag_data(slot,face,die,side),func(_at,data):return face_drop_allowed(die,side,data),func(_at,data):place_dragged_face(die,side,data))
+ var drop_hint := label_at(draft_error if draft_error != "" else "Two Blanks per die stay protected. Drop a new design on a Blank to free a starter square on that die.",Vector2(700,544),13,GOLD if draft_error != "" else MUTED,680,false,true);drop_hint.name = "DraftDropHint";drop_hint.max_lines_visible = 2
+ label_at(Catalog.display_name(inspected_gift),Vector2(700,590),20,color_for_face(inspected_gift),680,true,true)
+ var detail := RichTextLabel.new();detail.name = "GiftDetail";detail.position = Vector2(700,626);detail.size = Vector2(680,108);detail.add_theme_font_size_override("normal_font_size",16);detail.text = face_help(inspected_gift);ui.add_child(detail)
  var chosen: bool = inspected_gift in gifts[build_hero]
- button("Remove this face" if chosen else ("Add this face" if gifts[build_hero].size() < 2 else "Two selected · remove one first"),Vector2(976,675),Vector2(378,52),func():choose_gift(inspected_gift),color_for_face(inspected_gift),not chosen and gifts[build_hero].size() >= 2)
- button("Confirm hero’s two faces →",Vector2(950,797),Vector2(430,52),confirm_gifts,GOLD,gifts[build_hero].size() != 2)
+ button("Remove this face" if chosen else "Equip this face",Vector2(700,748),Vector2(310,38),func():choose_gift(inspected_gift),color_for_face(inspected_gift),not chosen and (gifts[build_hero].size() >= 2 or inspected_gift not in Catalog.extended_ids()))
+ label_at("%d/2 selected · drag equipped squares to rearrange" % gifts[build_hero].size(),Vector2(1025,757),12,MUTED,350)
+ var complete: bool = gifts.all(func(list):return list.size() == 2)
+ button("Start battle →" if complete else "Next hero →",Vector2(950,810),Vector2(430,44),func():
+  if complete:begin()
+  else:confirm_gifts(),GOLD,gifts[build_hero].size() != 2)
  button("Guided practice",Vector2(60,810),Vector2(260,42),start_training,Color("82c8b9"))
  button("Game options",Vector2(335,810),Vector2(260,42),open_settings,MUTED)
+
+func face_drag_data(source: Control, face: int, die: int = -1, side: int = -1) -> Dictionary:
+ var preview := Panel.new();preview.size = Vector2(250,76);preview.add_theme_stylebox_override("panel",style(Color("293747"),color_for_face(face)))
+ var caption := Label.new();caption.text = Catalog.display_name(face);caption.position = Vector2(10,8);caption.size = Vector2(230,60);caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;preview.add_child(caption);source.set_drag_preview(preview)
+ return {"kind":"ash_face","face":face,"hero":build_hero,"from_die":die,"from_side":side}
+
+func face_drop_result(die: int, side: int, data: Variant) -> Dictionary:
+ if not data is Dictionary or data.get("hero",-1) != build_hero:return {"error":"Drag a face for the currently selected hero."}
+ if side < 0:return FaceLoadout.best_drop(builds[build_hero],gifts[build_hero],balance_values,die,data)
+ return FaceLoadout.trial(builds[build_hero],gifts[build_hero],balance_values,die,side,data)
+
+func face_drop_allowed(die: int, side: int, data: Variant) -> bool:
+ var result := face_drop_result(die,side,data)
+ if ui.has_node("DraftDropHint"):
+  ui.get_node("DraftDropHint").text = result.error if result.error != "" else (result.note if result.note != "" else "Release to place / swap this face on Die "+["I","II","III"][die]+".")
+ return result.error == ""
+
+func place_dragged_face(die: int, side: int, data: Variant) -> void:
+ var result := face_drop_result(die,side,data)
+ if result.error != "":draft_error = result.error;return
+ builds[build_hero] = result.build;gifts[build_hero] = result.gifts;inspected_gift = int(data.face)
+ draft_error = result.note if result.note != "" else "Placed "+Model.FACES[inspected_gift]+" on Die "+["I","II","III"][die]+"."
+ rebuild.call_deferred()
 
 func catalog_pending_ui(p: Dictionary) -> void:
  if p.kind == "slot":
@@ -917,13 +966,13 @@ func lab_tools_ui() -> void:
  button("Next turn",Vector2(689,446),Vector2(285,39),func():show_lab_tools = false;Lab.next_turn(game,lab_numeric);selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
  button("Roll chosen face again",Vector2(399,502),Vector2(275,39),func():show_lab_tools = false;Lab.roll_test_face(game,lab_face,lab_numeric);selected = -1;rebuild(),Color("82c8b9"))
  button("Combine faces",Vector2(689,502),Vector2(285,39),func():show_lab_tools = false;show_lab_setup = true;rebuild(),MUTED)
- button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.13 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
+ button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.14 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
  button("Back to battle",Vector2(689,570),Vector2(285,43),func():show_lab_tools = false;rebuild())
  button("Phase II active" if game.phase_two else "Test boss phase II",Vector2(399,632),Vector2(575,39),test_boss_phase_two,Color("e9a36a"),game.phase_two or not game.pending.is_empty() or game.outcome != "" or game.v("boss.phase.percent") == 0)
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.13",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.14",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
  var nav_step := minf(75,610.0/Changes.SECTIONS.size())
  for i in range(Changes.SECTIONS.size()):
@@ -1027,7 +1076,10 @@ func dice_ui() -> void:
 func explain_invalid(f: int, target: int, cell: Vector2i) -> String:
  var actor: int = game.active
  if game.heroes[actor].get("rooted",0) > 0 and Catalog.category(f) == "Movement":return "Rooted prevents voluntary movement until the boss’s next turn. Attacks, Block and forced movement still work."
- if f == 0 and game.reward and game.soul_remaining(actor) <= 0: return "Soul movement exhausted: %d conversions per hero turn." % game.v("soul.uses")
+ if game.heroes[actor].used[selected]:return "This die is spent. Select another ready die; all available dice roll again next round."
+ if f == 0 and not game.reward:return "Soul is OFF. Enable Blank movement above your dice or in Game options."
+ if f == 0 and game.v("soul.move") <= 0:return "Blank movement is set to 0 in the balance workshop."
+ if f == 0 and game.reward and game.soul_remaining(actor) <= 0:return "Blank movement used for this turn. It refreshes at this hero’s next own turn."
  if f in [2,3,53,54,57,0]: return "No legal path to that cell. Occupied cells block normal movement; Stride must stay straight."
  if target < 0:return "Choose a unit, not an empty cell, for this face."
  if target == actor and f not in [7,55]:return "This ability cannot target its user."
@@ -1265,3 +1317,44 @@ func test_boss_phase_two() -> void:
  var threshold: int = maxi(1,int(floor(game.boss.max_hp*game.v("boss.phase.percent")/100.0)))
  game.damage(3,maxi(0,game.boss.hp-threshold),true,"Lab phase-II test")
  game.report_changes();selected = -1;rebuild()
+
+func selected_die_help(die: int) -> String:
+ var h: Dictionary = game.heroes[game.active]
+ if h.used[die]:return "This die is spent / held. Choose a READY die. Available dice roll again at the start of the next round."
+ var face: int = game.face(game.active,die)
+ if face == 0:
+  if h.get("rooted",0) > 0:return "ROOTED: no voluntary movement until the boss’s next turn. Your Blank allowance is not consumed."
+  if not game.reward:return "Blank movement is OFF. Turn Soul ON above the dice to enable it."
+  if game.soul_remaining(game.active) <= 0:return "Blank movement used this turn. It refreshes at this hero’s next own turn."
+  return "Blank → Move %d. Click a highlighted empty cell. %d/%d uses remain this own turn." % [game.v("soul.move"),game.soul_remaining(game.active),game.v("soul.uses")]
+ return face_help(face)
+
+func draw_hero_debuffs(id: int, center: Vector2) -> void:
+ var h: Dictionary = game.heroes[id]
+ if h.hp <= 0 or h.dead:return
+ if h.get("rooted",0) > 0:
+  var pulse := 0.75+sin(t*2.6)*0.15
+  draw_arc(center+Vector2(0,19),25,0,TAU,24,Color(0.7,0.47,0.22,pulse),2)
+  for sign_value in [-1,1]:
+   var root := PackedVector2Array([center+Vector2(sign_value*29,29),center+Vector2(sign_value*18,21),center+Vector2(sign_value*23,10),center+Vector2(sign_value*11,3),center+Vector2(sign_value*15,-8)])
+   draw_polyline(root,Color(0.3,0.22,0.13,pulse),5)
+   draw_polyline(root,Color(0.85,0.65,0.29,pulse),2)
+   draw_line(center+Vector2(sign_value*18,21),center+Vector2(sign_value*7,15),Color("b9984f"),2)
+  for link in range(4):draw_rect(Rect2(center+Vector2(-21+link*11,16),Vector2(9,6)),Color("dac89d"),false,1.5)
+  var badge := center+Vector2(-27,-24)
+  draw_rect(Rect2(badge-Vector2(8,8),Vector2(16,16)),Color("332c21"))
+  draw_line(badge+Vector2(0,-5),badge+Vector2(0,5),Color("edcb76"),2)
+  for branch in [-1,1]:
+   draw_line(badge, badge+Vector2(branch*5,4),Color("edcb76"),2)
+   draw_line(badge+Vector2(0,-1),badge+Vector2(branch*4,-4),Color("edcb76"),2)
+ if game.hero_weakness(h) > 0:
+  for mote in range(5):
+   var progress: float = fmod(t*0.35+mote*0.2,1.0)
+   var at := center+Vector2(sin(mote*1.8+t)*25,18-progress*48)
+   draw_rect(Rect2(at,Vector2(4,4)),Color(0.74,0.4,0.9,sin(progress*PI)*0.7))
+  var badge := center+Vector2(27,-24)
+  draw_rect(Rect2(badge-Vector2(9,11),Vector2(18,22)),Color("2f203d"))
+  draw_line(badge+Vector2(-4,7),badge+Vector2(-1,1),Color("d7a2ed"),3)
+  draw_line(badge+Vector2(2,-2),badge+Vector2(5,-8),Color("d7a2ed"),3)
+  draw_line(badge+Vector2(-7,3),badge+Vector2(0,7),Color("d7a2ed"),2)
+  draw_line(badge+Vector2(-5,0),badge+Vector2(5,-1),Color("f28c9e"),2)

@@ -1,8 +1,19 @@
-# Ash & Oath v0.13 — playable prototype
+# Ash & Oath v0.14 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, instant rolls, pixel arena and knight sprites, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
 
-## Current v0.13
+## Current v0.14
+
+See [the v0.14 change guide](../docs/Changes-v0.14.md). Bonus cards quick-equip with one click and support actual drag gestures onto a die or exact square. Installed faces swap by dragging. The draft shows the live dice and preserves placements through hero switching and starting combat. `face_loadout.gd` validates previews and placements atomically. Body / ownership / Blank rules remain enforced.
+
+Blank movement uses its numeric counter as the source of truth, with one reset function for normal / recovery own turns and visible refresh events. Combat guidance distinguishes exhausted allowance, spent die, Soul OFF and Rooted. Rooted and Weakness have persistent procedural sprite effects that consume no gameplay RNG.
+
+```bash
+godot --headless --path . --script prototype/tests/loadout_v14_test.gd
+godot --path . --audio-driver Dummy --script prototype/tests/interaction_v14_test.gd
+```
+
+## Historical v0.13
 
 See [the v0.13 boss guide](../docs/Changes-v0.13.md). Phase I Brand is a cross, phase II Brand is a square. Phase II Chain adds Rooted until next boss turn; voluntary movement stops while forced movement remains legal. Advance pursues highest current HP and gains 1 Block if already adjacent to any tied highest-HP hero. Distort prefers highest HP if reachable, otherwise closest in range. Drive Back pushes automatically along the hit direction. Smoking Strike causes persistent cell fire only on HP damage, consuming existing fire for normal detonation damage.
 

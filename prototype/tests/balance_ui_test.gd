@@ -45,7 +45,7 @@ func run():
  check(app.ui.get_children().any(func(c):return c is Button and "Blank → Move 4" in c.text),"combat dice reflect configured Blank movement")
  check(app.game.hero_action(0,-1,Vector2i(4,7)),"larger highlighted movement is actually legal")
  app.rebuild()
- check(app.ui.get_children().any(func(c):return c is Label and "Soul 1/2" in c.text),"remaining conversions show the configured cap")
+ check(app.ui.get_children().any(func(c):return c is Label and "Blank moves 1/2" in c.text),"remaining conversions show the configured cap")
  app.balance_values = {};app.load_balance_profile()
  check(app.balance_values.get("soul.move",0) == 4,"saved profile reloads")
  app.open_balance_editor();editor = app.balance_editor;editor.open_json()

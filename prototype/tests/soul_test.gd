@@ -32,7 +32,7 @@ func run():
  g = fresh();g.hero_action(0,-1,Vector2i(0,5));g.roll_hero(g.heroes[0])
  check(g.heroes[0].soul_move_used,"rolling dice does not refill allowance")
  g = fresh(false)
- check(g.hero_action(0,-1,Vector2i(0,5)) and g.heroes[0].pos == Vector2i(0,7) and not g.heroes[0].soul_move_used,"starting Soul still grants no movement")
+ check(not g.hero_action(0,-1,Vector2i(0,5)) and g.heroes[0].pos == Vector2i(0,7) and not g.heroes[0].used[0],"disabled Soul rejects movement without silently spending the Blank")
  g = fresh();g.heroes[1].soul_move_used = true;g.damage(1,6);g.heal(1,1);g.finish_turn()
  check(g.active == 1 and g.recovery_active and not g.heroes[1].soul_move_used,"full recovery turn resets its own allowance")
  print("REWARD SOUL: %d checks, %d failures" % [checks,errors])

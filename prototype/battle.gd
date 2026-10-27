@@ -304,7 +304,7 @@ func activate() -> void:
   if h.channel.is_empty() or h.channel.face != 31:
    if h.block > 0: record_event("expire","%s loses %d unspent Block at turn start." % [unit_name(active),h.block],active,active)
    h.block = 0
-  h.opening = true; h.soul_move_used = false; h.soul_moves_used = 0; h.engrave_growth = 0
+  h.opening = true; reset_soul_allowance(active); h.engrave_growth = 0
   if not h.channel.is_empty():
    h.channel.block_lost = 0
    pending = {"kind":"channel","hero":active}
@@ -332,7 +332,7 @@ func finish_turn() -> void:
    finish_turn(); return
   replaced.append(active); recovery_active = true
   heroes[active].block = 0
-  heroes[active].opening = true; heroes[active].soul_move_used = false; heroes[active].soul_moves_used = 0
+  heroes[active].opening = true; reset_soul_allowance(active)
   roll_context = "Recovery · fresh Action Dice"
   roll_serial += 1
   heroes[active].setaside = -1
@@ -496,6 +496,7 @@ func hero_action(d: int, target: int = -1, destination: Vector2i = Vector2i(-99,
  if f >= 9: return catalog_action(d,target,destination)
  match f:
   0:
+   if destination.x != -99 and not reward:return false
    if reward and destination.x != -99:
     if soul_remaining(active) <= 0 or not reachable(active,v("soul.move"),false).has(destination): return false
     h.pos = destination; h.soul_moves_used = int(h.get("soul_moves_used",0))+1; h.soul_move_used = h.soul_moves_used >= v("soul.uses")
@@ -1305,7 +1306,6 @@ func hero_weakness(h: Dictionary) -> int:
 func soul_remaining(id: int) -> int:
  var h: Dictionary = heroes[id]
  var used: int = int(h.get("soul_moves_used",0))
- if h.soul_move_used:used = maxi(used,v("soul.uses"))
  return maxi(0,v("soul.uses")-used)
 func move_steps(f: int) -> int:
  return v("soul.move") if f == 0 else v("face%d.move" % f)
@@ -1451,3 +1451,8 @@ func smoking_fire(target: int) -> void:
   fire_tiles.append(cell)
   record_event("hazard","Smoking Strike ignites %s under %s. Fire stays here until another Smoking Strike that deals HP damage detonates it; moving alone does not detonate it." % [cell_name(cell),unit_name(target)],3,target)
   fire_event(3,[cell],"Smoking Strike fire ignited",true)
+
+func reset_soul_allowance(id: int) -> void:
+ heroes[id].soul_moves_used = 0
+ heroes[id].soul_move_used = false
+ if reward:record_event("soul_refresh","%s refreshes Blank movement: %d/%d uses available for this own turn." % [unit_name(id),v("soul.uses"),v("soul.uses")],id,id)
