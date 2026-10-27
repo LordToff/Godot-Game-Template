@@ -1,4 +1,4 @@
-# Pixel art · v0.13
+# Pixel art · v0.14
 
 All three heroes now use armoured knight sprites and helmet icons, with teal, purple and gold tabards / shields. Cinder Brand and Ember Burst fire is drawn as animated pixel rectangles without touching gameplay RNG.
 
@@ -12,3 +12,5 @@ The current art uses original pixel maps and geometric tiles defined in `tools/m
 Godot uses nearest-neighbour texture sampling. The painted arena and portraits have been removed from the game assets.
 
 The arena remains the same 9×9 logical board. Decorative cracks and moss do not block movement. Existing font and template licences still apply to their separate assets.
+
+Rooted is drawn with pulsing root polylines, leg shackles and a root badge. Weakness uses purple motes and a broken-sword badge. Both are persistent procedural overlays on any affected hero, including inactive heroes, and never consume gameplay RNG.
