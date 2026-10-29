@@ -1,8 +1,17 @@
-# Ash & Oath v0.15 — playable prototype
+# Ash & Oath v0.16 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, instant rolls, pixel arena and knight sprites, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
 
-## Current v0.15
+## Current v0.16
+
+See [the trial report and fixes](../docs/Changes-v0.16.md). 3,600 before / 3,600 after matched encounters cover six team builds and three Blank movement settings. The normal random-bonus / Soul-OFF bot wins 99/200. There were no stalls. Default balance values stay unchanged; direct regressions cover Black Oath cost expiry, Ward attacker attribution, zero-count Fracture and killing-hit rewards.
+
+```bash
+ASH_TRIAL_COUNT=200 godot --headless --path . --script prototype/tests/trial_battles.gd
+godot --headless --path . --script prototype/tests/trial_regression_test.gd
+```
+
+## Historical v0.15
 
 See [the bug-fix guide](../docs/Changes-v0.15.md). Reproduced fixes cover Stunned with no unused dice, dead Broken actors, zero-charge bargains, rear geometry independent of Ward range, Ward after damage prevention, actual-value logs and Numeric positive-side counts. Obsolete modal callbacks and invalid indices are rejected. `preset.gd` validates and normalizes a whole saved team before applying it. Manual legal presets with unequipped owned designs remain supported. Restore regenerates a legal build including the two selected designs.
 

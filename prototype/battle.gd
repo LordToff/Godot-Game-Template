@@ -331,9 +331,12 @@ func finish_turn() -> void:
   if heroes[active].stun: record_event("expire",unit_name(active)+" loses Stunned at turn end.",active,active)
   heroes[active].stun = false
   heroes[active].debt_buff = 0; heroes[active].num_boost = 0; heroes[active].numeric_focus = false
-  if heroes[active].black_oath and heroes[active].block > 0:
-   heroes[active].black_oath = false; damage(active,v("face50.penalty"),true)
-   if outcome != "": return
+  if heroes[active].black_oath:
+   heroes[active].black_oath = false
+   if heroes[active].block > 0:
+    action_owner = active;action_label = "Black Oath cost"
+    damage(active,v("face50.penalty"),true,"Black Oath cost")
+    if outcome != "": return
  if active == 3: boss.weak = false
  if recovery_active:
   recovery_active = false
@@ -428,7 +431,7 @@ func check_end() -> void:
  elif boss.hp <= 0: outcome = "victory"
  if outcome != "": pending = {}; note("The Hollow falls. A new Soul awakens." if outcome == "victory" else "All three lights are extinguished.")
 
-func damage(id: int, amount: int, unavoidable: bool = false, reason: String = "") -> void:
+func damage(id: int, amount: int, unavoidable: bool = false, reason: String = "", attacker: int = -1) -> void:
  if outcome != "": return
  var h: Dictionary = boss if id == 3 else heroes[id]
  if id < 3 and h.dead: return
@@ -451,7 +454,7 @@ func damage(id: int, amount: int, unavoidable: bool = false, reason: String = ""
   var old_hp: int = h.hp
   h.hp = maxi(0,h.hp-amount)
   if id < 3: h.taken += old_hp-h.hp
-  if id < 3 and h.ward and old_hp > h.hp and distance(id,3) == 1:
+  if id < 3 and h.ward and attacker == 3 and old_hp > h.hp and distance(id,3) == 1:
    boss.weak = true
    record_event("debuff","Wither Ward: %s inflicts Weakness %d on The Hollow until the boss turn ends." % [unit_name(id),v("face51.weakness")],id,3)
    if action_before.has(3): action_before[3].statuses["Weakness"] = true
@@ -672,6 +675,8 @@ func boss_step() -> void:
     record_event("debuff","Distort: %s gains Weakness %d until the next boss turn." % [unit_name(t),v("boss.distort.weakness")],3,t)
     if action_before.has(t): action_before[t].statuses["Weakness"] = true
   "Fracture":
+   if v("boss.fracture.count") == 0:
+    note("Fracture destroys no faces: its configured count is 0.");report_changes();return
    var ts := targets(v("boss.fracture.range")).filter(func(i): return heroes[i].build.any(func(d): return d.any(func(f): return f not in [0,56])))
    var t := nearest(ts)
    if t < 0: fallback()
@@ -725,7 +730,7 @@ func continue_attack() -> void:
   if action in ["Sweep","Furnace Roar"] and distance(3,t) > boss_range(action): continue
   record_event("attack","The Hollow attacks %s with %s for %d damage." % [unit_name(t),action,maxi(0,amount-(v("face51.weakness") if boss.weak else 0))],3,t,amount)
   var hp_before: int = heroes[t].hp
-  damage(t,maxi(0,amount-(v("face51.weakness") if boss.weak else 0)))
+  damage(t,maxi(0,amount-(v("face51.weakness") if boss.weak else 0)),false,"",3)
   if outcome != "": return
   if action in ["Strike","Smoking Strike"] and heroes[t].hp < hp_before:smoking_fire(t)
   if outcome != "":return
@@ -940,11 +945,11 @@ func strike(d: int, target: int, base: int, pierce: int = 0, numeric_attack: boo
   if target == 3 or (unit.hp > 0 and not unit.dead): unit.block += bypass
   var hit_loss: int = maxi(0,before-unit.hp)
   lost += hit_loss
-  if outcome != "": break
-  if face(active,d) == 40 and target == 3 and hit_had_block and unit.block == 0 and hit_loss > 0: delay_boss_once()
+  # Personal on-hit rewards also resolve on a killing hit; no further damage follows victory.
   if face(active,d) == 36 and hit_loss >= v("face36.threshold"): h.block += hit_loss*v("face36.multiplier")
   if face(active,d) == 41 and hit_loss > 0: engrave_copy(d)
   if outcome != "": break
+  if face(active,d) == 40 and target == 3 and hit_had_block and unit.block == 0 and hit_loss > 0: delay_boss_once()
   if marked and before > unit.hp:
    boss.mark = false
    if face(active,d) != 35: damage(3,v("face21.damage"))
