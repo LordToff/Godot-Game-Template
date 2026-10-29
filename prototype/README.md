@@ -1,3 +1,5 @@
+> v0.18 adds Nu’gh, the pre-fight review screen, Stunned stars and upgrades for every boss action. [Changes and reasons](../docs/Changes-v0.18.md).
+
 # Ash & Oath v0.17 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, instant rolls, pixel arena and knight sprites, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.

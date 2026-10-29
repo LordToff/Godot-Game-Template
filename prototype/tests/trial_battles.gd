@@ -1,6 +1,7 @@
 extends SceneTree
 # Deterministic heuristic playtester. Reads visible rolls/board only; never alters live state or RNG.
 const Battle = preload("res://prototype/battle.gd")
+const Nugh = preload("res://prototype/nugh.gd")
 const Catalog = preload("res://prototype/catalog.gd")
 var activations := {}
 var choice_misses := {}
@@ -8,13 +9,13 @@ var errors := 0
 func _initialize():call_deferred("run")
 func run():
  var count := maxi(1,int(OS.get_environment("ASH_TRIAL_COUNT")))
- var report := {"seeds":count,"policy":"visible-board heuristic v1", "scenarios":[]}
+ var report := {"seeds":count,"policy":"visible-board heuristic v2", "boss":OS.get_environment("ASH_BOSS"),"ignore_worms":OS.get_environment("ASH_IGNORE_WORMS") == "1", "scenarios":[]}
  for kit in ["starting","mixed","numeric","support","channel","growth"]:
   for move in [0,1,2]:
    var stat := {"kit":kit,"blank_move":move,"wins":0,"losses":0,"stalls":0,"rounds":0,"phase_two":0,"loss_boss_hp":0,"downings":0,"damage":{},"ability_uses":{}}
    activations = {};choice_misses = {}
    for seed_value in range(1,count+1):
-    var g = Battle.new();var builds: Array = []
+    var g = Nugh.new() if OS.get_environment("ASH_BOSS") == "nugh" else Battle.new();var builds: Array = []
     var picker := RandomNumberGenerator.new();picker.seed = seed_value*173
     var ids: Array = Catalog.extended_ids()
     for hero in range(3):
@@ -110,6 +111,11 @@ func hero_step(g) -> bool:
   if h.used[d] or (g.forced_die >= 0 and g.forced_die != d):continue
   var f: int = g.face(id,d)
   if Catalog.is_attack(f):
+   if OS.get_environment("ASH_IGNORE_WORMS") != "1":
+    var enemies: Array = g.living_minions()
+    enemies.sort_custom(func(a,b):return g.distance(id,a) < g.distance(id,b))
+    for enemy in enemies:
+     if g.distance(id,enemy) <= g.face_range(f) and (f != 35 or g.sight(id,enemy,g.face_range(f))) and use_action(g,d,enemy):return true
    if g.distance(id,3) <= g.face_range(f) and (f != 35 or g.sight(id,3,g.face_range(f))) and use_action(g,d,3):return true
    continue
   match f:
@@ -185,7 +191,9 @@ func resolve_choice(g) -> void:
     g.stun_die(d);return
   "push":g.push(p.get("direction",g.impact_direction(p.hero)))
   "channel":g.channel_choice(true)
-  "bind":g.choose_bind(0,"Smoking Strike")
+  "bind":
+   if g.encounter_id == "nugh":g.choose_bind(1,"Screaming Chorus")
+   else:g.choose_bind(0,"Smoking Strike")
   "ember":
    var value := 0
    if g.distance(p.hero,3) <= g.v("face52.range"):

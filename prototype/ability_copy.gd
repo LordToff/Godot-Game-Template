@@ -46,7 +46,7 @@ func face(f: int) -> String:
   35:return "Roll for damage against a visible unit within %d. Final damage is capped at %d, including Mark Prey." % [n("face35.range"),n("face35.cap")]
   36:return "Roll for damage against %s. At least %d HP lost: gain that HP loss ×%d as Block." % [reach(f),n("face36.threshold"),n("face36.multiplier")]
   37:return "Roll for damage against %s. Bypass %d Block; the bypassed Block remains after this hit." % [reach(f),n("face37.pierce")]
-  38:return "Roll for damage against %s. The secondary-enemy effect is inactive in this single-boss encounter." % reach(f)
+  38:return "Roll for damage against %s. Also deal %d damage to one other enemy adjacent to the target." % [reach(f),n("face38.splash")]
   39:return "Roll for damage against %s. Add %d when standing at the boss’s southern edge." % [reach(f),n("face39.rear")]
   40:return "Roll for damage against %s. Break existing Block and damage HP to delay an upcoming boss activation by %d slot(s)." % [reach(f),n("face40.delay")]
   41:return "Roll for damage against %s. On HP damage, grow on this die up to %d time(s) per hero turn, capped at %d copies.\n\nAt %d copies: +%d damage. Never overwrites another ability." % [reach(f),n("face41.growth"),n("face41.cap"),n("face41.threshold2"),n("face41.bonus2")]

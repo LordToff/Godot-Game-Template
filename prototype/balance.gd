@@ -695,11 +695,10 @@ const DEFINITIONS = [
  {
   "key": "face38.splash",
   "group": "38 · Cleave",
-  "label": "Secondary-enemy damage (no second enemy here)",
+  "label": "Secondary-enemy damage",
   "default": 1,
   "min": 0,
-  "max": 99,
-  "inactive": true
+  "max": 99
  },
  {
   "key": "face39.rear",
@@ -1617,7 +1616,41 @@ const DEFINITIONS = [
   "default": 1,
   "min": 0,
   "max": 99
- }
+ },
+ {"key": "phase.boss.advance.move", "group": "Boss · Half-HP upgrades", "label": "Advance movement bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "phase.boss.advance.block", "group": "Boss · Half-HP upgrades", "label": "Advance adjacent Block bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "phase.boss.smoking.fire_damage", "group": "Boss · Half-HP upgrades", "label": "Smoking Strike detonation damage bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "phase.boss.brace.block", "group": "Boss · Half-HP upgrades", "label": "Brace Block bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "phase.boss.skirmish.move", "group": "Boss · Half-HP upgrades", "label": "Skirmish movement bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "phase.boss.Sweep.range", "group": "Boss · Half-HP upgrades", "label": "Sweep reach bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "phase.boss.push.move", "group": "Boss · Half-HP upgrades", "label": "Drive Back push distance bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "phase.boss.distort.weakness", "group": "Boss · Half-HP upgrades", "label": "Distort Weakness bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "phase.boss.fracture.range", "group": "Boss · Half-HP upgrades", "label": "Fracture reach bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "phase.boss.tithe.strip", "group": "Boss · Half-HP upgrades", "label": "Grave Tithe Block stolen bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "phase.boss.tithe.cap", "group": "Boss · Half-HP upgrades", "label": "Grave Tithe Block cap bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "phase.boss.Furnace Roar.range", "group": "Boss · Half-HP upgrades", "label": "Furnace Roar reach bonus at half HP", "default": 1, "min": 0, "max": 9},
+ {"key": "nugh.hp", "group": "Boss · Nu’gh", "label": "Boss HP", "default": 10, "min": 1, "max": 999},
+ {"key": "nugh.worm_hp", "group": "Boss · Nu’gh", "label": "Worm HP", "default": 1, "min": 1, "max": 99},
+ {"key": "nugh.worm_cap", "group": "Boss · Nu’gh", "label": "Maximum living worms", "default": 4, "min": 0, "max": 12},
+ {"key": "nugh.initial_worms", "group": "Boss · Nu’gh", "label": "Starting worms", "default": 2, "min": 0, "max": 12},
+ {"key": "nugh.summon", "group": "Boss · Nu’gh", "label": "Birth Cry summons", "default": 1, "min": 0, "max": 12},
+ {"key": "nugh.summon_bonus", "group": "Boss · Nu’gh", "label": "Half HP: extra Birth Cry summons", "default": 1, "min": 0, "max": 12},
+ {"key": "nugh.pressure_cap", "group": "Boss · Nu’gh", "label": "Maximum worm bonus damage", "default": 1, "min": 0, "max": 9},
+ {"key": "nugh.pressure_bonus", "group": "Boss · Nu’gh", "label": "Half HP: extra pressure cap", "default": 1, "min": 0, "max": 9},
+ {"key": "nugh.chorus_range", "group": "Boss · Nu’gh", "label": "Screaming Chorus range", "default": 4, "min": 1, "max": 16},
+ {"key": "nugh.chorus_damage", "group": "Boss · Nu’gh", "label": "Screaming Chorus base damage", "default": 1, "min": 0, "max": 99},
+ {"key": "nugh.maw_range", "group": "Boss · Nu’gh", "label": "Gnashing Maw range", "default": 1, "min": 1, "max": 16},
+ {"key": "nugh.maw_range_bonus", "group": "Boss · Nu’gh", "label": "Half HP: extra Maw reach", "default": 1, "min": 0, "max": 9},
+ {"key": "nugh.maw_damage", "group": "Boss · Nu’gh", "label": "Gnashing Maw base damage", "default": 1, "min": 0, "max": 99},
+ {"key": "nugh.burrow_move", "group": "Boss · Nu’gh", "label": "Burrow movement", "default": 2, "min": 0, "max": 16},
+ {"key": "nugh.burrow_worms", "group": "Boss · Nu’gh", "label": "Half HP: Burrow summons", "default": 1, "min": 0, "max": 12},
+ {"key": "nugh.guard_block", "group": "Boss · Nu’gh", "label": "Brood Guard base Block", "default": 1, "min": 0, "max": 99},
+ {"key": "nugh.guard_worm_cap", "group": "Boss · Nu’gh", "label": "Brood Guard maximum worm bonus", "default": 1, "min": 0, "max": 12},
+ {"key": "nugh.guard_worm_block", "group": "Boss · Nu’gh", "label": "Half HP: Guard shields one worm (non-stacking)", "default": 1, "min": 0, "max": 99},
+ {"key": "nugh.devour_heal", "group": "Boss · Nu’gh", "label": "Devour Brood healing", "default": 1, "min": 0, "max": 99},
+ {"key": "nugh.devour_heal_bonus", "group": "Boss · Nu’gh", "label": "Half HP: extra Devour healing", "default": 1, "min": 0, "max": 99},
+ {"key": "nugh.devour_block", "group": "Boss · Nu’gh", "label": "Half HP: Devour Block", "default": 1, "min": 0, "max": 99},
+ {"key":"nugh.link_damage","group":"Boss · Nu’gh","label":"Soul Link damage when a hero kills a worm","default":1,"min":0,"max":99}
 ]
 
 static var INDEX: Dictionary = make_index()

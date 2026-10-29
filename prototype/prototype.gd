@@ -7,6 +7,13 @@ var balance_values: Dictionary = {}
 var balance_editor: Control
 var draft_error := ""
 const Catalog = preload("res://prototype/catalog.gd")
+const Nugh = preload("res://prototype/nugh.gd")
+const NUGH_SPRITE = preload("res://prototype/assets/pixel_nugh.png")
+const NUGH_PHASE = preload("res://prototype/assets/pixel_nugh_phase2.png")
+const WORM_SPRITE = preload("res://prototype/assets/pixel_screaming_worm.png")
+const DIE_Y = 205
+const DIE_STEP = 98
+var encounter := "hollow"
 const Model = preload("res://prototype/battle.gd")
 const FaceLoadout = preload("res://prototype/face_loadout.gd")
 const Preset = preload("res://prototype/preset.gd")
@@ -70,6 +77,7 @@ var impact_strength := 0.0
 var combat_audio: AudioStreamPlayer
 var impact_sound: AudioStreamWAV
 var shield_sound: AudioStreamWAV
+var scream_sound: AudioStreamWAV
 const NET = [Vector2i(1,0),Vector2i(0,1),Vector2i(1,1),Vector2i(2,1),Vector2i(1,2),Vector2i(1,3)]
 var show_history := false
 var visual_positions: Dictionary = {}
@@ -127,6 +135,7 @@ func _ready() -> void:
   var saved: Dictionary = get_tree().root.get_meta("ash_restart")
   get_tree().root.remove_meta("ash_restart")
   builds = saved.builds; reward_soul = saved.soul; muted = saved.muted
+  encounter = saved.get("encounter","hollow");balance_values = saved.get("balance",balance_values).duplicate(true)
   balanced = saved.get("balanced",true);combat_effects = saved.get("combat_effects",true)
   gifts = saved.get("gifts",gifts); offers = saved.get("offers",offers); draft_modal = false
   music.stream_paused = muted
@@ -168,8 +177,8 @@ func _process(delta: float) -> void:
  effects = effects.filter(func(fx):return fx.life > 0)
  floaters = floaters.filter(func(f):return f.life > 0)
  if page == "battle":
-  for id in range(4):
-   var target_pos: Vector2 = Vector2(game.boss.pos if id == 3 else game.heroes[id].pos)
+  for id in range(game.unit_count()):
+   var target_pos: Vector2 = Vector2(game.unit_data(id).pos)
    if visual_positions.has(id):
     if not movement_tracks.has(id) or movement_tracks[id].to != target_pos:
      movement_tracks[id] = {"from":visual_positions[id],"to":target_pos,"elapsed":0.0}
@@ -221,15 +230,20 @@ func panel(rect: Rect2, color: Color = Color("161d28"), border: Color = Color("3
 func rebuild() -> void:
  sync_presentation()
  for c in ui.get_children(): ui.remove_child(c); c.queue_free()
+ if page == "setup":
+  setup_ui()
+  if show_options:options_ui()
+  if show_dice:dice_ui()
+  return
  if page == "battle":
-  label_at("ASH & OATH",Vector2(24,16),25,GOLD,300,true)
-  label_at("v0.17 · ABILITY LAB" if lab else "v0.17 · THE HOLLOW",Vector2(26,49),12,MUTED,450)
-  button("View dice",Vector2(1016,22),Vector2(120,38),func(): show_dice = true;dice_hero = game.active;rebuild(),Color("9fc7e6"))
-  button("Turn help",Vector2(1148,22),Vector2(120,38),func():show_turn = true;rebuild(),MUTED)
-  button("Menu",Vector2(1280,22),Vector2(128,38),func():show_menu = true;rebuild(),GOLD)
+  label_at("ASH & OATH",Vector2(36,18),21,GOLD,205,true)
+
+  button("View dice",Vector2(24,112),Vector2(120,26),func(): show_dice = true;dice_hero = game.active;rebuild(),Color("9fc7e6"))
+  button("Turn help",Vector2(156,112),Vector2(120,26),func():show_turn = true;rebuild(),MUTED)
+  button("Menu",Vector2(288,112),Vector2(120,26),func():show_menu = true;rebuild(),GOLD)
  else:
   label_at("ASH & OATH",Vector2(42,26),27,GOLD,500,true)
-  label_at("A DICE-BUILDING BOSS BATTLER · v0.17",Vector2(44,65),11,MUTED)
+  label_at("A DICE-BUILDING BOSS BATTLER · v0.18",Vector2(44,65),11,MUTED)
   button("View dice",Vector2(350,30),Vector2(235,40),func(): show_dice = true;dice_hero = build_hero;rebuild(),Color("9fc7e6"))
   button("Tutorial / Ability Lab",Vector2(605,30),Vector2(245,40),start_lab,Color("82c8b9"))
   button("What changed",Vector2(866,30),Vector2(225,40),func():show_changes = true;rebuild())
@@ -294,11 +308,14 @@ func forge_ui() -> void:
  var legal_builds := true
  for i in range(3):
   if Model.validate(builds[i],gifts[i],balance_values) != "" or gifts[i].size() != 2: legal_builds = false
- button("Enter the hollow   →",Vector2(884,773),Vector2(400,55),begin,GOLD,not legal_builds)
+ button("Review rules & choose boss →",Vector2(884,773),Vector2(400,55),open_setup,GOLD,not legal_builds)
 
 func retry(with_soul: bool = false) -> void:
- get_tree().root.set_meta("ash_restart", {"builds":builds.duplicate(true),"soul":with_soul or reward_soul,"muted":muted,"balanced":balanced,"combat_effects":combat_effects,"gifts":gifts,"offers":offers})
+ get_tree().root.set_meta("ash_restart", {"builds":builds.duplicate(true),"soul":with_soul or reward_soul,"muted":muted,"balanced":balanced,"combat_effects":combat_effects,"encounter":encounter,"balance":balance_values.duplicate(true),"gifts":gifts,"offers":offers})
  SceneLoader.load_scene("res://prototype/prototype.tscn")
+
+func open_setup() -> void:
+ draft_modal = false;page = "setup";show_menu = false;selected = -1;rebuild()
 
 func begin() -> void:
  for hero in range(3):
@@ -308,6 +325,7 @@ func begin() -> void:
  lab = false
  draft_modal = false
  roll_feedback = {};show_active_effects = false;detailed_ability = false
+ game = Nugh.new() if encounter == "nugh" else Model.new()
  game.start(builds,0,reward_soul,balanced,balance_values); page = "battle"; seen_roll = 0; roll_seen = 0; seen_event = 0; effects.clear(); snapshots.clear(); visual_positions.clear(); selected = -1; shove_target = -1
  hint = "Select a rolled die, then a highlighted cell or unit. Boss dice are public."
  rebuild()
@@ -315,27 +333,27 @@ func begin() -> void:
 func battle_ui() -> void:
  if inspect_actor != game.active:
   inspect_actor = game.active;combat_inspected = -1;inspect_action = "";show_active_effects = false;roll_feedback = {};selected = -1
- var actor: String = "ENCOUNTER ENDED" if game.outcome != "" else ("THE HOLLOW’S TURN" if game.active == 3 else game.heroes[game.active].name.to_upper()+"’S TURN")
- label_at(actor,Vector2(40,92),22,Color("f1e8cf"),440)
+ var actor: String = "ENCOUNTER ENDED" if game.outcome != "" else (game.boss_name().to_upper()+"’S TURN" if game.active == 3 else game.heroes[game.active].name.to_upper()+"’S TURN")
+ label_at(actor,Vector2(250,19),22,Color("f1e8cf"),440)
  var order_text: Array[String] = []
  for id in game.order: order_text.append(game.unit_name(id))
- label_at("ROUND %02d" % game.round_no,Vector2(590,97),14,GOLD,130).tooltip_text = "Initiative: "+" → ".join(order_text)
- label_at("THE HOLLOW · PHASE II" if game.phase_two else "THE HOLLOW",Vector2(768,91),17,Color("e6c4b6"),240)
- label_at("%d/%d HP  ·  %d Block" % [game.boss.hp,game.boss.max_hp,game.boss.block],Vector2(1120,93),16,Color("e6c4b6"),285)
+ label_at("ROUND %02d" % game.round_no,Vector2(622,22),14,GOLD,130).tooltip_text = "Initiative: "+" → ".join(order_text)
+ label_at(game.boss_name().to_upper()+" · PHASE II" if game.phase_two else game.boss_name().to_upper(),Vector2(768,20),17,Color("e6c4b6"),240)
+ label_at("%d/%d HP  ·  %d Block" % [game.boss.hp,game.boss.max_hp,game.boss.block],Vector2(1120,22),16,Color("e6c4b6"),285)
  for d in range(3):
   var action: String = game.boss_rolls[d]
   var done: bool = game.active == 3 and d < game.boss_index
-  var upgraded: bool = game.phase_two and action in ["Cinder Brand","Ashen Chain"]
-  var intent := button(["I","II","III"][d]+" · "+action+(" +" if upgraded else "")+(" ✓" if done else ""),Vector2(760+d*220,143),Vector2(208,40),func():inspect_action = action;combat_inspected = -1;show_active_effects = false;detailed_ability = false;rebuild(),GOLD if game.active == 3 and game.boss_index == d else MUTED)
+  var upgraded: bool = game.phase_two and action != "Bound"
+  var intent := button(["I","II","III"][d]+" · "+action+(" +" if upgraded else "")+(" ✓" if done else ""),Vector2(760+d*220,66),Vector2(208,36),func():inspect_action = action;combat_inspected = -1;show_active_effects = false;detailed_ability = false;rebuild(),GOLD if game.active == 3 and game.boss_index == d else MUTED)
   intent.add_theme_font_size_override("font_size",14);intent.tooltip_text = game.boss_help(action)
  var threshold := int(floor(game.boss.max_hp*game.v("boss.phase.percent")/100.0))
- var phase_button := button(("PHASE II ACTIVE" if game.phase_two else "UPGRADES AT %d HP" % threshold)+" · view changes",Vector2(760,197),Vector2(328,34),func():inspect_action = "__phase__";combat_inspected = -1;show_active_effects = false;detailed_ability = false;rebuild(),Color("e8a56a") if game.phase_two else GOLD)
- label_at("Brand 3×3 · Rooted · Roar",Vector2(1128,204),14,Color("e8b885"),280)
+ var phase_button := button(("PHASE II ACTIVE" if game.phase_two else "UPGRADES AT %d HP" % threshold)+" · view changes",Vector2(760,110),Vector2(328,28),func():inspect_action = "__phase__";combat_inspected = -1;show_active_effects = false;detailed_ability = false;rebuild(),Color("e8a56a") if game.phase_two else GOLD)
+ label_at("%d abilities upgrade at half HP" % game.phase_upgrades().size(),Vector2(1128,115),14,Color("e8b885"),280)
  phase_button.name = "BossPhaseSummary";phase_button.add_theme_font_size_override("font_size",14);phase_button.tooltip_text = phase_help().replace("[b]","").replace("[/b]","")
- soul_toggle(Vector2(760,239),true,328)
+ soul_toggle(Vector2(760,159),true,328)
  for i in range(3):
   var h: Dictionary = game.heroes[i];var hx := 24+i*244
-  portrait_at(i,Vector2(hx+8,858),Vector2(32,32))
+  portrait_at(i,Vector2(hx+8,68),Vector2(32,32))
   var status: String = "DEAD" if h.dead else ("DOWNED" if h.hp == 0 else ("BROKEN" if h.broken else ""))
   if h.weak or h.bulwark_weak:status += " WEAK"
   if h.stun:status += " STUN"
@@ -346,12 +364,12 @@ func battle_ui() -> void:
   if weak_point_ready(i):status = "WEAK POINT"
   if h.dr > 0:status += " DR "+str(h.dr)
   if h.num_boost > 0:status += " NUM +"+str(h.num_boost)
-  var name_label := label_at(h.name+ (" · "+status.strip_edges() if status != "" else ""),Vector2(hx+48,853),14,COLORS[i],178)
+  var name_label := label_at(h.name+ (" · "+status.strip_edges() if status != "" else ""),Vector2(hx+48,63),14,COLORS[i],178)
   name_label.clip_text = true;name_label.mouse_filter = Control.MOUSE_FILTER_PASS
   var dice_info: Array[String] = []
   for d in range(3):dice_info.append("Die %d: %s%s" % [d+1,Catalog.display_name(game.face(i,d))," · spent / held" if h.used[d] else ""])
   name_label.tooltip_text = h.name+"\n"+game.status_description(i)+"\n\n"+"\n".join(dice_info)
-  label_at("%d/%d HP · %d Block" % [h.hp,h.max_hp,h.block],Vector2(hx+48,875),12,MUTED,178)
+  label_at("%d/%d HP · %d Block" % [h.hp,h.max_hp,h.block],Vector2(hx+48,86),12,MUTED,178)
  if game.active < 3:
   var h: Dictionary = game.heroes[game.active]
   for d in range(3):
@@ -363,7 +381,7 @@ func battle_ui() -> void:
    if selected >= 0 and game.face(game.active,selected) == 6 and d != selected and game.focus_reason(selected,d) == "":state = "FOCUS TARGET"
    if game.reroll_face_reason(f) != "":kind += " · NO REROLL"
    var text: String = "DIE "+["I","II","III"][d]+" · "+("RESOLVE NEXT" if game.forced_die == d else ("SELECTED" if selected == d and not h.used[d] else state))+"\n"+name_text+"\n"+kind
-   var die_button := button(text,Vector2(760,277+d*87),Vector2(328,77),func():select_combat_die(d),color_for_face(f),not game.pending.is_empty() or game.outcome != "" or h.dead or h.hp <= 0)
+   var die_button := button(text,Vector2(760,DIE_Y+d*DIE_STEP),Vector2(328,88),func():select_combat_die(d),color_for_face(f),not game.pending.is_empty() or game.outcome != "" or h.dead or h.hp <= 0)
    die_button.name = "BattleDie%d" % d
    die_button.add_theme_font_size_override("font_size",15);die_button.tooltip_text = short_face_help(f)
    var cannot_focus: bool = selected >= 0 and game.face(game.active,selected) == 6 and d != selected and game.focus_reason(selected,d) != ""
@@ -385,38 +403,38 @@ func battle_ui() -> void:
   if training:
    instruction = "Lesson %d/8: " % (training_step+1)+LESSONS[training_step]
    if training_step == 6:instruction = "Soul lesson: select a Blank and move up to %d cells. You have %d conversions this hero turn." % [game.v("soul.move"),game.v("soul.uses")]
-  var instruction_label := label_at(instruction,Vector2(760,550),15,Color("dce6ee"),328,false,true)
+  var instruction_label := label_at(instruction,Vector2(760,502),15,Color("dce6ee"),328,false,true)
   instruction_label.name = "ActionInstruction";instruction_label.mouse_filter = Control.MOUSE_FILTER_PASS
   instruction_label.max_lines_visible = 2;instruction_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS;instruction_label.tooltip_text = instruction
   if selected >= 0 and not h.used[selected]:
    var f: int = game.face(game.active,selected)
    if f in [4,9,10,11,13,14,16,17,18,20,21,22,23,24,25,26,27,29,30,31,32,33,42,43,47,49,50,51,52,54,56] or (f == 0 and (not game.reward or game.soul_remaining(game.active) <= 0)):
-    button("Resolve selected face",Vector2(760,605),Vector2(211,39),func():
+    button("Resolve selected face",Vector2(760,556),Vector2(211,44),func():
      if game.hero_action(selected):selected = -1;roll_feedback = {}
      rebuild())
-   button("Decline",Vector2(981,605),Vector2(107,39),func():game.decline(selected);selected = -1;roll_feedback = {};rebuild(),MUTED)
+   button("Decline",Vector2(981,556),Vector2(107,44),func():game.decline(selected);selected = -1;roll_feedback = {};rebuild(),MUTED)
   combat_reroll_ui()
 
-  button("End hero turn   →",Vector2(760,711),Vector2(328,52),func():game.finish_turn();selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
-  label_at(("Blank moves %d/%d · " % [game.soul_remaining(game.active),game.v("soul.uses")] if game.reward else "")+"%d dice available" % h.used.count(false),Vector2(760,776),13,MUTED,328)
+  button("End hero turn   →",Vector2(760,682),Vector2(328,54),func():game.finish_turn();selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
+  label_at(("Blank moves %d/%d · " % [game.soul_remaining(game.active),game.v("soul.uses")] if game.reward else "")+"%d dice available" % h.used.count(false),Vector2(760,750),13,MUTED,328)
   var tags: Array[String] = []
   for tag in game.status_map(game.active):
    if game.status_map(game.active)[tag]:tags.append("Weak Point READY" if tag == "Backstab" else tag)
   if weak_point_ready(game.active):tags.erase("Weak Point READY");tags.push_front("Weak Point READY")
-  var status_label := button("Effects: "+(" · ".join(tags) if not tags.is_empty() else "none"),Vector2(760,799),Vector2(328,39),func():show_active_effects = true;combat_inspected = -1;inspect_action = "";rebuild(),GOLD if weak_point_ready(game.active) else Color("b9cbd9"))
+  var status_label := button("Effects: "+(" · ".join(tags) if not tags.is_empty() else "none"),Vector2(760,780),Vector2(328,48),func():show_active_effects = true;combat_inspected = -1;inspect_action = "";rebuild(),GOLD if weak_point_ready(game.active) else Color("b9cbd9"))
   status_label.name = "ActiveStatuses";status_label.add_theme_font_size_override("font_size",14);status_label.tooltip_text = game.status_description(game.active)
 
  else:
-  label_at("BOSS TURN",Vector2(760,250),16,GOLD,328)
+  label_at("BOSS TURN",Vector2(760,180),16,GOLD,328)
   var current: String = game.boss_rolls[game.boss_index] if game.boss_index < 3 else "Turn complete"
-  label_at(current,Vector2(760,294),25,Color("f1d2bc"),328,true,true)
-  var description := RichTextLabel.new();description.name = "CurrentBossDetails";description.position = Vector2(760,370);description.size = Vector2(328,184);description.add_theme_font_size_override("normal_font_size",18);description.text = short_boss_help(current) if game.boss_index < 3 else "Advance to the next hero.";ui.add_child(description)
-  label_at("Last: "+(game.last_action if game.last_action != "" else "No action yet"),Vector2(760,570),14,MUTED,328,false,true)
-  button("Resolve "+(["I","II","III"][game.boss_index] if game.boss_index < 3 else "end of turn")+"   →",Vector2(760,711),Vector2(328,52),func():game.boss_step();selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
- label_at("BATTLE LOG",Vector2(1128,216),17,GOLD,280)
- button("Summary" if compact_log else "All events",Vector2(1296,213),Vector2(104,29),func():compact_log = not compact_log;rebuild(),MUTED).add_theme_font_size_override("font_size",11)
- button("Full history / filters",Vector2(1128,254),Vector2(272,34),func():show_history = true;rebuild(),MUTED)
- var latest := RichTextLabel.new();latest.name = "SideChronicle";latest.bbcode_enabled = true;latest.position = Vector2(1128,306);latest.size = Vector2(272,522);latest.add_theme_font_size_override("normal_font_size",15);latest.scroll_following = true
+  label_at(current,Vector2(760,235),25,Color("f1d2bc"),328,true,true)
+  var description := RichTextLabel.new();description.name = "CurrentBossDetails";description.position = Vector2(760,310);description.size = Vector2(328,280);description.add_theme_font_size_override("normal_font_size",18);description.text = boss_ability_summary(current) if game.boss_index < 3 else "Advance to the next hero.";ui.add_child(description)
+  label_at("Last: "+(game.last_action if game.last_action != "" else "No action yet"),Vector2(760,625),14,MUTED,328,false,true)
+  button("Resolve "+(["I","II","III"][game.boss_index] if game.boss_index < 3 else "end of turn")+"   →",Vector2(760,682),Vector2(328,54),func():game.boss_step();selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
+ label_at("BATTLE LOG",Vector2(1128,164),17,GOLD,280)
+ button("Summary" if compact_log else "All events",Vector2(1296,159),Vector2(104,29),func():compact_log = not compact_log;rebuild(),MUTED).add_theme_font_size_override("font_size",11)
+ button("Full history / filters",Vector2(1128,205),Vector2(272,34),func():show_history = true;rebuild(),MUTED)
+ var latest := RichTextLabel.new();latest.name = "SideChronicle";latest.bbcode_enabled = true;latest.position = Vector2(1128,250);latest.size = Vector2(272,570);latest.add_theme_font_size_override("normal_font_size",15);latest.scroll_following = true
  var formatted: Array[String] = []
  for entry in game.event_log:
   if compact_log and entry.kind in ["guide","action","roll","info"]:continue
@@ -425,11 +443,14 @@ func battle_ui() -> void:
  if shove_target >= 0 and selected >= 0:
   for i in range(4):
    var dir: Vector2i = Model.DIRS[i]
-   button(["North","East","South","West"][i],Vector2(760+(i%2)*170,806+(i/2)*43),Vector2(158,38),func():
+   button(["North","East","South","West"][i],Vector2(760+(i%2)*170,780+(i/2)*43),Vector2(158,38),func():
     if game.hero_action(selected,shove_target,dir):selected = -1;shove_target = -1
     rebuild(),GOLD,dir not in game.away_dirs(game.active,shove_target))
  elif lab:lab_ui()
  if not game.pending.is_empty():pending_ui()
+ if game.encounter_id == "nugh":
+  label_at("WORMS %d/%d · +%d attack damage" % [game.living_minions().size(),game.v("nugh.worm_cap"),game.pressure()],Vector2(428,117),13,Color("d7b3eb"),310)
+ label_at("v0.18 · KILL WORMS → hurt Nu’gh, reduce pressure and deny healing. Defeat Nu’gh to win." if game.encounter_id == "nugh" else "v0.18 · THE HOLLOW · Read the intent, evade marked fire and prepare for the half-HP upgrades.",Vector2(28,857),15,MUTED,706,false,true)
  if game.outcome != "":outcome_ui()
 
 func open_settings() -> void:
@@ -476,15 +497,16 @@ func pending_ui() -> void:
    if game.heroes[p.hero].reaction.is_empty():return
    reaction_die = game.heroes[p.hero].reaction[0]
   var reaction_face: int = game.face(p.hero,reaction_die)
+  label_at(p.action+" · %d incoming damage" % maxi(0,p.amount-(game.v("face51.weakness") if game.boss.weak else 0)),Vector2(399,333),14,Color("edba8b"),570)
   label_at("Spend Tactical Defense: gain %d Block, optionally move %d.\nThe boss rechecks its target before the attack resolves." % [game.v("face5.block"),game.v("face5.move")],Vector2(399,352),15,MUTED)
   if reaction_face != 5:
    for c in ui.get_children():
-    if c is Label and c.position == Vector2(399,352): c.text = short_face_help(reaction_face); c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; c.size.x = 520
-  button("Block + stay" if reaction_face == 5 else "Use " + Model.FACES[reaction_face],Vector2(399,421),Vector2(250,48),func(): game.react(true); rebuild())
-  button("Hold reaction",Vector2(669,421),Vector2(250,48),func(): game.react(false); rebuild(),MUTED)
+    if c is Label and c.position == Vector2(399,352): c.text = short_face_help(reaction_face); c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; c.size = Vector2(550,120);c.clip_text = true;c.max_lines_visible = 6
+  button("Block + stay" if reaction_face == 5 else "Use " + Model.FACES[reaction_face],Vector2(399,481),Vector2(250,48),func(): game.react(true); rebuild())
+  button("Hold reaction",Vector2(669,481),Vector2(250,48),func(): game.react(false); rebuild(),MUTED)
   for i in range(4):
    var dir: Vector2i = Model.DIRS[i]
-   button("Block + " + ["North","East","South","West"][i],Vector2(399+(i%2)*270,490+(i/2)*60),Vector2(250,48),func(): game.react(true,dir); rebuild(),GOLD,reaction_face != 5 and not game.heroes[p.hero].smoke.has(p.get("die",-1)) or game.heroes[p.hero].get("rooted",0) > 0 or not game.legal(p.hero,game.heroes[p.hero].pos+dir))
+   button("Block + " + ["North","East","South","West"][i],Vector2(399+(i%2)*270,550+(i/2)*60),Vector2(250,48),func(): game.react(true,dir); rebuild(),GOLD,reaction_face != 5 and not game.heroes[p.hero].smoke.has(p.get("die",-1)) or game.heroes[p.hero].get("rooted",0) > 0 or not game.legal(p.hero,game.heroes[p.hero].pos+dir))
  elif p.kind == "fracture":
   label_at("Fracture · " + game.heroes[p.hero].name,Vector2(399,301),26,Color("ece6d9"),620,true)
   label_at("Choose an installed ability to replace with Blank for this fight.\nYour recorded build returns after the encounter.",Vector2(399,348),15,MUTED)
@@ -516,7 +538,7 @@ func outcome_ui() -> void:
  var won: bool = game.outcome == "victory"
  label_at("ENCOUNTER COMPLETE",Vector2(399,264),12,GOLD)
  label_at("A soul, reclaimed." if won else "The oath is not over.",Vector2(399,309),32,Color("ece6d9"),700,true)
- label_at("The Hollow is defeated. The boss Soul is unlocked.\nEach hero: %d HP · %d+ Blanks per die.\n%d Blank conversions per turn, each Move %d.\nSurviving heroes recover between encounters." % [game.v("hero.hp"),game.v("body.blanks"),game.v("soul.uses"),game.v("soul.move")] if won else "All three heroes are Downed or dead.\nA clean test restart restores HP, dice and conditions.\nRebuild your dice or try the encounter again.",Vector2(399,378),16,MUTED)
+ label_at(game.boss_name()+" is defeated. The boss Soul is unlocked.\nEach hero: %d HP · %d+ Blanks per die.\n%d Blank conversions per turn, each Move %d.\nSurviving heroes recover between encounters." % [game.v("hero.hp"),game.v("body.blanks"),game.v("soul.uses"),game.v("soul.move")] if won else "All three heroes are Downed or dead.\nA clean test restart restores HP, dice and conditions.\nRebuild your dice or try the encounter again.",Vector2(399,378),16,MUTED)
  if won:
   button("Rematch with reward Soul",Vector2(399,493),Vector2(520,49),func(): retry(true))
  else:
@@ -545,12 +567,15 @@ func _gui_input(event: InputEvent) -> void:
   if page == "battle":
    for id in range(4):
     if id == 3:
-     if hover in game.cells(3):tooltip_text = "THE HOLLOW · HP %d/%d · Block %d\n" % [game.boss.hp,game.boss.max_hp,game.boss.block]+game.status_description(3)
+     if hover in game.cells(3):tooltip_text = game.boss_name()+" · HP %d/%d · Block %d\n" % [game.boss.hp,game.boss.max_hp,game.boss.block]+game.status_description(3)
      continue
     var h: Dictionary = game.heroes[id]
     if hover == h.pos:
      tooltip_text = h.name+" · HP %d/%d · Block %d\n" % [h.hp,h.max_hp,h.block]+game.status_description(id)
      if not h.channel.is_empty():tooltip_text += "\nChannel: "+Model.FACES[h.channel.face]+"\n"+Catalog.text(h.channel.face)
+  if page == "battle":
+   for id in game.living_minions():
+    if hover == game.unit_data(id).pos:tooltip_text = game.unit_name(id)+" · HP %d/%d · Block %d\nKill to reduce attack pressure, deny Devour healing and deal Soul Link damage to Nu’gh." % [game.unit_data(id).hp,game.unit_data(id).max_hp,game.unit_data(id).block]
   if page == "battle" and hover in game.fire_tiles:tooltip_text += "\nFIRE TILE: stays on this cell. A Smoking Strike that deals HP damage here detonates it for %d normal damage." % game.v("boss.smoking.fire_damage")
  if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
   if page != "battle" or is_instance_valid(balance_editor) or show_menu or show_lab_tools or show_options or show_lab_setup or show_dice or show_turn or show_changes or show_help or show_history or rolling_time > 0 or not game.pending.is_empty() or game.outcome != "" or game.active == 3 or selected < 0: return
@@ -558,8 +583,8 @@ func _gui_input(event: InputEvent) -> void:
   if not Rect2(ORIGIN,Vector2.ONE*CELL*9).has_point(event.position): return
   var f: int = game.face(game.active,selected)
   var target := -1
-  for u in range(4):
-   if u < 3 and game.heroes[u].dead: continue
+  for u in range(game.unit_count()):
+   if game.unit_data(u).get("dead",false): continue
    if c in game.cells(u): target = u
   if Catalog.is_attack(f) and target in [0,1,2] and target != game.active and friendly_confirm != target:
    friendly_confirm = target; hint = "FRIENDLY FIRE: click this ally again to confirm the attack."; rebuild(); return
@@ -570,7 +595,7 @@ func _gui_input(event: InputEvent) -> void:
    if shove_target == -1 and target >= 0 and target != game.active and game.distance(game.active,target) <= game.face_range(8):
     shove_target = target; hint = "Choose a push direction from the arrows beside the board."; rebuild(); return
    elif shove_target >= 0:
-    var tp: Vector2i = game.boss.pos if shove_target == 3 else game.heroes[shove_target].pos
+    var tp: Vector2i = game.unit_data(shove_target).pos
     var delta := c-tp
     var dir := Vector2i(signi(delta.x),0) if absi(delta.x) >= absi(delta.y) else Vector2i(0,signi(delta.y))
     done = game.hero_action(selected,shove_target,dir)
@@ -589,17 +614,18 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _draw() -> void:
  draw_rect(Rect2(Vector2.ZERO,Vector2(1440,900)),Color("10151e"))
  draw_line(Vector2(24,76),Vector2(1408,76),Color("303846"))
+ if page == "setup":return
  if page == "forge":
   panel(Rect2(68,351,736,336)); panel(Rect2(850,278,472,563))
  else:
   var turn_color: Color = Color("ed9986") if game.active == 3 else COLORS[maxi(0,game.active)]
-  panel(Rect2(24,86,716,38),Color("202d37"),turn_color)
-  panel(Rect2(752,86,664,150),Color("18222d"),Color("354653"))
-  draw_rect(Rect2(760,121,648,6),Color("303846"))
-  draw_rect(Rect2(760,121,int(648.0*maxi(0,game.boss.hp)/game.boss.max_hp),6),Color("b76a65"))
-  panel(Rect2(752,240,344,567),Color("18222d"),Color("354653"))
-  panel(Rect2(1112,202,304,642),Color("14212a"),Color("354653"))
-  for i in range(3):panel(Rect2(24+i*244,850,232,46),Color("243641") if i == game.active else Color("17212d"),COLORS[i] if i == game.active else Color("354653"))
+  panel(Rect2(24,12,716,42),Color("202d37"),turn_color)
+  panel(Rect2(752,12,664,126),Color("18222d"),Color("354653"))
+  draw_rect(Rect2(760,51,648,6),Color("303846"))
+  draw_rect(Rect2(760,51,int(648.0*maxi(0,game.boss.hp)/game.boss.max_hp),6),Color("b76a65"))
+  panel(Rect2(752,151,344,687),Color("18222d"),Color("354653"))
+  panel(Rect2(1112,151,304,687),Color("14212a"),Color("354653"))
+  for i in range(3):panel(Rect2(24+i*244,60,232,48),Color("243641") if i == game.active else Color("17212d"),COLORS[i] if i == game.active else Color("354653"))
   var shake := Vector2.ZERO
   if combat_effects and impact_time > 0:shake = Vector2(sin(t*83),cos(t*71))*impact_strength*(impact_time/0.22)
   draw_set_transform(shake)
@@ -617,10 +643,10 @@ func draw_board() -> void:
   if f == 57: highlights = game.reachable(game.active,game.move_steps(f),false)
   if Catalog.is_attack(f) or f in [7,12,15,19,55,58]:
    var reach: int = 99 if f == 12 else game.face_range(f)
-   for target in range(4):
-    if target < 3 and game.heroes[target].dead:continue
+   for target in range(game.unit_count()):
+    if game.unit_data(target).get("dead",false):continue
     if target == game.active and f not in [7,12,55]:continue
-    if not Catalog.is_attack(f) and target == 3:continue
+    if not Catalog.is_attack(f) and target >= 3:continue
     if f == 58 and (game.heroes[target].hp <= 0 or game.heroes[target].get("rooted",0) > 0 or game.heroes[game.active].get("rooted",0) > 0):continue
     if game.distance(game.active,target) > reach:continue
     if f in [15,19,35,58] and not game.sight(game.active,target,reach):continue
@@ -650,7 +676,7 @@ func draw_board() -> void:
     draw_string(BODY,p+Vector2(17,69),"REAR",HORIZONTAL_ALIGNMENT_LEFT,-1,12,GOLD)
    if c == hover: draw_rect(Rect2(p+Vector2.ONE*2,Vector2.ONE*(CELL-4)),Color(GOLD,0.5),false,1)
  for i in range(9):
-  draw_string(BODY,ORIGIN+Vector2(i*CELL+23,-10),str(i+1),HORIZONTAL_ALIGNMENT_LEFT,-1,11,MUTED)
+  draw_string(BODY,ORIGIN+Vector2(i*CELL+33,9*CELL+12),str(i+1),HORIZONTAL_ALIGNMENT_LEFT,-1,11,MUTED)
   draw_string(BODY,ORIGIN+Vector2(-20,i*CELL+32),char(65+i),HORIZONTAL_ALIGNMENT_LEFT,-1,11,MUTED)
  # Portrait tokens use the same art as the party panels and drafting tabs.
  var bp: Vector2 = ORIGIN+Vector2(visual_positions.get(3,Vector2(game.boss.pos)))*CELL+Vector2.ONE*CELL+attack_nudge(3)
@@ -684,6 +710,8 @@ func draw_board() -> void:
   draw_hp_dots(p+Vector2(0,35),h.hp,h.max_hp,COLORS[i])
   draw_hero_debuffs(i,p)
   if weak_point_ready(i):draw_weak_point(p)
+  if h.stun:draw_stunned(p)
+ for id in game.living_minions():draw_worm(id)
 
 func sync_presentation() -> void:
  if page != "battle": return
@@ -697,12 +725,15 @@ func sync_presentation() -> void:
   if event.kind == "focus":
    roll_feedback = {"actor":event.source,"die":event.die,"text":"FOCUS · Die %s: %s → %s" % [["I","II","III"][event.die],Model.FACES[event.old_face],Model.FACES[event.new_face]]+(" · Reaction held" if game.heroes[event.source].used[event.die] else "")}
    effects.append({"kind":"focus","source":event.source,"target":event.target,"die":event.die,"life":1.5,"length":1.5})
-  if event.kind in ["damage","block"] and event.source == 3 and event.target in [0,1,2] and combat_effects:
-   impact_time = 0.22;impact_strength = 3.5 if event.value > 0 else 1.5
-   effects.append({"kind":"impact","source":3,"target":event.target,"life":0.5,"length":0.5,"damage":event.value})
-   hit_sound = maxi(hit_sound,1 if event.value > 0 else 0)
+  if event.kind in ["damage","block"] and event.source == 3 and event.target in [0,1,2]:
+   if combat_effects:
+    impact_time = 0.22;impact_strength = 3.5 if event.value > 0 else 1.5
+    effects.append({"kind":"impact","source":3,"target":event.target,"life":0.5,"length":0.5,"damage":event.value})
+   hit_sound = maxi(hit_sound,2 if event.action == "Screaming Chorus" else (1 if event.value > 0 else 0))
   if event.kind == "buff" and "Weak Point READY" in event.text:
    floaters.append({"at":effect_center(event.target),"text":"WEAK POINT READY","color":GOLD,"life":1.6})
+  if event.kind in ["summon","minion_death"]:
+   effects.append({"kind":"buff" if event.kind == "summon" else "debuff","source":event.source,"target":event.target,"life":1.05,"length":1.05})
   if event.kind in ["fire","fire_arm"]:
    effects.append({"kind":event.kind,"tiles":event.get("tiles",[]).duplicate(),"source":event.source,"target":-1,"life":1.2,"length":1.2})
   if event.kind in ["attack","block","block_gain","buff","debuff","heal"]:
@@ -712,14 +743,14 @@ func sync_presentation() -> void:
    if event.target >= 0:
     effects.append({"kind":kind,"source":event.source,"target":event.target,"life":1.05,"length":1.05,"action":event.action})
  if hit_sound >= 0 and is_instance_valid(combat_audio) and not muted:
-  combat_audio.stream = impact_sound if hit_sound == 1 else shield_sound;combat_audio.play()
+  combat_audio.stream = scream_sound if hit_sound == 2 else (impact_sound if hit_sound == 1 else shield_sound);combat_audio.play()
  if roll_seen > game.roll_presentations.size(): roll_seen = 0
  # Model rolls remain recorded in the event log; results appear instantly.
  roll_seen = game.roll_presentations.size()
  rolling_time = 0
  seen_roll = game.roll_serial
- for id in range(4):
-  var h: Dictionary = game.boss if id == 3 else game.heroes[id]
+ for id in range(game.unit_count()):
+  var h: Dictionary = game.unit_data(id)
   if not visual_positions.has(id): visual_positions[id] = Vector2(h.pos)
   if snapshots.has(id):
    var old: Dictionary = snapshots[id]
@@ -746,7 +777,7 @@ func history_ui() -> void:
  var lines := RichTextLabel.new(); lines.bbcode_enabled = true; lines.position = Vector2(214,215); lines.size = Vector2(1004,484); lines.add_theme_font_size_override("normal_font_size",15); lines.scroll_following = true
  var text_lines: Array[String] = []
  for entry in game.event_log:
-  if log_filter == "Combat" and entry.kind not in ["action","attack","damage","block","block_gain","heal","buff","debuff","expire","mutation","retarget","collision","stun","decline","focus"]: continue
+  if log_filter == "Combat" and entry.kind not in ["action","attack","damage","block","block_gain","heal","buff","debuff","expire","mutation","retarget","collision","stun","decline","focus","summon","minion_death","soul_link"]: continue
   if log_filter == "Turns" and entry.kind not in ["turn","round","roll"]: continue
   text_lines.append(format_event(entry,true))
  lines.text = "\n\n".join(text_lines); ui.add_child(lines)
@@ -754,14 +785,14 @@ func history_ui() -> void:
  button("Back to battle",Vector2(943,730),Vector2(279,45),func(): show_history = false; show_changes = false; show_dice = false; show_turn = false; show_lab_setup = false; rebuild())
 
 func format_event(entry: Dictionary, expanded: bool) -> String:
- var colors := {"attack":"efb29b","damage":"eea394","block":"9fc7e6","block_gain":"9fc7e6","buff":"91d1b4","debuff":"c9a4e3","heal":"91d1b4","turn":"e4c88f","round":"e4c88f","focus":"e4c88f","expire":"9aaaba"}
+ var colors := {"attack":"efb29b","damage":"eea394","block":"9fc7e6","block_gain":"9fc7e6","buff":"91d1b4","debuff":"c9a4e3","heal":"91d1b4","turn":"e4c88f","round":"e4c88f","focus":"e4c88f","summon":"b9d0a6","minion_death":"d9c493","soul_link":"d5a0e4","expire":"9aaaba"}
  var color: String = colors.get(entry.kind,"becad3")
  var tag: String = "R%02d · #%03d · %s" % [entry.round,entry.id,entry.kind.replace("_"," ").to_upper()]
  return "[color=#%s][b]%s[/b][/color]%s%s" % [color,tag,"\n" if expanded else "  ",entry.text.replace("[","[lb]")]
 
 func effect_center(id: int) -> Vector2:
  if id < 0: return Vector2(322,150)
- var pos: Vector2 = visual_positions.get(id,Vector2(game.boss.pos if id == 3 else game.heroes[id].pos))
+ var pos: Vector2 = visual_positions.get(id,Vector2(game.unit_data(id).pos))
  return ORIGIN+pos*CELL+Vector2.ONE*CELL*(1.0 if id == 3 else 0.5)
 
 func draw_effects() -> void:
@@ -769,7 +800,7 @@ func draw_effects() -> void:
   if not combat_effects and fx.kind in ["boss_attack","impact"]:continue
   if fx.kind == "focus":
    if game.active == fx.source:
-    var rect := Rect2(756,273+fx.die*87,336,85)
+    var rect := Rect2(756,DIE_Y-4+fx.die*DIE_STEP,336,96)
     draw_rect(rect,Color(GOLD,minf(1.0,fx.life)),false,3)
    continue
   if fx.kind in ["boss_attack","impact"]:
@@ -848,12 +879,12 @@ func confirm_gifts() -> void:
  for i in range(3):
   if gifts[i].size() != 2:next = i;break
  if next >= 0:build_hero = next;draft_search = "";draft_scroll = 0
- else:draft_modal = false
+ else:open_setup();return
  rebuild()
 
 func draft_ui() -> void:
  var shade := ColorRect.new();shade.color = Color("101922");shade.size = Vector2(1440,900);ui.add_child(shade)
- label_at("CHOOSE TWO FACES · v0.17",Vector2(60,27),29,GOLD,1000,true)
+ label_at("CHOOSE TWO FACES · v0.18",Vector2(60,27),29,GOLD,1000,true)
  label_at("Click to quick equip. Drag a card onto a die or a square. Drag installed faces to swap them.",Vector2(62,74),15,MUTED,1300)
  button("Back to forge",Vector2(1150,26),Vector2(230,40),func():draft_modal = false;rebuild(),MUTED)
  for hero in range(3):
@@ -913,8 +944,8 @@ func draft_ui() -> void:
  button("Remove this face" if chosen else "Equip this face",Vector2(700,748),Vector2(310,38),func():choose_gift(inspected_gift),color_for_face(inspected_gift),not chosen and (gifts[build_hero].size() >= 2 or inspected_gift not in Catalog.extended_ids()))
  label_at("%d/2 selected · drag equipped squares to rearrange" % gifts[build_hero].size(),Vector2(1025,757),12,MUTED,350)
  var complete: bool = gifts.all(func(list):return list.size() == 2)
- button("Start battle →" if complete else "Next hero →",Vector2(950,810),Vector2(430,44),func():
-  if complete:begin()
+ button("Choose boss & rules →" if complete else "Next hero →",Vector2(950,810),Vector2(430,44),func():
+  if complete:open_setup()
   else:confirm_gifts(),GOLD,gifts[build_hero].size() != 2)
  button("Guided practice",Vector2(60,810),Vector2(260,42),start_training,Color("82c8b9"))
  button("Game options",Vector2(335,810),Vector2(260,42),open_settings,MUTED)
@@ -1040,13 +1071,13 @@ func lab_tools_ui() -> void:
  button("Next turn",Vector2(689,446),Vector2(285,39),func():show_lab_tools = false;Lab.next_turn(game,lab_numeric);selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
  button("Roll chosen face again",Vector2(399,502),Vector2(275,39),func():show_lab_tools = false;Lab.roll_test_face(game,lab_face,lab_numeric);selected = -1;rebuild(),Color("82c8b9"))
  button("Combine faces",Vector2(689,502),Vector2(285,39),func():show_lab_tools = false;show_lab_setup = true;rebuild(),MUTED)
- button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.17 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
+ button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.18 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
  button("Back to battle",Vector2(689,570),Vector2(285,43),func():show_lab_tools = false;rebuild())
  button("Phase II active" if game.phase_two else "Test boss phase II",Vector2(399,632),Vector2(575,39),test_boss_phase_two,Color("e9a36a"),game.phase_two or not game.pending.is_empty() or game.outcome != "" or game.v("boss.phase.percent") == 0)
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.17",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.18",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
  var nav_step := minf(75,610.0/Changes.SECTIONS.size())
  for i in range(Changes.SECTIONS.size()):
@@ -1102,7 +1133,7 @@ func dice_ui() -> void:
  label_at("VIEW DICE · LIVE FACE INVENTORY",Vector2(125,60),30,GOLD,1200,true)
  label_at("Choose a unit. Click any side for its effect. Gold = changed this fight; blue = current rolled side.",Vector2(130,110),15,MUTED,1200)
  for hero in range(4):
-  button(["VESPER","ROOK","WREN","THE HOLLOW"][hero],Vector2(130+hero*300,150),Vector2(280,42),func(): dice_hero = hero; dice_inspected = Vector2i.ZERO; rebuild(),GOLD if dice_hero == hero else MUTED,hero == 3 and page != "battle")
+  button((["VESPER","ROOK","WREN",game.boss_name().to_upper() if page == "battle" else "BOSS"])[hero],Vector2(130+hero*300,150),Vector2(280,42),func(): dice_hero = hero; dice_inspected = Vector2i.ZERO; rebuild(),GOLD if dice_hero == hero else MUTED,hero == 3 and page != "battle")
  var in_fight := page == "battle"
  var is_boss := dice_hero == 3
  for d in range(3):
@@ -1203,7 +1234,7 @@ func next_lesson() -> void:
  else:
   for hero in range(3):
    if gifts[hero].size() != 2:gifts[hero] = [19,37];builds[hero] = Model.bonus_build(gifts[hero],balance_values)
-  begin()
+  training = false;lab = false;open_setup()
 
 func lab_setup_ui() -> void:
  var shade := ColorRect.new();shade.color = Color("101923");shade.size = Vector2(1440,900);ui.add_child(shade)
@@ -1262,6 +1293,8 @@ func portrait_at(id: int, at: Vector2, dimensions: Vector2) -> void:
 
 
 func draw_unit_sprite(id: int, rect: Rect2) -> void:
+ if id == 3 and page == "battle" and game.encounter_id == "nugh":
+  draw_texture_rect(NUGH_PHASE if game.phase_two else NUGH_SPRITE,rect,false);return
  if id == 3 and page == "battle" and game.phase_two:
   draw_texture_rect(BOSS_PHASE_TWO,rect,false);return
  var half := Vector2(SPRITES.get_size())/2.0
@@ -1338,17 +1371,17 @@ func draw_pixel_fire(center: Vector2, alpha: float, seed_value: int, burst: bool
   draw_rect(Rect2(x,bottom-height-8-int(phase)*4,4,4),Color(1.0,0.68,0.25,alpha*0.8))
 
 func combat_details_ui() -> void:
- var backing := Panel.new();backing.name = "CombatAbilityWindow";backing.position = Vector2(1112,202);backing.size = Vector2(304,642);backing.add_theme_stylebox_override("panel",style(Color("192936"),GOLD));ui.add_child(backing)
+ var backing := Panel.new();backing.name = "CombatAbilityWindow";backing.position = Vector2(1112,151);backing.size = Vector2(304,687);backing.add_theme_stylebox_override("panel",style(Color("192936"),GOLD));ui.add_child(backing)
  var phase: bool = inspect_action == "__phase__"
  var heading := "ACTIVE EFFECTS" if show_active_effects else ("BOSS PHASES" if phase else ("BOSS ABILITY" if inspect_action != "" else "SELECTED ABILITY"))
- label_at(heading,Vector2(1130,218),13,GOLD,260)
+ label_at(heading,Vector2(1130,168),13,GOLD,260)
  var title: String = game.unit_name(game.active) if show_active_effects else ("Half-health upgrades" if phase else (inspect_action if inspect_action != "" else Model.FACES[combat_inspected]))
- var title_label := label_at(title,Vector2(1130,250),21,Color("f0e3c9"),264,true,true);title_label.max_lines_visible = 2
- if not show_active_effects and inspect_action == "":label_at(Catalog.classification(combat_inspected),Vector2(1130,309),14,color_for_face(combat_inspected),264)
- var text := RichTextLabel.new();text.name = "ActiveEffectDetails" if show_active_effects else ("BossActionDetails" if inspect_action != "" else "CombatAbilityDetails");text.position = Vector2(1130,345);text.size = Vector2(264,361);text.add_theme_font_size_override("normal_font_size",18);text.bbcode_enabled = true
+ var title_label := label_at(title,Vector2(1130,203),21,Color("f0e3c9"),264,true,true);title_label.max_lines_visible = 2
+ if not show_active_effects and inspect_action == "":label_at(Catalog.classification(combat_inspected),Vector2(1130,265),14,color_for_face(combat_inspected),264)
+ var text := RichTextLabel.new();text.name = "ActiveEffectDetails" if show_active_effects else ("BossActionDetails" if inspect_action != "" else "CombatAbilityDetails");text.position = Vector2(1130,300);text.size = Vector2(264,406);text.add_theme_font_size_override("normal_font_size",18);text.bbcode_enabled = true
  if show_active_effects:text.text = game.status_description(game.active)
  elif phase:text.text = phase_help()
- elif inspect_action != "":text.text = game.boss_help(inspect_action) if detailed_ability else short_boss_help(inspect_action)
+ elif inspect_action != "":text.text = game.boss_help(inspect_action) if detailed_ability else boss_ability_summary(inspect_action)
  else:
   text.text = face_help(combat_inspected) if detailed_ability else short_face_help(combat_inspected)
   if not detailed_ability and (combat_inspected in range(34,43) or combat_inspected in [15,17,19,50,51,52,55]):
@@ -1379,14 +1412,14 @@ func draw_phase_transition(fx: Dictionary) -> void:
  var center := effect_center(3)
  for ring in range(3):
   var radius := 38.0+progress*100.0+ring*14.0
-  draw_arc(center,radius,0,TAU,48,Color(1.0,0.48+ring*0.1,0.2,alpha*(0.6-ring*0.12)),3)
+  draw_arc(center,radius,0,TAU,48,Color(0.75,0.55,1.0,alpha*(0.6-ring*0.12)) if game.encounter_id == "nugh" else Color(1.0,0.48+ring*0.1,0.2,alpha*(0.6-ring*0.12)),3)
  for spark in range(12):
   var at := center+Vector2.from_angle(spark*TAU/12)*(28+progress*110)
   draw_rect(Rect2(at,Vector2.ONE*4),Color(1.0,0.77,0.35,alpha))
- draw_pixel_fire(center,alpha,7,true)
+ if game.encounter_id == "hollow":draw_pixel_fire(center,alpha,7,true)
  # The announcement sits below the boss-intent bar, beside the arena; it does not intercept clicks.
- draw_rect(Rect2(760,188,648,14),Color(0.3,0.12,0.09,alpha*0.9))
- draw_string(BODY,Vector2(760,199),"PHASE II · THE HOLLOW IGNITES",HORIZONTAL_ALIGNMENT_CENTER,648,12,Color(1.0,0.8,0.45,alpha))
+ draw_rect(Rect2(760,126,648,14),Color(0.3,0.12,0.09,alpha*0.9))
+ draw_string(BODY,Vector2(760,137),"PHASE II · "+game.boss_name().to_upper(),HORIZONTAL_ALIGNMENT_CENTER,648,12,Color(1.0,0.8,0.45,alpha))
 
 func test_boss_phase_two() -> void:
  show_lab_tools = false
@@ -1480,7 +1513,7 @@ func combat_reroll_ui() -> void:
  elif selected < 0:caption = "REROLL OPEN · %d charges\nSelect a ready die" % h.rerolls
  elif reason != "":caption = "CANNOT REROLL THIS DIE\n"+reason
  else:caption = "Reroll selected · %d charges\nOPEN · before your first action" % h.rerolls
- var b := button(caption,Vector2(760,653),Vector2(328,52),func():
+ var b := button(caption,Vector2(760,612),Vector2(328,58),func():
   if game.action_reroll(selected):
    combat_inspected = game.face(game.active,selected);show_active_effects = false;inspect_action = "";detailed_ability = false
    hint = "Die %s rerolled → %s" % [["I","II","III"][selected],Model.FACES[combat_inspected]]
@@ -1502,13 +1535,10 @@ func draw_weak_point(p: Vector2) -> void:
  for dir in Model.DIRS:draw_line(at+Vector2(dir)*4,at+Vector2(dir)*10,GOLD,2)
  draw_arc(p,29,0,TAU,32,Color(GOLD,0.5+sin(t*2.0)*0.15),1)
 
-func phase_help() -> String:
- var threshold := int(floor(game.boss.max_hp*game.v("boss.phase.percent")/100.0))
- var width: int = game.v("boss.brand.radius")*2+1
- return ("[b]PHASE II ACTIVE[/b]" if game.phase_two else "[b]At %d/%d HP[/b]" % [threshold,game.boss.max_hp])+"\n\n[b]Cinder Brand[/b]\nCross → %d×%d square.\n\n[b]Ashen Chain[/b]\nAdds Rooted %d until the next boss turn.\n\n[b]Furnace Roar[/b]\nHit for %d within %d; push %d.\n\nRoar replaces the next unresolved die, then Brace on Die I in later rounds." % [width,width,game.v("boss.chain.root"),game.v("boss.Furnace Roar.damage"),game.v("boss.Furnace Roar.range"),game.v("boss.roar.push")]
-
+func phase_help() -> String:return game.phase_description()
 
 func short_boss_help(action: String) -> String:
+ if game.encounter_id == "nugh":return game.default_boss_help(action)
  match action:
   "Smoking Strike","Strike":return "Hit the closest hero within %d for %d.\n\nHP damage: ignite their cell. Existing fire instead detonates for %d extra normal damage." % [game.v("boss.Strike.range"),game.v("boss.Strike.damage"),game.v("boss.smoking.fire_damage")]
   "Cinder Brand":return "Mark a %s under a hero within %d.\n\nAt next boss turn start: %d damage to heroes still inside. Move away to evade." % ["%d×%d square" % [game.v("boss.brand.radius")*2+1,game.v("boss.brand.radius")*2+1] if game.phase_two else "cross",game.v("boss.brand.range"),game.v("boss.brand.damage")]
@@ -1517,7 +1547,7 @@ func short_boss_help(action: String) -> String:
   "Advance":return "Move %d toward the highest-HP standing hero. Ties are random.\n\nAlready adjacent to any tied highest-HP hero? Stay and gain %d Block." % [game.v("boss.advance.move"),game.v("boss.advance.block")]
   "Drive Back":return "Hit within %d for %d. Push %d spaces directly away.\n\nCollision: %d unavoidable damage + Stunned. Push direction is automatic." % [game.v("boss.Drive Back.range"),game.v("boss.Drive Back.damage"),game.v("boss.push.move"),game.v("boss.push.collision")]
   "Skirmish":return "Move %d toward the nearest hero, then hit an adjacent hero for %d." % [game.v("boss.skirmish.move"),game.v("boss.Skirmish.damage")]
-  "Sweep":return "Hit every adjacent hero for %d, including Downed heroes. Each hero is hit once." % game.v("boss.Sweep.damage")
+  "Sweep":return "Hit every hero within %d for %d, including Downed heroes. Each hero is hit once." % [game.boss_range("Sweep"),game.v("boss.Sweep.damage")]
   "Distort":return "Apply Weakness %d until next boss turn. Target: highest HP within %d; otherwise closest in reach." % [game.v("boss.distort.weakness"),game.v("boss.distort.range")]
   "Grave Tithe":return "Steal %d Block from each standing hero within %d. Gain the stolen Block, capped at %d. No HP damage." % [game.v("boss.tithe.strip"),game.v("boss.tithe.range"),game.v("boss.tithe.cap")]
   "Fracture":return "Closest hero within %d chooses %d installed face(s) to become Blank for this fight. Already recorded results stay." % [game.v("boss.fracture.range"),game.v("boss.fracture.count")]
@@ -1527,7 +1557,7 @@ func short_boss_help(action: String) -> String:
 
 func setup_combat_audio() -> void:
  combat_audio = AudioStreamPlayer.new();combat_audio.bus = &"SFX";combat_audio.volume_db = -16;add_child(combat_audio)
- impact_sound = make_impact_sound(false);shield_sound = make_impact_sound(true)
+ impact_sound = make_impact_sound(false);shield_sound = make_impact_sound(true);scream_sound = make_scream_sound()
 
 func make_impact_sound(shield: bool) -> AudioStreamWAV:
  var wave := AudioStreamWAV.new();wave.mix_rate = 22050;wave.format = AudioStreamWAV.FORMAT_16_BITS
@@ -1555,7 +1585,9 @@ func draw_boss_impact(fx: Dictionary) -> void:
  var at := origin_point.lerp(p,smoothstep(0.0,0.45,progress))
  draw_line(at-side*17,at+side*17,Color(1,0.8,0.52,alpha),7,true)
  draw_line(origin_point,at,Color(0.95,0.39,0.2,alpha*0.6),8,true)
- if fx.action in ["Sweep","Furnace Roar"]:
+ if fx.action == "Screaming Chorus":
+  for ring in range(3):draw_arc(origin_point,30+progress*145+ring*15,0,TAU,48,Color(0.8,0.6,1,alpha*(0.7-ring*0.15)),3)
+ elif fx.action in ["Sweep","Furnace Roar"]:
   draw_arc(origin_point,45+progress*125,0,TAU,48,Color(1,0.55,0.25,alpha*0.55),5)
  else:
   var reach := 25.0+progress*17.0
@@ -1569,3 +1601,93 @@ func choice_button(text: String, p: Vector2, size_px: Vector2, fn: Callable, acc
  var b := button(text,p,size_px,fn,accent,disabled)
  b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;b.add_theme_font_size_override("font_size",12);b.tooltip_text = text
  return b
+
+func draw_stunned(center: Vector2) -> void:
+ var crown := center+Vector2(0,-25)
+ draw_arc(crown,21,0,TAU,24,Color("927aab"),1)
+ for index in range(3):
+  var angle := t*2.2+index*TAU/3
+  var at := crown+Vector2(cos(angle)*22,sin(angle)*8)
+  var star := PackedVector2Array()
+  for point in range(8):star.append(at+Vector2.from_angle(point*PI/4)*(6.0 if point%2 == 0 else 2.0))
+  draw_colored_polygon(star,Color("f2d585"))
+
+func draw_worm(id: int) -> void:
+ var worm: Dictionary = game.unit_data(id)
+ var center := effect_center(id)
+ var frame := int(t*4+id)%2
+ draw_circle(center+Vector2(0,18),18,Color(0.02,0.02,0.04,0.5))
+ draw_texture_rect_region(WORM_SPRITE,Rect2(center-Vector2(24,24),Vector2(48,48)),Rect2(frame*16,0,16,16))
+ draw_hp_dots(center+Vector2(-8 if worm.block > 0 else 0,29),worm.hp,worm.max_hp,Color("bed4ab"))
+ if worm.block > 0:
+  draw_rect(Rect2(center+Vector2(4,20),Vector2(26,16)),Color("243e50"))
+  draw_string(BODY,center+Vector2(6,32),"B%d" % worm.block,HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("a7d1ee"))
+ var pulse := fmod(t*0.8+id*0.23,1.0)
+ draw_arc(center+Vector2(11,-12),8+pulse*12,-PI*.7,PI*.3,16,Color(0.78,0.75,0.92,(1-pulse)*0.55),1.5)
+
+func setup_panel(rect: Rect2, border: Color = Color("354653")) -> void:
+ var box := Panel.new();box.position = rect.position;box.size = rect.size;box.add_theme_stylebox_override("panel",style(Color("19232e"),border));ui.add_child(box)
+
+func setup_ui() -> void:
+ label_at("CHOOSE YOUR ENCOUNTER",Vector2(48,30),32,GOLD,1100,true)
+ label_at("1 · Faces chosen     →     2 · Boss & rules     →     3 · Fight",Vector2(50,87),18,Color("a6c6c4"),1250)
+ setup_panel(Rect2(48,145,410,625));setup_panel(Rect2(482,145,910,625))
+ label_at("BOSS",Vector2(70,162),16,GOLD,360)
+ for index in range(2):
+  var key := "hollow" if index == 0 else "nugh"
+  var title := "The Hollow" if index == 0 else "Nu’gh · Worm Summoner"
+  var top := 200+index*263
+  var card := button(("SELECTED · " if encounter == key else "CHOOSE · ")+title,Vector2(68,top),Vector2(370,45),func():encounter = key;rebuild(),GOLD if encounter == key else MUTED)
+  card.name = "EncounterHollow" if index == 0 else "EncounterNugh";card.add_theme_font_size_override("font_size",16)
+  var art := TextureRect.new();art.texture = SPRITES if index == 0 else NUGH_SPRITE;art.position = Vector2(75,top+58);art.size = Vector2(100,100);art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE;art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST;art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+  if index == 0:
+   var atlas := AtlasTexture.new();atlas.atlas = SPRITES;atlas.region = Rect2(32,32,32,32);art.texture = atlas
+  ui.add_child(art)
+  label_at("Learn positioning: read attacks, escape fire warnings and adapt at half HP." if index == 0 else "Learn target priority: kill worms to hurt Nu’gh, reduce his attacks and deny healing.",Vector2(190,top+63),17,Color("d6e0e6"),235,false,true)
+  label_at("Every ability changes at half HP.",Vector2(78,top+179),15,Color("c1a5d9"),350)
+ label_at("RULES FOR THIS FIGHT",Vector2(510,164),18,GOLD,830)
+ button("Tuned numbers"+(" ✓" if balanced else ""),Vector2(510,205),Vector2(400,43),func():balanced = true;rebuild(),GOLD if balanced else MUTED)
+ button("Original numbers"+(" ✓" if not balanced else ""),Vector2(930,205),Vector2(430,43),func():balanced = false;rebuild(),GOLD if not balanced else MUTED)
+ label_at("Original changes The Hollow’s baseline (including HP and Strike). Nu’gh uses his own new boss values.",Vector2(512,259),15,MUTED,838,false,true)
+ label_at("ROLLED BLANK MOVEMENT",Vector2(512,312),16,GOLD,840)
+ for index in range(3):
+  var chosen: bool = not reward_soul if index == 0 else reward_soul and balance_number("soul.move") == index
+  var option := button(["OFF · Blank has no movement","ON · Blank → Move 1","ON · Blank → Move 2"][index]+(" ✓" if chosen else ""),Vector2(510+index*286,348),Vector2(278,46),func():
+   reward_soul = index > 0
+   if index > 0:balance_values["soul.move"] = index
+   rebuild(),Color("83cec1") if chosen else MUTED)
+  option.name = "SetupSoul%d" % index;option.add_theme_font_size_override("font_size",14)
+ label_at("%d conversion(s) per hero’s own turn. Switching this setting never grants extra dice." % balance_number("soul.uses"),Vector2(512,407),15,MUTED,838)
+ var boss_hp: int = balance_number("nugh.hp") if encounter == "nugh" else balance_number("boss.hp")
+ label_at("Heroes: %d HP · %d starting reroll(s) (bank cap %d)\nBoss: %d HP · every ability upgrades at %d%% HP\nDice: minimum %d Blanks per die\nPer hero across all 3 dice: Movement %d · Defense %d · Skill %d" % [balance_number("hero.hp"),balance_number("hero.rerolls"),balance_number("hero.reroll_cap"),boss_hp,balance_number("boss.phase.percent"),balance_number("body.blanks"),balance_number("body.Movement"),balance_number("body.Defense"),balance_number("body.Skill")],Vector2(512,458),18,Color("e2e8ed"),838,false,true)
+ label_at("YOUR PARTY",Vector2(512,579),16,GOLD,600)
+ for hero in range(3):
+  var names: Array[String] = []
+  for f in gifts[hero]:names.append(Model.FACES[f]+("" if builds[hero].any(func(die):return f in die) else " (not equipped)"))
+  label_at(["Vesper","Rook","Wren"][hero]+" · "+" + ".join(names),Vector2(512,618+hero*33),16,COLORS[hero],830)
+ var error := ""
+ for hero in range(3):
+  var invalid: String = Model.validate(builds[hero],gifts[hero],balance_values)
+  if gifts[hero].size() != 2:error = "Choose two faces for each hero first."
+  elif invalid != "":error = invalid
+ label_at(error if error != "" else "Review the boss and rules, then enter. Your chosen faces and placements are preserved.",Vector2(50,782),15,Color("edac94") if error != "" else MUTED,1320)
+ button("← Change faces / dice",Vector2(48,826),Vector2(290,48),func():page = "forge";draft_modal = true;rebuild(),MUTED)
+ button("View chosen dice",Vector2(358,826),Vector2(245,48),func():show_dice = true;dice_hero = 0;rebuild(),Color("9fc7e6"))
+ button("Advanced numeric rules",Vector2(755,826),Vector2(317,48),open_balance_editor,Color("9fc7e6"))
+ var start := button("Enter fight →",Vector2(1092,826),Vector2(300,48),begin,GOLD,error != "");start.name = "StartEncounter"
+
+func boss_ability_summary(action: String) -> String:
+ var text := short_boss_help(action)
+ if not game.phase_two:
+  for upgrade in game.phase_upgrades():
+   if upgrade[0] == action:text += "\n\nAt half HP: "+upgrade[1];break
+ return text
+
+func make_scream_sound() -> AudioStreamWAV:
+ var wave := AudioStreamWAV.new();wave.mix_rate = 22050;wave.format = AudioStreamWAV.FORMAT_16_BITS
+ var frames := 6600;var bytes := PackedByteArray();bytes.resize(frames*2)
+ for i in range(frames):
+  var x: float = float(i)/22050.0;var envelope: float = sin(float(i)/frames*PI)*pow(1.0-float(i)/frames,2)
+  var pulse: float = sin(TAU*(720*x-480*x*x)+sin(x*TAU*37)*2.0)
+  bytes.encode_s16(i*2,int(pulse*envelope*10500))
+ wave.data = bytes;return wave

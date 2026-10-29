@@ -1,10 +1,12 @@
+> v0.18: choose boss and rules on the pre-fight review screen. Advanced numeric rules includes Nu’gh’s brood, Soul Link and every Hollow phase bonus. [Changes and reasons](Changes-v0.18.md).
+
 > v0.17: short combat descriptions use active custom values. Open More rules / custom values for the complete reference. Focus respects non-rerollable faces; reroll charges and the opening window are shown separately. [Combat clarity guide](Changes-v0.17.md).
 
 > v0.16: Fracture count 0 now removes no face. [Trial results and fixes](Changes-v0.16.md). Default numeric values are retained.
 
 > Updated for v0.15: invalid JSON is rejected without applying it. Higher-value Numeric sides are capped by the positive-side count; zero positive sides uses the Blank value on all six sides. [See the bug-fix notes](Changes-v0.15.md). Saved overrides remain in force.
 
-# Balance Workshop · v0.17
+# Balance Workshop · v0.18
 
 Open **Menu → Game options → Balance workshop**. From the opening screens, use **Game options / Options → Balance workshop**.
 

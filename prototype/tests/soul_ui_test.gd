@@ -12,12 +12,12 @@ func run():
  app.draft_modal = false;app.reward_soul = true;app.begin();app.rolling_time = 0
  var g = app.game;g.active = 0;g.cursor = g.order.find(0);g.pending = {}
  g.heroes[0].pos = Vector2i(0,7);g.heroes[0].results = [0,0,0];g.heroes[0].used = [false,false,false]
- app.selected = 0;app.rebuild()
+ app.rebuild();app.select_combat_die(0)
  var event := InputEventMouseButton.new();event.button_index = MOUSE_BUTTON_LEFT;event.pressed = true
  event.position = app.ORIGIN+Vector2(0,5)*app.CELL+Vector2.ONE*app.CELL/2
  app._gui_input(event)
  check(g.heroes[0].pos == Vector2i(0,5) and g.heroes[0].soul_move_used,"first Blank converts through board input")
- app.selected = 1;app.rebuild()
+ app.rebuild();app.select_combat_die(1)
  event.position = app.ORIGIN+Vector2(0,4)*app.CELL+Vector2.ONE*app.CELL/2
  app._gui_input(event)
  check(g.heroes[0].pos == Vector2i(0,5) and not g.heroes[0].used[1],"second board conversion blocked")

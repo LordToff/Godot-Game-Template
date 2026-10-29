@@ -32,7 +32,7 @@ const EXTRA = [
  ["Short Shot","Attack","Target a visible unit within 2. Damage capped at 2 per resolution, including Mark Prey; the mark is consumed on a damaging hit. Units block sight; no diagonal corner shooting."],
  ["Hooked Slash","Attack","Catalog variant: adjacent Numeric Attack. If at least 2 HP damage is dealt, gain that much Block."],
  ["Piercing Thrust","Attack","Adjacent Numeric Attack. Bypass 1 Block without destroying the bypassed portion."],
- ["Cleave","Attack","Adjacent Numeric Attack. A second enemy adjacent to that target takes 1. This encounter has only one enemy."],
+ ["Cleave","Attack","Adjacent Numeric Attack. A second enemy adjacent to that target takes 1. With no secondary enemy, there is no splash hit."],
  ["Flanking Blow","Attack","Prototype: adjacent Numeric Attack; add 1 when standing below the north-facing boss. Rear means its southern edge."],
  ["Break Rhythm","Attack","Adjacent Numeric Attack. If you break existing Block and deal HP damage, delay an upcoming boss activation one initiative slot when possible; normal initiative returns next round."],
  ["Engrave","Attack","Prototype adjacent Numeric Attack. After dealing HP damage, once per hero turn, fill one Blank on this die with Engrave, up to 3 copies. Never overwrites abilities. 3 copies: +1 damage; no further scaling."],
@@ -75,7 +75,7 @@ static func can_copy(id: int) -> bool:
  return id in [1,2,3,4,7,8,19,20,21,22,34,35,36,37,38,39,40,42,43,47,50,51,52,53,54,55,57,58]
 
 static func readiness(id: int) -> String:
- if id in [9,11,38]: return "LIMITED · see effect notes"
+ if id in [9,11]: return "LIMITED · see effect notes"
  if id < 9 or id in [42,43,44,47,54,55,56,57,58]: return "IMPLEMENTED"
  return "PLAYTEST VERSION"
 

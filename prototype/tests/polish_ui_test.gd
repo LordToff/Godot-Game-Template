@@ -44,7 +44,9 @@ func run():
    7:g.hero_action(0,-1,Vector2i(3,5))
   check(app.lesson_done(),"lesson completion %d" % lesson)
   app.next_lesson()
- check(not app.training and not app.lab and app.page == "battle","guided practice leads into a legal encounter")
+ check(not app.training and not app.lab and app.page == "setup","guided practice leads into encounter review")
+ app.ui.get_node("StartEncounter").pressed.emit()
+ check(app.page == "battle","review starts the legal encounter explicitly")
  app.dice_tray.finish()
  var old: String = FileAccess.get_file_as_string("user://ash_build_preset.json") if FileAccess.file_exists("user://ash_build_preset.json") else ""
  app.page = "forge";app.save_preset();var recorded: Array = app.builds.duplicate(true)

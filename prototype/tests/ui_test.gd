@@ -18,7 +18,8 @@ func run():
   app.build_hero = i;app.choose_gift(19);app.choose_gift(37);app.confirm_gifts()
  check(not app.draft_modal and app.gifts.all(func(ids):return ids.size() == 2),"each hero confirms two distinct extended faces")
  check(app.builds.all(func(build):return app.Model.validate(build,[19,37]) == ""),"two-face bonuses automatically produce legal loadouts")
- app.build_hero = 0;app.rebuild()
+ check(app.page == "setup","completed choices open pre-fight rule review")
+ app.page = "forge";app.build_hero = 0;app.rebuild()
  var options: Array = app.ui.get_children().filter(func(c):return c is OptionButton)
  check(options.size() == 18,"forge has all 18 editable sides")
  options[0].item_selected.emit(8)
@@ -29,7 +30,7 @@ func run():
  check(app.rolling_time == 0 and not app.dice_tray.busy,"shared roll resolves instantly")
  app.game.pending = {}; app.game.active = 0
  app.game.heroes[0].results = [2,4,1]; app.game.heroes[0].used = [false,false,false]
- app.rolling_time = 0; app.selected = 0; app.rebuild()
+ app.rolling_time = 0; app.rebuild(); app.select_combat_die(0)
  var target: Vector2i = app.game.heroes[0].pos + Vector2i.UP
  var event := InputEventMouseButton.new(); event.button_index = MOUSE_BUTTON_LEFT; event.pressed = true
  event.position = app.ORIGIN+Vector2(target)*app.CELL+Vector2.ONE*app.CELL/2
