@@ -1,340 +1,63 @@
-# v0.15 — bug scan and fixes
+# v0.16 — trial battles and fixes
 
-This update fixes reproduced problems. It does not change the default HP, damage, dice odds, Soul allowance or boss phase rules.
+## What changed
 
-## Combat fixes
-
-| Problem | Fix |
-| --- | --- |
-| A Drive Back collision skipped Stunned when the hero had no unused dice. | Stunned is always applied after a surviving collision. There is no impossible immediate die-choice prompt if all dice are spent; an active Stunned status is handled before the next shared roll. Channel-held dice are disabled in that choice window. |
-| A Broken hero killed during its turn could still resolve unused dice. | Killed heroes lose temporary effects and cannot act or reroll. Combat disables their dice and explains that the turn can be ended. |
-| Setting Blood Bargain to zero charges created a bonus that never ran out. | Zero charges arms no bonus or backlash. An exhausted bargain cannot empower an attack. |
-| Rear attacks incorrectly used Wither Ward’s range setting. | Weak Point / rear positioning now depend on the boss’s southern edge and adjacency, independently of Ward tuning. |
-| Wither Ward could trigger when Defy Death prevented all HP loss. | Ward checks actual HP loss after prevention. |
-| Some combat log descriptions always said Weakness 1, Reduction 1 or Debt 2 despite edited values. | Those entries now show the actual active values. |
-| A zero-positive-sides Numeric die could still roll its higher-value sides. | Higher-value side count is capped by the positive-side count. Setting positive sides to zero now produces the configured Blank value on all six ordinary sides. |
-
-## Controls and saved builds
-
-- Invalid die indices and obsolete choice callbacks no longer resolve another die or access a missing pending choice.
-- Reaction handling no longer unnecessarily indexes an empty held-reaction list when an explicit reaction die is available.
-- Loadouts are checked for exactly three six-sided dice, known face IDs and whole numbers. Invalid face values cannot become negative array indices or silently round down.
-- Preset loading validates the complete team and option types before applying anything. Invalid data gives an error and keeps the current team intact. Whole-number JSON values remain compatible with existing presets; optional owned bonus designs may still be left unequipped in a manual build.
-- Malformed JSON imports show a useful message without producing an engine error or applying the draft.
-- Restore balanced build preserves the selected bonus designs and equips them in a legal starter layout. If those designs cannot fit the current custom profile, the current build stays intact and the game explains why.
-- Initiative sorting now uses a strict comparison for equal entries.
-
-## Verification
-
-Focused regression tests reproduce the combat failures before the fixes and verify the corrected behavior afterward. Additional tests cover malformed / fractional preset data, successful JSON round-trips, preserving builds after a rejected load, disabled dead-hero controls, held-Channel Stunned choices and invalid profile import feedback. Existing rules, ability catalog, all 1,081 bonus pairs, normal-combat Blank refresh, drag placement and interface checks are retained.
-
-The 100-seed starter-only simulation finished **17 wins / 83 losses / no stalls**. Bonus-pair simulation finished **58 / 42 / no stalls**. The previous bonus result was 59 / 41; correcting missing effects can change outcomes even when base numbers stay the same. These fixed-strategy simulations are comparisons, not human win-rate predictions.
-
-
---- Earlier releases ---
-
-# v0.14 — Blank movement, quick face selection and debuff effects
-
-## Blank movement
-
-Blank movement now uses one numeric counter for its remaining allowance. A second legacy “spent” flag can no longer override a refreshed counter. Normal turns and full recovery turns share the same reset function, and the battle log explicitly records each refresh.
-
-The combat controls explain the difference between:
-
-- **This turn’s allowance used:** it refreshes at the next own turn.
-- **This particular die spent:** select another ready die; dice roll again next round.
-- **Rooted:** voluntary movement is blocked until the next boss turn; a failed attempt does not spend the Blank or its allowance.
-- **Soul OFF or movement set to zero:** enable or configure the Soul before using Blank movement.
-
-Trying to move with Soul OFF no longer silently spends a Blank without moving. You can still deliberately resolve or decline an inert Blank. The default remains one Blank → Move 2 per hero turn; balance settings still control movement distance and uses. Toggling Soul OFF/ON never restores spent uses.
-
-The reported once-per-combat lock did not reproduce in the basic unchanged v0.13 rules test. The updated normal-combat UI was then checked across four complete rounds: all three heroes successfully converted a Blank on every own turn, including a test with a stale legacy flag. No boss balance values were changed.
-
-## Pick and place your two faces
-
-The opening screen shows the full bonus pool on the left and all three live unfolded dice on the right.
-
-1. **Click a card once** to select it and equip it into a legal space automatically.
-2. **Drag a card onto a die** to auto-fit it on that die, or **onto a square** to choose its exact position.
-3. **Drag an installed square onto another square** to swap the two faces.
-4. Choose **Next hero** after two designs. When all three heroes are ready, choose **Start battle** directly.
-
-Your placements are preserved when switching heroes and starting combat. The game still enforces two distinct bonus designs, owned copies, body caps and minimum Blanks.
-
-If you drop a new design onto a required Blank, the game can clear one starter square on that same die to preserve the Blank minimum. It tells you which starter was removed. If the requested placement cannot fit the body caps, it is rejected without changing your choices. Dropping a third design onto one of your two selected bonus faces replaces that design when legal. The Remove button remains available, and search / category / timing filters remain.
-
-## Rooted and Weakness on the sprites
-
-- **Rooted:** pulsing roots wrap around the knight’s legs, with visible shackles and a root badge.
-- **Weakness:** purple motes drift around the knight, with a broken-sword badge.
-- Both effects remain visible on inactive heroes and can appear together. Each disappears when its actual status ends. Hover text and the active-turn Effects summary still explain the rules.
-
-These visuals use no gameplay random numbers and do not change damage, movement, or status durations.
-
-
---- Earlier releases ---
-
-# v0.13 — boss rules and phase upgrades
-
-## Phase one versus phase two
-
-The phase changes **once**, when the boss reaches **half its starting HP or lower**. With the default 12 HP boss, that is 6 HP. The Ability Lab uses 30 HP, so its threshold is 15 HP.
-
-| Ability | Before half HP | At half HP and below |
+| Ability / rule | Fix | Why |
 | --- | --- | --- |
-| Cinder Brand | Marks the original five-cell **cross**. | New casts mark a **3×3 square**, including corners. |
-| Ashen Chain | Pulls and strips Block. | Also applies **Rooted 1** until the boss’s next turn starts. |
-| Furnace Roar | Not on the boss die. | Replaces Brace on Die I. The first Roar replaces the next unresolved boss die. |
+| Black Oath | Its cost expires at the end of the casting turn, including when no Block remains. | Previously an unused cost could survive and charge HP after a later Guard. |
+| Wither Ward | Only HP damage from an adjacent boss Attack applies Weakness to the boss. | Self-costs, friendly fire and Cinder Brand hazards have no attacking unit. They previously weakened the boss anyway. Fully prevented damage still does not trigger Ward. |
+| Fracture in the workshop | A destruction count of 0 removes no faces and opens no destructive choice. | Zero previously still forced one face to be removed. Positive counts retain their existing behavior. |
+| Engrave / Hooked Slash | A qualifying killing hit still grants its die growth / Block. | Victory previously skipped these printed on-hit effects. No further attack damage resolves after victory. |
+| Combat log | Black Oath's HP cost names the correct hero and cause. | Its old label could come from a different previous action. |
 
-A Brand that was already armed keeps its original marked cells until it detonates. Crossing half HP does not silently enlarge an existing warning. Custom Brand radius affects the cross arms in phase one and the square radius in phase two.
+Default HP, damage, Numeric odds and Soul settings are retained. The normal fight still starts with Blank movement OFF. Move 1 / Move 2 remain workshop experiments; the Soul toggle controls whether conversion is enabled.
 
-**Rooted 1:** prevents voluntary walking, Stride, leaping, Ashstep, Blank movement, Exchange and reaction steps. Attacks and defense still work. Forced movement from pushes or pulls still works. Rooted ends at the next **boss** turn start, not at the hero’s turn. Its value and expiry appear in hero hover text and the active-turn status display. This expiry is the requested prototype rule; the source document’s provisional Rooted expiry was different.
+## Trial results
 
-## Targeting and attacks
+**7,200 completed fights:** 3,600 before and 3,600 after the fixes, using matched seeds. **Zero stalls or detected invalid HP / Block / dead states.** Every win/loss count below was unchanged after the fixes; the targeted regression tests reproduce the edge cases these encounters did not expose in their outcomes.
 
-| Ability | What it does now |
-| --- | --- |
-| Advance | Chooses a standing hero with the **highest current HP** and moves up to 2 toward that hero. Highest-HP ties are random. If already adjacent to **any** hero tied for highest HP, stays and gains **1 Block**. Arriving adjacent after moving does not also grant this Block. If its chosen hero has no legal route, it stays and gains fallback Block. |
-| Distort | Targets a highest-current-HP hero if one is within range. If none of the globally highest-HP heroes is reachable, targets the **closest hero within range**. Ties are random. With no hero in range, uses fallback. |
-| Drive Back | Pushes automatically along the direction from the boss to the struck hero. Heroes no longer choose a push direction. A collision still causes the existing unavoidable damage and Stunned. If the geometry gives two equally aligned directions, the game chooses randomly. Choosing a die for Stunned is still a player decision. |
-| Smoking Strike | Replaces the boss’s plain Strike name. Default attack damage stays **1**. If it causes actual HP loss, puts **one fire tile** beneath the struck hero. If a Smoking Strike fire tile is already there, consumes it and deals **1 extra normal damage** on that cell instead. A fully blocked or reduced hit neither places nor detonates fire. |
+Each cell is **player wins / boss wins out of 200** after the fixes. Every hero uses the standard starting body, plus two bonus designs unless the row says starting faces only. New boss attacks and the real half-HP phase are active.
 
-Fire stays on its original cell when the hero moves. Another hero can later occupy and trigger that cell. Stepping onto fire alone does not detonate it. These fire tiles are separate from Cinder Brand’s timed warning cells. The extra damage is normal damage, so Block and Damage Reduction apply; it is not unavoidable damage.
+| Team build | Blank: no movement | One Blank → Move 1 | One Blank → Move 2 |
+| --- | ---: | ---: | ---: |
+| Starting faces only | 67 / 133 | 141 / 59 | 170 / 30 |
+| Random bonus pairs | 99 / 101 | 166 / 34 | 178 / 22 |
+| Numeric attacks | 158 / 42 | 196 / 4 | 199 / 1 |
+| Support / defense | 80 / 120 | 134 / 66 | 167 / 33 |
+| Channels + attacks | 118 / 82 | 170 / 30 | 185 / 15 |
+| Growth / sustain | 149 / 51 | 185 / 15 | 195 / 5 |
 
-**These targeting rules and Smoking Strike apply in both phases.** Only Brand geometry, Chain’s Rooted effect and the availability of Furnace Roar change at half HP. No additional damage upgrades were added.
+The allowance is **once per hero's own turn**, including a full recovery turn. These tests do not change it to a shared party or per-combat cap.
 
-## What you can see and test
+### What the results suggest
 
-- The boss shows **current / maximum HP and Block beneath its sprite**, in addition to the existing top display.
-- At the phase transition, ember rings and sparks flare, a brief “The Hollow ignites” announcement appears, and the boss changes to a separate burning-crown pixel sprite. The header continues to say Phase II after the animation ends.
-- Upgraded Cinder Brand and Ashen Chain intents show a **+**. Their descriptions explain the current phase’s effect.
-- Smoking Strike fire stays visibly marked on the grid. Hover a burning cell for its detonation rule.
-- **Lab tools → Test boss phase II** reduces the Lab boss to its actual threshold and triggers the real transition. Reset test returns to phase one.
-- Balance workshop adds Advance’s adjacency Block, phase-II Rooted value and Smoking Strike fire damage. Existing saved Strike damage / range settings still control Smoking Strike. There are now **201** numeric settings. Saved custom profiles are preserved.
+- **The normal random-bonus encounter is close:** 99/200 wins (49.5%) with Soul OFF. This does not support a general boss HP reduction.
+- **Mobility is a large advantage:** random bonuses reach 83% with Move 1 and 89% with Move 2. Starting-only teams go from 33.5% to 85%. Treat the test Soul as a substantial difficulty change.
+- **Attack-heavy teams finish the boss sooner:** the Numeric team wins 79% without Soul and averages 10.49 rounds; random bonuses average 12.85. They spend fewer rounds exposed to boss attacks. With Move 2 they win 199/200, so that combination is especially forgiving.
+- **Support teams are slower:** 40% wins and 15.15 rounds without Soul. This bot does not optimize party rescue, deliberate tanking or long-term support combinations. A whole support kit versus a whole attack kit cannot identify which individual face needs a buff; changing every defense value from this sample would be premature.
+- **The boss still applies pressure:** Smoking Strike, Sweep and Skirmish were the largest aggregate HP-damage sources in the random-bonus / Soul-OFF trials. 191/200 reached phase II. Cinder Brand still dealt damage despite an explicit escape heuristic, because movement was not always available.
 
-## Checks and balance comparison
+These are fixed-strategy automated comparisons, **not predicted human win rates**. Different layouts, timing choices and human tactics can change the results. The previous simple starter bot still reports 17/100 wins; the new heuristic reaches 67/200 by prioritizing healing / revivals and moving out of delayed hazards. Those policies must not be compared as if they were the same experiment.
 
-Targeted rules checks cover phase-gated cross / square geometry, unchanged armed warnings, Rooted movement restrictions and expiry, forced movement, highest-HP pursuit, Distort’s fallback, automatic pushes in all four directions, collisions, and Smoking Strike placement / detonation / prevention. UI checks cover the real Lab phase transition, animation event, separate sprite, status text and disabled rooted reaction steps.
+## Exact teams and method
 
-With the existing simple automated strategy and unchanged 12 HP boss, 100 starter-only encounters produced **17 hero wins / 83 boss wins / no stalls**. The existing bonus-pair builds produced **59 / 41 / no stalls**. The new boss is stronger than v0.12, especially against starter-only builds. These scripts do not plan around persistent fire and are a comparison, not a forecast of human results. No compensating HP or damage changes were made in this update; the workshop remains available for experiments.
+Bonus pairs in Vesper / Rook / Wren order:
 
+- **Numeric:** Strike Numeric + Piercing Thrust; Short Shot + Flanking Blow; Hooked Slash + Break Rhythm.
+- **Support:** Restore + Brace Hero; Guard Numeric + Shield Wall; Bulwark + Oathbound Exchange.
+- **Channel:** Contained Power + Piercing Thrust; Stonewake + Flanking Blow; Last Pulse + Short Shot.
+- **Growth:** Engrave + Bone Mutation; Blessing of Recovery + Restore; Engrave + Brace Hero.
+- **Random pairs:** two distinct designs per hero, uniformly drawn from all 47 extended designs using a separate deterministic generator seeded with encounter seed × 173. The model's normal `bonus_build` places them legally.
 
---- Earlier releases ---
+The bot reads visible rolls and board state. It prioritizes injured allies, setup effects and legal attacks; moves toward the boss while penalizing marked Brand cells, existing fire and board edges; spends opening rerolls on unusable Blanks; and resolves all supported choice / reaction windows. It keeps Channels. It uses the same explicit “spend with no effect” option as the UI when a copy effect has no legal source. It does not inspect future RNG outcomes, alter combat state to guarantee abilities or optimize all possible moves. Stalls are capped at 1,600 decision steps or 50 rounds and fail the run; none occurred.
 
-# v0.12 — changes from the previous browser build
+Raw before/after outcomes, per-ability usage, damage totals, phase rates and mean rounds: [Trial-results-v0.16.json](Trial-results-v0.16.json).
 
-These are the new **Tuned** defaults. Your deliberately saved custom values still override defaults. To try this balance, open **Menu → Game options → Balance workshop → Reset all → Apply**. This restarts the fight. The Soul ON/OFF switch is separate; Blank movement remains Move 2, once per hero turn unless you edit it.
+## Reproduce
 
-| Change | New behavior | Why |
-| --- | --- | --- |
-| Basic Strike | 1 damage, previously 2. | Requested reduction in reliable flat damage. |
-| Numeric die | The six ordinary sides are **2, 2, 1, 1, 1, 0**. Applies to attacks, healing and defense. The old Tuned +1 attack bonus is now 0. | Let the printed roll provide the strength, without an additional hidden flat bonus. |
-| Short Shot | Final damage cap 2, including Mark Prey; previously 1. | Let the new Numeric 2 matter for the ranged attack. |
-| Stonewake | Any actual HP loss, or **2 cumulative Block lost before your next own turn**, immediately ends its Channel. Damage, theft and voluntarily burned Block count. Fully prevented damage does not. The counter resets on your next own turn if the Channel survives. | Stop indefinite maintenance behind a shield. Separate one-Block losses add up. |
-| Engrave | Only grows after dealing HP damage, at most once per hero turn. Adds a copy only to a Blank on its own die; maximum 3 copies. At 3 copies, +1 damage. Never overwrites another ability. | Stop rapid multiplication, growth from fully blocked hits and replacement of the whole die. |
-| Boss durability and Strike | Tuned boss HP **16 → 12**; boss Strike damage **2 → 1**. Original base keeps its 18 HP / 2-damage boss Strike. | Compensate for halving starter Strike damage and adding a boss phase. |
-| Cinder Brand | Marks a **3×3 square**, including corners, instead of a five-cell cross. Detonates at next boss turn start for 1 normal damage. Clipped at arena edges; no stacking. | A clearer and more useful area threat, with time to escape. |
-| Half-health boss phase | At **50% HP or lower**, once per encounter, unlock **Furnace Roar**. The next unresolved boss die becomes Roar. It also replaces Brace on Die I for future rolls. | A visible change in boss behavior midway through the fight. |
-| Furnace Roar | Attack every standing hero within 2 of the boss footprint for 1, then push survivors up to 1 legal cell away. Normal defensive reactions apply. Blocked pushes stop; no collision damage or Stun. | Pressure close formations without adding a large unavoidable damage spike. |
+```bash
+ASH_TRIAL_COUNT=200 ASH_TRIAL_REPORT=/tmp/ash-trial-report.json   godot --headless --path . --script prototype/tests/trial_battles.gd
+godot --headless --path . --script prototype/tests/trial_regression_test.gd
+```
 
-A broken Stonewake die stays spent until the next shared roll; its installed face is preserved. Voluntarily releasing it still rolls the released die immediately. New numeric parameters are available in the balance workshop.
-
-## Reading and editing the dice
-
-- Clicking a combat ability opens a **scrollable description on the far right**, temporarily replacing the log. It never covers the battlefield. Held reactions and Channels can also be inspected. Close it to restore the log. Boss intent buttons use the same panel.
-- Hover a hero for their full status list, including values. The active hero also has an Effects summary; full explanations appear in the ability panel and hover text.
-- Player HP uses dots again. With a custom maximum above 12, the display adds the exact number beneath the dots.
-- Both the forge and View dice use your reference's unfolded net: four squares down the middle, with one square to either side of the second square. All 18 side assignments stay on their original dice. The net is a layout, not a change in roll odds.
-- View dice retains rolled-side highlights, changed-face highlights and original-face history.
-- Lab tools can force the next Numeric result to 0, 1 **or 2**.
-
-## Rerolls
-
-Blank rerolls are legal during the opening window. A reroll can land on Blank again, including the same side. It still spends the charge and keeps the new result. The log now prints old and new side numbers and face names, and explicitly explains repeated results.
-
-The reroll button now uses the same eligibility check as the rules and explains why it is disabled. It cannot silently offer a spent die or bypass a result that Focus or another ability requires you to resolve next. The opening-window rule remains: spend ordinary Action Rerolls before your first normal action. Focus can still reroll another unresolved die later.
-
-## Verification
-
-100 seeded automated encounters with starter faces only: **47 hero wins / 53 boss wins / 0 stalls**. With the existing bonus-pair automated builds: **72 / 28 / 0 stalls**. Before reducing boss HP and Strike, the same new hero rules gave only 1 starter-build win in 100 against the old boss stats. These scripts use simple fixed strategies; the results are a comparison, not predicted human win rates.
-
-Targeted checks cover cumulative Stonewake interruption, prevented/HP/stripped damage, own-turn resets, actual Numeric rolls and all six values, Engrave limits, square fire corners, the once-only half-HP transition, Roar reactions and pushing, and repeated-Blank rerolls. UI checks verify the nets, full status descriptions and a side panel that leaves the board unobstructed.
-
-
---- Earlier releases ---
-
-# v0.11 — Balance Workshop, knights and fire
-
-- Menu → Game options → Balance workshop: edit implemented ability / passive numbers, including Blank movement and uses per turn.
-- Searchable sections, local saving, Tuned / Original bases, section / all resets and JSON import / export. Apply restarts the fight or Lab test.
-- Lab fixtures have separate starting HP / Block values. Structural rules stay fixed; unsupported secondary-enemy damage is marked inactive.
-- All three heroes now use knight sprites and helmet icons.
-- Cinder Brand has arming flames and a detonation flare; Ember Burst has pixel fire too.
-- Default balance preserved. Custom-profile tests and browser persistence / reset / play checks pass.
-
-# v0.10 — pixel art and a larger battlefield
-
-- **Replaced the painted art.** New pixel sprites, small head icons and simple stone tiles use a limited palette and sharp scaling. The previous painted assets have been removed from the game. The pixel maps and generator are included in the source.
-- **Enlarged the arena.** It is now 684×684 screen pixels, up from 495×495 — about 91% more screen area. It still has nine rows and nine columns, so movement and balance rules have not changed.
-- **Simplified the battle UI.** A compact toolbar, one turn banner, three boss-intent buttons, grouped dice and turn controls, and small party cards below the arena. Removed repeated instructions and abbreviated party dice lists.
-- **Kept the log on the side.** It remains tall and scrollable, with full history and filters available.
-- **Moved secondary tools.** Open Menu for practice, rules, changes, options or rebuilding. Open Lab tools for ability selection, forced Numeric values, test attacks, combinations and resets. Boss-intent buttons still explain every action.
-
-The Soul ON/OFF switch, once-per-turn limit, timing labels, instant rolls, attack / Block / buff / debuff effects and Channel indicator remain. No ability effects, dice probabilities or combat balance changed.
-
-Why: make the board the focus, reduce clutter, and give the prototype a consistent pixel-art style.
-
-
-# v0.9 — instant rolls, clearer abilities and painted art
-
-- **No rolling animations.** Dice results appear immediately. Rolls remain random; the combat log records them. Attack, Block, buff, debuff and Channel effects remain.
-- **Clear ability labels.** Names show category plus special timing: `Contained Power (Skill - Channel)`, `Shield Wall (Defense - Reaction)`, `Strike (Attack)` and `Ashstep (Movement)`. Used in face selection, forge dropdowns, battle dice, Lab and dice details. A face that creates a later reaction is labelled by its own timing.
-- **Simpler skill selection.** Larger cards, hero tabs with selection counts, search, category and timing filters. Click a card to inspect its rules in a fixed panel, then Add / Remove. Confirm two faces for each hero. No changes to the 47-face pool or legal builds.
-- **More art.** A painted candlelit crypt, three hero portraits and a boss portrait. The board uses thin grid lines instead of heavy boxed tiles. Colored frames identify heroes; legal targets and Channel effects remain visible. The scenery does not change movement rules.
-- **Visible Soul option.** Blank → Move 2 ON/OFF above battle dice and in Options. One Blank per hero turn when ON. Toggling does not refill the allowance.
-
-Why: speed up play, make ability timing easier to recognize, reduce selection friction and give the battlefield a cohesive visual style.
-
-No combat balance, ability effects or dice probabilities changed. The old v0.8 guide describes historical roll animations; this note supersedes those instructions.
-
-
-# v0.8.2 — clearer controls and Blank movement
-
-- **Soul switch during combat:** above the hero dice, with a clear ON/OFF label. Previously it was only in the forge and Lab.
-- **Game Options:** top right, during face selection, and below battle controls. Explains exactly what the switch does and includes sound and display settings.
-- **ON:** each hero may spend one rolled Blank as Move 2 per own turn. **OFF:** this movement is disabled. Applies immediately and carries into the next encounter. Toggling never refreshes a spent allowance. Build presets still save the choice.
-- **Dice cards:** ability names have a separate line; selected dice have a stronger outline. An available Soul conversion is named on the Blank die itself.
-- **Battle layout:** separate panels for next-step guidance, boss intent, dice and log. Turn help no longer overlaps instructions. Longer instructions have a hover tooltip.
-- **Log:** larger text in the side panel, with full history and filters retained.
-
-Why: the Soul option was hard to find and battle controls competed for attention. No combat balance or roll probabilities changed.
-
-
-Previous releases
-=================
-
-Ash & Oath v0.8.1 · changes and reasons
-
-Test Soul · v0.8.1
-Enable the reward Soul before fighting
-The forge now has a Test Soul checkbox beside Restore balanced build. ON lets each hero spend one rolled Blank as Move 2 per own turn, without first beating the boss. OFF uses the normal starting Soul.
-
-The Lab has the same toggle, and the board shows the active hero’s remaining allowance. Switching it off and on does not refill a spent conversion. Normal and recovery turns refresh it.
-
-Build presets save this choice. Why: make the reward Soul easy to test without a full victory first.
-
-Dice & clarity · v0.8
-Real 3D dice, readable results
-Hero and boss dice settle on their recorded ability faces. Numeric rolls and individual rerolls show only the affected dice. Fast rolls and Skip keep results unchanged.
-
-Channel visibility
-Persistent rune rings identify Stonewake (blue), Contained Power (purple) and Last Pulse (green). Hover for its effect. Rings fade and pulse when the Channel ends.
-
-More helpful controls
-Ready / Spent / Reaction held / Channel held / Resolve next labels, legal-target highlights, specific error messages, friendly-fire confirmation, and a Summary / All-events log toggle.
-
-Practice and presets
-Eight guided lessons, a two-face Lab combination setup, ability readiness labels and Save / Load build presets. Why: make each decision visible instead of relying on the full history.
-
-Rule fixes · v0.8
-Pierce and Downed
-Bypassed Block is no longer restored to a hero who was Downed or killed by the hit.
-
-Break Rhythm
-Delays the upcoming boss activation by one slot. The original initiative order returns at the next round.
-
-Short Shot cap ruling
-The cap of 1 includes Mark Prey. A damaging hit consumes the mark, but the extra damage cannot take Short Shot above 1.
-
-Channel timing ruling
-Contained Power benefits from the shared roll wait for Maintain at the hero’s next turn. Releasing the Channel forfeits them.
-
-Repeated Attacks
-Each repetition rechecks its target and rolls fresh Numeric damage. Hooked Slash and Engrave apply their riders to each hit.
-
-Balance constants remain unchanged; these interaction rules can still affect outcomes.
-
-Reliability · v0.7
-Downed heroes lose temporary effects
-Reviving no longer keeps stale Numeric buffs, marks, wards, Debt or stored reaction modifiers. Physical die mutations remain.
-
-Channels break on a lethal hit too
-Contained Power now leaves its Red Tile and Last Pulse becomes Blank even when the triggering hit Downs or kills its hero. Damage prevention does not falsely break a Channel.
-
-No silent Channel replacement
-A second Channel cannot overwrite an existing one. The game explains the current one-Channel limit; the new die can be declined.
-
-Clearer documentation
-The new short playtest guide separates current rules, ability interpretations and unfinished features. Balance values are unchanged. Why: prevent hidden state changes during ordinary play.
-
-Reward Soul · v0.6
-One Blank conversion per hero turn
-
-The first boss reward Soul lets each hero spend at most ONE rolled Action Die Blank as Move 2 during their turn. The installed face stays Blank. Other Blanks may be spent without an effect.
-
-The allowance resets at that hero’s next normal turn or full recovery turn. It is independent for each hero. Failed moves do not spend it. Rerolls and shared rolls do not refill it during the same turn.
-
-Why
-Keeps the reward useful without letting multiple Blank rolls replace dedicated movement faces. The starting Soul still gives no Blank movement.
-
-A separate Word comparison documents changes from Master Rules v10 and Action Faces, including unresolved-design interpretations and omitted systems.
-
-Overview
-v0.5 · More choices, clearer turns
-
-• Two Blanks minimum per die, with fuller default builds.
-• Ashstep and Oathbound Exchange join the full starter-choice pool.
-• View dice shows every installed side, its die, current result and encounter changes.
-• Explain this turn gives steps, timing and the next action.
-• The boss pulls, steals Block and marks delayed explosions.
-
-Why
-Fewer dead rolls, more useful movement and fewer hidden rules. Use the topic buttons to jump directly to details.
-
-Dice & turn flow
-Two Blanks instead of three.
-Each die may now hold four abilities: up to 12 total. Default builds add a fourth Strike, a second Step and a second Guard. Ownership and the three-per-category caps still apply.
-
-Why
-Empty rolls dominated play. Extra useful faces create more decisions; one saved starting reroll remains. This construction change applies in both encounter modes.
-
-Turn explanations
-The chronicle explains turn starts; Explain this turn covers rerolls, available dice, targets, reactions, Block expiry and shared round rolls. View dice distinguishes installed faces from already-recorded results.
-
-New movement
-Ashstep
-Move up to 2 orthogonal spaces, turning allowed, then gain 1 Block. Occupied cells block the path.
-
-Oathbound Exchange
-Swap with a standing ally within 3 and clear sight. Both heroes gain 1 Block. Cannot target the boss, a dead ally or a Downed ally.
-
-Why
-Ashstep supports safe repositioning. Exchange rescues an ally or changes the front line. Both help escape Cinder Brand. Choose them from the 47-face extended pool or try them in the Lab.
-
-Boss changes
-Ashen Chain
-Pull the nearest hero within 3 one legal cell closer and strip 1 Block. No HP damage.
-
-Cinder Brand
-Mark a red cross under a hero within 3. At the next boss turn start, heroes still on it take 1 normal damage. Move away to evade. Brands cannot stack.
-
-Grave Tithe
-Steal 1 Block from each standing hero within 2, gaining at most 2 Block.
-
-Why
-The boss now pressures positioning and defense instead of repeating attacks. Tuned HP is 16 to account for fuller hero dice. Original encounter mode retains the previous boss dice and 18 HP.
-
-Fixes & previous
-Navigation
-Patch notes have topic buttons, Previous / Next and a page counter. Short pages replace one long scroll. Escape closes reference windows.
-
-Live dice inspection
-Gold marks mutations and displays the original face. Blue marks rolled sides. Details explain generated Bone / Recovery, locked Red Tiles, reaction / Channel holds and results recorded before a mutation.
-
-Earlier updates
-v0.4: Ability Lab, side chronicle, turn banner, eased animations, explicit mutation / conversion choices and Numeric attack tuning.
-v0.3: two-face gifts, causal combat logs and battlefield art.
-v0.2: boss explanations and starting rerolls.
-
-Scope
-A local single-boss prototype. Gold has no shop; Cleave has no secondary enemy. All extended effects print their playable interpretations.
+The dedicated regressions cover cost expiry, a later Guard, the legitimate cost, Ward from a real hit versus self-cost / friendly fire / hazards / prevention, zero-count Fracture and killing-hit rewards. The existing rules, catalog, all 1,081 bonus pairs, loadouts, presets, Soul refresh, boss phases and UI tests are retained.
