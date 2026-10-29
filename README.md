@@ -1,14 +1,12 @@
 # Play Ash & Oath in a browser
 
-**Live game:** https://lordtoff.github.io/Godot-Game-Template/?v=0.14
+**Live game:** https://lordtoff.github.io/Godot-Game-Template/?v=0.15
 
-This branch contains the browser-tested Godot Web export of Ash & Oath 0.14. GitHub Pages publishes `gh-pages` / root.
+This branch contains the browser-tested Godot Web export of Ash & Oath 0.15. GitHub Pages publishes `gh-pages` / root.
 
-v0.14 adds one-click quick equip and drag-and-drop placement on live unfolded dice. Drop cards onto a die or exact square, swap installed faces, and start combat directly after choosing all heroes. Hero switching and starting combat preserve placements.
+v0.15 fixes reproduced bugs in Stunned collisions, dead-hero actions, zero-charge Blood Bargain, rear-position checks, Ward / prevention interactions, custom-value logs, Numeric side counts, stale choices and preset validation. Restore keeps the selected bonus designs. Read [what changed and why](CHANGES_v0.15.md). Default balance numbers are unchanged.
 
-Blank movement uses one numeric counter and refreshes on each normal / recovery own turn. The UI distinguishes spent dice, exhausted allowance, Soul OFF and Rooted. Rooted and Weakness now have persistent effects on knight sprites, including inactive heroes.
-
-Read [what changed and why](CHANGES_v0.14.md). Boss rules and balance numbers are unchanged.
+The drag-and-drop face picker, per-own-turn Blank movement and Rooted / Weakness sprite effects remain. Browser checks cover actual mouse drags, preserved placements, repeated Blank movement in normal combat, preset save / restore / load, and rejected invalid JSON without console errors.
 
 **Menu → Game options → Balance workshop** edits 201 numeric parameters. Saved overrides remain in force. The Soul ON/OFF switch stays separate. See the [workshop guide](BALANCE_WORKSHOP.md).
 
