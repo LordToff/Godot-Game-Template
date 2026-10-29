@@ -14,6 +14,10 @@ Default HP, damage, Numeric odds and Soul settings are retained. The normal figh
 
 ## Trial results
 
+[Read the explained browser report](https://lordtoff.github.io/Godot-Game-Template/playtest-report.html) · [Download the formatted Excel workbook](../downloads/Ash-and-Oath-Playtest-v0.16.xlsx).
+
+**What the team names mean:** these are chosen bonus loadouts, not character classes. “Numeric attacks” means attacks that roll a separate value die for damage: **2, 2, 1, 1, 1, 0**. The attack-heavy team keeps four ordinary Strike faces per hero and replaces one Step and one Focus with two attacks that roll for damage. Other fixed teams replace different starter faces to fit their chosen bonuses; the report lists the exact replacements and all six sides of every die.
+
 **7,200 completed fights:** 3,600 before and 3,600 after the fixes, using matched seeds. **Zero stalls or detected invalid HP / Block / dead states.** Every win/loss count below was unchanged after the fixes; the targeted regression tests reproduce the edge cases these encounters did not expose in their outcomes.
 
 Each cell is **player wins / boss wins out of 200** after the fixes. Every hero uses the standard starting body, plus two bonus designs unless the row says starting faces only. New boss attacks and the real half-HP phase are active.
@@ -22,10 +26,10 @@ Each cell is **player wins / boss wins out of 200** after the fixes. Every hero 
 | --- | ---: | ---: | ---: |
 | Starting faces only | 67 / 133 | 141 / 59 | 170 / 30 |
 | Random bonus pairs | 99 / 101 | 166 / 34 | 178 / 22 |
-| Numeric attacks | 158 / 42 | 196 / 4 | 199 / 1 |
-| Support / defense | 80 / 120 | 134 / 66 | 167 / 33 |
-| Channels + attacks | 118 / 82 | 170 / 30 | 185 / 15 |
-| Growth / sustain | 149 / 51 | 185 / 15 | 195 / 5 |
+| More attacks with rolled damage | 158 / 42 | 196 / 4 | 199 / 1 |
+| Healing and protection | 80 / 120 | 134 / 66 | 167 / 33 |
+| Maintained effects (Channels) | 118 / 82 | 170 / 30 | 185 / 15 |
+| Abilities that improve dice | 149 / 51 | 185 / 15 | 195 / 5 |
 
 The allowance is **once per hero's own turn**, including a full recovery turn. These tests do not change it to a shared party or per-combat cap.
 

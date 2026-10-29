@@ -2,6 +2,8 @@
 
 [**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/) — no installation required.
 
+[**Read the explained playtest report**](https://lordtoff.github.io/Godot-Game-Template/playtest-report.html) · [Download the polished Excel workbook](downloads/Ash-and-Oath-Playtest-v0.16.xlsx). Includes plain-language team descriptions, each hero’s abilities, dice layouts, win rates and the test method.
+
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
 
 v0.16 adds 7,200 matched trial battles and fixes Black Oath expiry, Wither Ward triggering from non-attacks, zero-count Fracture and missing killing-hit rewards. Default balance values are retained based on the trials. [Results, changes and why](docs/Changes-v0.16.md).

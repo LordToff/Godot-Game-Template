@@ -1,3 +1,7 @@
+## Explained playtest results
+
+[View in your browser](https://lordtoff.github.io/Godot-Game-Template/playtest-report.html) or [download the Excel workbook](Ash-and-Oath-Playtest-v0.16.xlsx). The eight tabs explain team names, exact abilities, die faces, results and testing limits. This presentation update uses the recorded v0.16 trials.
+
 # Download Ash & Oath v0.8.1 for Windows
 
 [**Play the hosted browser version**](https://lordtoff.github.io/Godot-Game-Template/) — no download or Godot installation required.
