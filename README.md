@@ -2,6 +2,8 @@
 
 **Live game:** https://lordtoff.github.io/Godot-Game-Template/?v=0.16
 
+**Explained trial report:** [View in your browser](playtest-report.html) · [Download the formatted Excel workbook](Ash-and-Oath-Playtest-v0.16.xlsx). Includes exact hero abilities, all dice sides, charts, percentages and the trial method.
+
 This branch contains the browser-tested Godot Web export of Ash & Oath 0.16. GitHub Pages publishes `gh-pages` / root.
 
 v0.16 fixes Black Oath cost expiry, Wither Ward triggering from non-attacks, zero-count Fracture and missing killing-hit rewards. It adds a new readable trial-results page to What changed. [Results, exact teams and fixes](CHANGES_v0.16.md).
