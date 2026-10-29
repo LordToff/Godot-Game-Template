@@ -1,17 +1,17 @@
 # Play Ash & Oath in a browser
 
-**Live game:** https://lordtoff.github.io/Godot-Game-Template/?v=0.16
+**Live game:** https://lordtoff.github.io/Godot-Game-Template/?v=0.17
 
-**Explained trial report:** [View in your browser](playtest-report.html) · [Download the formatted Excel workbook](Ash-and-Oath-Playtest-v0.16.xlsx). Includes exact hero abilities, all dice sides, charts, percentages and the trial method.
+This branch contains the browser-tested Godot Web export of Ash & Oath 0.17. GitHub Pages publishes `gh-pages` / root.
 
-This branch contains the browser-tested Godot Web export of Ash & Oath 0.16. GitHub Pages publishes `gh-pages` / root.
+v0.17 makes Focus targets and new results explicit, greys spent / held dice, separates usable rerolls from saved charges, and explains non-rerollable faces. Short descriptions show active values; full rules are optional. Weak Point has a persistent marker and rear highlights. Boss hits have heavier effects / sound, and half-HP upgrades have a permanent guide. [What changed and why](CHANGES_v0.17.md).
 
-v0.16 fixes Black Oath cost expiry, Wither Ward triggering from non-attacks, zero-count Fracture and missing killing-hit rewards. It adds a new readable trial-results page to What changed. [Results, exact teams and fixes](CHANGES_v0.16.md).
+Focus now respects the existing non-rerollable restriction. No default HP, damage, dice odds, caps or Soul settings changed. Heavy impact effects can be disabled in Game options; Sound controls audio separately. Rolls remain instant.
 
-7,200 matched trial battles (3,600 before / 3,600 after), no stalls. Per setting, 200 trials: random-bonus team wins 99 with Soul OFF, 166 with Blank Move 1, 178 with Move 2. These are fixed-strategy bot comparisons, not human win predictions. Base numbers are unchanged. [Raw outcomes and metrics](Trial-results-v0.16.json).
+The 30-suite regression run, 157 combat-clarity checks, 1,508 choice-layout checks and 180 encounter smoke trials passed. Browser checks cover Focus / restrictions, Weak Point, half-HP upgrades, actual drags, saved builds and the current patch notes, without console errors.
 
-The drag-and-drop face picker, per-own-turn Blank movement and Rooted / Weakness sprite effects remain. Browser checks cover the new results page, real mouse drags, saved placements, repeated Blank movement, preset save / restore / load and invalid JSON feedback.
+**Recorded v0.16 playtest report:** [View in browser](playtest-report.html) · [Download Excel](Ash-and-Oath-Playtest-v0.16.xlsx). The report explains team builds and preserves the recorded results; it is not labelled as a new v0.17 trial set.
 
-**Menu → Game options → Balance workshop** edits 201 numeric parameters. Saved overrides remain in force. The Soul ON/OFF switch stays separate. See the [workshop guide](BALANCE_WORKSHOP.md).
+**Menu → Game options → Balance workshop** edits 201 numeric parameters. Saved overrides stay active. The Soul ON/OFF switch stays separate. [Workshop guide](BALANCE_WORKSHOP.md).
 
-The non-threaded export needs no special cross-origin isolation headers. Profiles and presets use browser-local storage. Source and older Windows builds are on the `ash-and-oath-prototype` branch. Retain `.nojekyll` when replacing export files.
+The non-threaded export needs no special cross-origin isolation headers. Profiles / presets use browser-local storage. Source and older Windows builds remain on `ash-and-oath-prototype`. Retain `.nojekyll` when replacing export files.

@@ -1,63 +1,41 @@
-# v0.16 — trial battles and fixes
+# v0.17 — read the fight
 
-## What changed
+## Focus and rerolls
 
-| Ability / rule | Fix | Why |
-| --- | --- | --- |
-| Black Oath | Its cost expires at the end of the casting turn, including when no Block remains. | Previously an unused cost could survive and charge HP after a later Guard. |
-| Wither Ward | Only HP damage from an adjacent boss Attack applies Weakness to the boss. | Self-costs, friendly fire and Cinder Brand hazards have no attacking unit. They previously weakened the boss anyway. Fully prevented damage still does not trigger Ward. |
-| Fracture in the workshop | A destruction count of 0 removes no faces and opens no destructive choice. | Zero previously still forced one face to be removed. Positive counts retain their existing behavior. |
-| Engrave / Hooked Slash | A qualifying killing hit still grants its die growth / Block. | Victory previously skipped these printed on-hit effects. No further attack damage resolves after victory. |
-| Combat log | Black Oath's HP cost names the correct hero and cause. | Its old label could come from a different previous action. |
+- Selecting **Focus** marks legal dice **FOCUS TARGET**. Click one: Focus turns grey / SPENT, the new result is selected and shown in the ability panel, and that die is marked **RESOLVE NEXT**. The instruction and battle log show the old result → new result. Results appear instantly; rolling animations stay removed.
+- Focus is a separate ability: it still works after an ordinary action closes the banked-reroll window and does not spend a banked charge. Its new result must be resolved or declined before another ordinary die.
+- A new Reaction result is stored and labelled **REACTION HELD** instead of leaving a nonexistent forced action.
+- Banked rerolls explicitly show **OPEN**, **CLOSED**, **PAUSED**, **NO CHARGES** or **CANNOT REROLL THIS DIE**. A closed window labels remaining charges **saved**, with their next usable timing.
+- Gambler’s Coin, Conjure and Passing Grace are non-rerollable under the supplied face rules; Red Tiles are locked. Cards show **NO REROLL** and the disabled reroll control explains the restriction. Focus now respects the same restriction; it previously bypassed it. A rejected Focus attempt spends nothing and writes no false action declaration.
 
-Default HP, damage, Numeric odds and Soul settings are retained. The normal fight still starts with Blank movement OFF. Move 1 / Move 2 remain workshop experiments; the Soul toggle controls whether conversion is enabled.
+## Less text, more room
 
-## Trial results
+- Spent dice and held reactions / Channels are grey. They remain clickable for inspection; clicking one cannot select it for an action or interrupt a forced result.
+- All 59 faces have short effect descriptions. The normal inspector shows the name, type / timing and effect, with active custom values. **More rules / custom values** opens the long reference when needed. The unrelated full hero-status dump no longer gets appended to every ability.
+- Boss actions also have short summaries using the encounter’s active settings.
+- Fixed-width buttons clip / wrap instead of growing through neighbouring controls. Choice grids use wrapped 12 px text rather than shrinking names to 10 px. Small forge / draft faces use larger names; side numbers remain available in tooltips / View dice. View dice puts type information in its details area rather than repeating it on every square.
+- UI text uses smooth sampling. Pixel sprites and portraits retain nearest-neighbour sampling. Disabled controls are grey but have higher text contrast.
+- The battlefield remains 684 × 684, HP dots stay, and ability / effect panels remain beside the battlefield.
 
-**7,200 completed fights:** 3,600 before and 3,600 after the fixes, using matched seeds. **Zero stalls or detected invalid HP / Block / dead states.** Every win/loss count below was unchanged after the fixes; the targeted regression tests reproduce the edge cases these encounters did not expose in their outcomes.
+## Active effects
 
-Each cell is **player wins / boss wins out of 200** after the fixes. Every hero uses the standard starting body, plus two bonus designs unless the row says starting faces only. New boss attacks and the real half-HP phase are active.
+- **Weak Point READY** has a persistent gold marker on its hero, an activation label and a prominent Effects button. The active hero’s valid rear squares are outlined and labelled **REAR**.
+- The effect panel explains when Weak Point expires and how to consume it. Its internal Backstab marker now uses the ability’s familiar name in activation logs.
+- Click **Effects** to read all current buffs and debuffs, including their timing. Effects on inactive heroes remain available by hovering over their sprite or party card.
 
-| Team build | Blank: no movement | One Blank → Move 1 | One Blank → Move 2 |
-| --- | ---: | ---: | ---: |
-| Starting faces only | 67 / 133 | 141 / 59 | 170 / 30 |
-| Random bonus pairs | 99 / 101 | 166 / 34 | 178 / 22 |
-| Numeric attacks | 158 / 42 | 196 / 4 | 199 / 1 |
-| Support / defense | 80 / 120 | 134 / 66 | 167 / 33 |
-| Channels + attacks | 118 / 82 | 170 / 30 | 185 / 15 |
-| Growth / sustain | 149 / 51 | 185 / 15 | 195 / 5 |
+## Boss attacks and half-health upgrades
 
-The allowance is **once per hero's own turn**, including a full recovery turn. These tests do not change it to a shared party or per-combat cap.
+- Boss attacks have a stronger lunge, broad hit effects, impact rings, sparks and heavier Sweep / Roar shockwaves. Hits cause a brief shake of the arena only; the UI stays still. HP hits use a low thump and blocks a metallic sound. These sounds use the existing SFX bus and obey Sound OFF.
+- **Menu → Game options → Combat impact effects** disables the heavy effects, recoil and arena shake. Sound is controlled separately.
+- A persistent **Upgrades at … HP / view changes** button uses the actual boss HP threshold. Its panel shows all three changes together: Cinder Brand’s cross becomes a square, Ashen Chain adds Rooted until the next boss turn, and Furnace Roar unlocks.
+- Crossing the threshold opens this explanation automatically alongside the existing phase transition and burning boss sprite. The button remains available afterward.
 
-### What the results suggest
+## Rules and verification
 
-- **The normal random-bonus encounter is close:** 99/200 wins (49.5%) with Soul OFF. This does not support a general boss HP reduction.
-- **Mobility is a large advantage:** random bonuses reach 83% with Move 1 and 89% with Move 2. Starting-only teams go from 33.5% to 85%. Treat the test Soul as a substantial difficulty change.
-- **Attack-heavy teams finish the boss sooner:** the Numeric team wins 79% without Soul and averages 10.49 rounds; random bonuses average 12.85. They spend fewer rounds exposed to boss attacks. With Move 2 they win 199/200, so that combination is especially forgiving.
-- **Support teams are slower:** 40% wins and 15.15 rounds without Soul. This bot does not optimize party rescue, deliberate tanking or long-term support combinations. A whole support kit versus a whole attack kit cannot identify which individual face needs a buff; changing every defense value from this sample would be premature.
-- **The boss still applies pressure:** Smoking Strike, Sweep and Skirmish were the largest aggregate HP-damage sources in the random-bonus / Soul-OFF trials. 191/200 reached phase II. Cinder Brand still dealt damage despite an explicit escape heuristic, because movement was not always available.
+Default HP, damage, dice odds, caps, Soul allowance and boss phase rules are unchanged. The sole eligibility correction is applying the written non-rerollable restriction consistently to Focus. Saved balance profiles remain active.
 
-These are fixed-strategy automated comparisons, **not predicted human win rates**. Different layouts, timing choices and human tactics can change the results. The previous simple starter bot still reports 17/100 wins; the new heuristic reaches 67/200 by prioritizing healing / revivals and moving out of delayed hazards. Those policies must not be compared as if they were the same experiment.
+Checks cover Focus after the opening window, correct new-face inspection, all four non-rerollable faces, spent / forced / held states, saved versus usable reroll charges, Weak Point activation and expiry, all 59 short descriptions, active custom values, half-health explanations, effect opt-out and modal choice layout. The existing combat, preset, loadout, Soul and boss suites remain in use. Browser checks exercise the real controls and look for script / console errors.
 
-## Exact teams and method
+The [explained trial report](https://lordtoff.github.io/Godot-Game-Template/playtest-report.html) remains a report of the recorded **v0.16** trials; it is not relabelled as a new v0.17 playtest.
 
-Bonus pairs in Vesper / Rook / Wren order:
-
-- **Numeric:** Strike Numeric + Piercing Thrust; Short Shot + Flanking Blow; Hooked Slash + Break Rhythm.
-- **Support:** Restore + Brace Hero; Guard Numeric + Shield Wall; Bulwark + Oathbound Exchange.
-- **Channel:** Contained Power + Piercing Thrust; Stonewake + Flanking Blow; Last Pulse + Short Shot.
-- **Growth:** Engrave + Bone Mutation; Blessing of Recovery + Restore; Engrave + Brace Hero.
-- **Random pairs:** two distinct designs per hero, uniformly drawn from all 47 extended designs using a separate deterministic generator seeded with encounter seed × 173. The model's normal `bonus_build` places them legally.
-
-The bot reads visible rolls and board state. It prioritizes injured allies, setup effects and legal attacks; moves toward the boss while penalizing marked Brand cells, existing fire and board edges; spends opening rerolls on unusable Blanks; and resolves all supported choice / reaction windows. It keeps Channels. It uses the same explicit “spend with no effect” option as the UI when a copy effect has no legal source. It does not inspect future RNG outcomes, alter combat state to guarantee abilities or optimize all possible moves. Stalls are capped at 1,600 decision steps or 50 rounds and fail the run; none occurred.
-
-Raw before/after outcomes, per-ability usage, damage totals, phase rates and mean rounds: [Trial-results-v0.16.json](Trial-results-v0.16.json).
-
-## Reproduce
-
-```bash
-ASH_TRIAL_COUNT=200 ASH_TRIAL_REPORT=/tmp/ash-trial-report.json   godot --headless --path . --script prototype/tests/trial_battles.gd
-godot --headless --path . --script prototype/tests/trial_regression_test.gd
-```
-
-The dedicated regressions cover cost expiry, a later Guard, the legitimate cost, Ward from a real hit versus self-cost / friendly fire / hazards / prevention, zero-count Fracture and killing-hit rewards. The existing rules, catalog, all 1,081 bonus pairs, loadouts, presets, Soul refresh, boss phases and UI tests are retained.
+Final verification: 157 combat-clarity checks and 1,508 choice-layout checks passed; the existing 30-suite regression run passed. A 180-encounter smoke set finished with no stalls. Browser testing covers Focus, reroll restrictions, Weak Point, phase upgrades, drag placement and saved builds.
