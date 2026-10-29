@@ -1,10 +1,10 @@
-# Ash & Oath v0.14 — playable prototype
+# Ash & Oath v0.15 — playable prototype
 
 [**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/) — no installation required.
 
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
 
-v0.14 adds one-click / drag-and-drop bonus-face placement on live unfolded dice, hardens the per-turn Blank movement counter, and shows persistent Rooted and Weakness effects on the knight sprites. [What changed and why](docs/Changes-v0.14.md). Your custom balance profile is preserved. Boss rules and numbers are unchanged.
+v0.15 fixes reproduced combat and preset bugs: missed Stunned collisions, actions after death, zero-charge Blood Bargain, rear-position checks, prevention / Ward interactions, custom-value logs, Numeric side counts, stale choices and malformed save data. Restore keeps your selected bonus designs. [What changed and why](docs/Changes-v0.15.md). Default balance values are unchanged.
 
 This checkout now starts **Ash & Oath**, a tactical dice-building boss battler based on the supplied Master Rules v10 and Action Faces. Open `project.godot` in Godot 4.6.3 and press **F5**, or run `godot --path .`.
 

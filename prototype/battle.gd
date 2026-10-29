@@ -71,13 +71,26 @@ static func default_build(profile: Dictionary = {}) -> Array:
  return result
 
 static func validate(build: Array, gift: Variant = -1, profile: Dictionary = {}) -> String:
- var owned: Array = gift if gift is Array else ([gift] if gift is int and gift >= 0 else [])
+ if build.size() != 3:return "A loadout must contain exactly three dice."
+ var owned: Array = []
+ if gift is Array:owned = gift
+ elif gift is int and gift >= 0:owned = [gift]
+ elif not (gift is int and gift == -1):return "Owned designs must be valid face numbers."
+ var canonical_owned: Array = []
+ for id in owned:
+  if not valid_face_number(id):return "Owned designs must be whole face numbers from 0 to 58."
+  canonical_owned.append(int(id))
+ owned = canonical_owned
  var counts := []
- counts.resize(59)
- counts.fill(0)
+ counts.resize(59);counts.fill(0)
  for die in build:
-  if die.size() != 6 or die.count(0) < Balance.value(profile,"body.blanks"): return "Every six-sided die needs at least %d Blanks." % Balance.value(profile,"body.blanks")
-  for f in die: counts[f] += 1
+  if not die is Array or die.size() != 6:return "Every die must have exactly six faces."
+  var blanks := 0
+  for f in die:
+   if not valid_face_number(f):return "Each die face must be a whole number from 0 to 58."
+   counts[int(f)] += 1
+   if int(f) == 0:blanks += 1
+  if blanks < Balance.value(profile,"body.blanks"):return "Every six-sided die needs at least %d Blanks." % Balance.value(profile,"body.blanks")
  for i in range(1,9):
   if counts[i] > Balance.value(profile,"owned."+str(i)) + (Balance.value(profile,"owned.bonus") if i in owned else 0): return "Not enough owned copies of " + FACES[i] + "."
  for i in range(9,59):
@@ -111,7 +124,7 @@ func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: boo
  order.sort_custom(func(a,b):
   var av: int = boss.initiative if a == 3 else heroes[a].initiative
   var bv: int = boss.initiative if b == 3 else heroes[b].initiative
-  return av > bv if av != bv else (a == 3 or (b != 3 and a < b)))
+  return false if a == b else (av > bv if av != bv else (a == 3 or (b != 3 and a < b))))
  initiative_base = order.duplicate()
  note("The dice remember. Initiative is fixed for this encounter.")
  new_round()
@@ -190,11 +203,11 @@ func report_changes() -> void:
    if now[status] and not old.statuses.get(status,false):
     var harmful: bool = status in ["Weakness","Marked","Debt Penalty","Stunned","Broken","Rooted"]
     var description: String = status
-    if status == "Weakness": description += " 1 (Attacks deal 1 less damage)"
-    if status == "Damage Reduction": description += " 1 (after Block)"
+    if status == "Weakness":description += " %d (Attacks deal %d less damage)" % [hero_weakness(h) if id < 3 else v("face51.weakness"),hero_weakness(h) if id < 3 else v("face51.weakness")]
+    if status == "Damage Reduction":description += " %d (after Block)" % h.dr
     if status == "Numeric Power": description += " +"+str(h.num_boost)+" for the next Numeric damage this turn"
-    if status == "Debt Boost": description += " +2 on the next Attack/Defense this turn"
-    if status == "Debt Penalty": description += " −2 on the next Attack/Defense"
+    if status == "Debt Boost":description += " +%d on the next Attack/Defense this turn" % h.debt_buff
+    if status == "Debt Penalty":description += " −%d on the next Attack/Defense" % h.debt_penalty
     if status == "Channel" and id < 3: description += " ("+FACES[h.channel.face]+")"
     if status == "Rooted" and id < 3:description += " %d (no voluntary movement until next boss turn)" % h.rooted
     record_event("debuff" if harmful else "buff","%s: %s gains %s." % [action_label,unit_name(id),description],action_owner,id)
@@ -438,19 +451,19 @@ func damage(id: int, amount: int, unavoidable: bool = false, reason: String = ""
   var old_hp: int = h.hp
   h.hp = maxi(0,h.hp-amount)
   if id < 3: h.taken += old_hp-h.hp
-  if id < 3 and h.ward and distance(id,3) <= v("face51.range"):
+  if id < 3 and h.ward and old_hp > h.hp and distance(id,3) == 1:
    boss.weak = true
    record_event("debuff","Wither Ward: %s inflicts Weakness %d on The Hollow until the boss turn ends." % [unit_name(id),v("face51.weakness")],id,3)
    if action_before.has(3): action_before[3].statuses["Weakness"] = true
   if id < 3 and h.hp == 0:
-   if h.broken: h.dead = true; note(h.name + " is slain — Broken.")
-   else:
-    h.protected = true; h.block = 0; h.weak = false; h.bulwark_weak = false; h.stun = false
-    h.reaction.clear(); h.channel = {}; h.dr = 0; h.rerolls = 0; h.used = [true,true,true]
-    h.ward = false; h.num_boost = 0; h.numeric_focus = false; h.stored_num = -1;h.rooted = 0
-    h.backstab = 0; h.debt_buff = 0; h.debt_next = 0; h.debt_penalty = 0
-    h.defy = false; h.black_oath = false; h.echo_due = false; h.mods = {}; h.smoke = {}
-    note(h.name + " is Downed. Protected until this full turn ends.")
+   if h.broken:h.dead = true;note(h.name+" is slain — Broken.")
+   else:h.protected = true;note(h.name+" is Downed. Protected until this full turn ends.")
+   h.block = 0;h.weak = false;h.bulwark_weak = false;h.stun = false
+   h.reaction.clear();h.channel = {};h.dr = 0;h.rerolls = 0;h.used = [true,true,true]
+   h.ward = false;h.num_boost = 0;h.numeric_focus = false;h.stored_num = -1;h.rooted = 0
+   h.backstab = 0;h.debt_buff = 0;h.debt_next = 0;h.debt_penalty = 0
+   h.defy = false;h.black_oath = false;h.echo_due = false;h.mods = {};h.smoke = {}
+
  var lost: int = initial_hp-h.hp
  var label: String = reason if reason != "" else (action_label if action_label != "" else "Damage")
  var result := "%s — %s → %s: %d incoming; %d blocked" % [label,unit_name(action_owner),unit_name(id),incoming,absorbed]
@@ -488,8 +501,10 @@ func spend(d: int, store_smoke: bool = false) -> void:
  if forced_die == d: forced_die = -1
 
 func hero_action(d: int, target: int = -1, destination: Vector2i = Vector2i(-99,-99)) -> bool:
+ if active not in [0,1,2] or d not in range(3) or target < -1 or target > 3:return false
  if active == 3 or outcome != "" or not pending.is_empty(): return false
  var h: Dictionary = heroes[active]
+ if h.dead or h.hp <= 0:return false
  if h.used[d] or (forced_die >= 0 and forced_die != d): return false
  var f := face(active,d)
  begin_action(active,FACES[f],target if f != 6 else -1,d)
@@ -509,7 +524,7 @@ func hero_action(d: int, target: int = -1, destination: Vector2i = Vector2i(-99,
    h.pos = destination
   4: h.block += modified_value(d,v("face4.block"))
   6:
-   if target < 0 or target == d or h.used[target]: return false
+   if target not in range(3) or target == d or h.used[target]: return false
    spend(d)
    roll_context = "Focus · Action Die reroll"
    roll_serial += 1
@@ -725,8 +740,12 @@ func continue_attack() -> void:
    pending = {"kind":"push","hero":t,"direction":impact_direction(t)};push(pending.direction);return
 
 func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
+ if pending.get("kind","") != "reaction" or outcome != "":return
  var t: int = pending.hero
- var die: int = pending.get("die",heroes[t].reaction[0])
+ var die: int = pending.get("die",-1)
+ if die not in range(3):
+  if heroes[t].reaction.is_empty():return
+  die = heroes[t].reaction[0]
  var victim: int = pending.get("victim",t)
  var h: Dictionary = heroes[t]
  var f: int = face(t,die)
@@ -755,6 +774,7 @@ func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
  pending.reacted.append(str(t)+":"+str(die)); pending.kind = "attack"; continue_attack()
 
 func fracture(d: int, side: int) -> void:
+ if pending.get("kind","") != "fracture" or d not in range(3) or side not in range(6):return
  var t: int = pending.hero
  if heroes[t].build[d][side] in [0,56]: return
  note(heroes[t].name + " loses " + FACES[heroes[t].build[d][side]] + " for this encounter.")
@@ -764,6 +784,7 @@ func fracture(d: int, side: int) -> void:
  else:pending = {}
 
 func push(dir: Vector2i) -> void:
+ if pending.get("kind","") != "push":return
  var t: int = pending.hero
  if pending.has("direction"):dir = pending.direction
  if dir not in away_dirs(3,t):return
@@ -776,11 +797,15 @@ func push(dir: Vector2i) -> void:
    damage(t,v("boss.push.collision"),true,"Drive Back collision")
    if outcome != "" or heroes[t].dead or heroes[t].hp == 0:return
    if heroes[t].stun:damage(t,v("status.stun_repeat"),true)
-   elif heroes[t].used.has(false):heroes[t].stun = true;pending = {"kind":"stun","hero":t}
+   else:
+    heroes[t].stun = true
+    if heroes[t].used.has(false):pending = {"kind":"stun","hero":t}
+    else:record_event("stun","%s gains Stunned. No unused die remains now; if still Stunned at the next shared roll, choose a die to set aside." % unit_name(t),3,t)
    break
  if origin != heroes[t].pos:record_event("move","Drive Back pushes %s %s → %s." % [unit_name(t),cell_name(origin),cell_name(heroes[t].pos)],3,t)
 
 func stun_die(d: int) -> void:
+ if pending.get("kind","") not in ["stun","preroll_stun"] or d not in range(3):return
  var t: int = pending.hero
  if pending.kind == "preroll_stun":
   if not heroes[t].channel.is_empty() and heroes[t].channel.die == d: return
@@ -905,7 +930,7 @@ func strike(d: int, target: int, base: int, pierce: int = 0, numeric_attack: boo
   var before: int = unit.hp
   var hit_had_block: bool = unit.block > 0
   var marked: bool = target == 3 and boss.mark and unit.block == 0 and value > 0
-  var bargained: bool = target == 3 and not boss.bargain.is_empty() and not (numeric_attack and h.numeric_zero)
+  var bargained: bool = target == 3 and not boss.bargain.is_empty() and boss.bargain.get("charges",0) > 0 and not (numeric_attack and h.numeric_zero)
   var power := v("face27.damage") if bargained else 0
   var shot_mark := v("face21.damage") if marked and face(active,d) == 35 else 0
   var bypass := mini(unit.block,pierce)
@@ -930,7 +955,7 @@ func strike(d: int, target: int, base: int, pierce: int = 0, numeric_attack: boo
  return lost
 
 func rear(id: int) -> bool:
- return heroes[id].pos.y >= boss.pos.y+2 and distance(id,3) <= v("face51.range")
+ return heroes[id].pos.y >= boss.pos.y+2 and distance(id,3) == 1
 
 func sight(a: int, b: int, limit: int) -> bool:
  for start_cell in cells(a):
@@ -1031,7 +1056,9 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
    if f == 31: h.block += v("face31.initial")
    h.channel = {"die":d,"side":side,"face":f,"boost":0,"confirmed":true,"pending_blank":0,"pending_boost":0}
    note(h.name + " begins Channel · " + FACES[f])
-  27: boss.bargain = {"owner":active,"charges":v("face27.charges")}
+  27:
+   boss.bargain = {"owner":active,"charges":v("face27.charges")} if v("face27.charges") > 0 else {}
+   if boss.bargain.is_empty():note("Blood Bargain has 0 configured charges; no damage bonus or backlash is armed.")
   28,44,45,46,48: return false # Stored automatically by the roll.
   29: h.debt_buff = v("face29.boost"); h.debt_next = v("face29.penalty")
   33:
@@ -1091,6 +1118,7 @@ func leap_cells(id: int) -> Array:
  return result
 
 func channel_choice(keep: bool) -> void:
+ if pending.get("kind","") != "channel" or active not in [0,1,2] or heroes[active].channel.is_empty():return
  begin_action(active,"Maintain Channel" if keep else "End Channel")
  var h: Dictionary = heroes[pending.hero]
  var ch: Dictionary = h.channel.duplicate()
@@ -1113,12 +1141,15 @@ func channel_choice(keep: bool) -> void:
  report_changes()
 
 func choose_bind(d: int, action: String) -> void:
+ if action == "Strike":action = "Smoking Strike"
+ if pending.get("kind","") != "bind" or d not in range(3) or action not in boss_dice()[d]:return
  var source: int = pending.die
  boss.binds.append({"owner":active,"die":d,"action":action})
  pending = {}; spend(source)
  note("Bound boss die %d: %s until the binder's next turn." % [d+1,action])
 
 func ember(value: int) -> void:
+ if pending.get("kind","") != "ember":return
  var owner: int = pending.hero
  value = maxi(0,mini(value,mini(v("face52.burn"),heroes[owner].block)))
  remove_block(owner,value); pending = {}
@@ -1135,6 +1166,7 @@ func ember(value: int) -> void:
  check_end()
 
 func catalog_pick(hero: int, d: int, side: int = -1) -> bool:
+ if pending.get("kind","") not in ["catalog_choice","slot"] or hero not in range(3) or d not in range(3) or side < -1 or side > 5:return false
  var p: Dictionary = pending.duplicate()
  var source: int = p.die
  var h: Dictionary = heroes[active]
@@ -1213,6 +1245,9 @@ static func bonus_build(selected_faces: Array, profile: Dictionary = {}) -> Arra
  return best
 
 func decline(d: int) -> void:
+ if active not in [0,1,2] or d not in range(3) or outcome != "" or not pending.is_empty():return
+ if heroes[active].dead or heroes[active].hp <= 0 or heroes[active].used[d]:return
+ if forced_die >= 0 and forced_die != d:return
  action_before = {}; action_owner = active; action_label = FACES[face(active,d)]
  record_event("decline","%s declines %s (Die %s); no effect, result spent." % [unit_name(active),action_label,["I","II","III"][d]],active)
  spend(d)
@@ -1333,7 +1368,7 @@ func numeric_faces(gambler: bool) -> Array:
  return result
 
 func ordinary_numeric(side: int, focus: bool = false) -> int:
- if side < v("numeric.high_faces"):return v("numeric.high")
+ if side < mini(v("numeric.high_faces"),v("numeric.positive_faces")):return v("numeric.high")
  if side < v("numeric.positive_faces"):return v("numeric.positive")
  return v("face20.blank_value") if focus else v("numeric.blank")
 
@@ -1366,6 +1401,7 @@ func reroll_reason(d: int) -> String:
  if not pending.is_empty():return "Finish the pending choice first."
  if d not in [0,1,2]:return "Select a die first."
  var h: Dictionary = heroes[active]
+ if h.dead or h.hp <= 0:return "This hero is incapacitated. End the turn or revive them before taking actions."
  if h.used[d]:return "This die is already spent or held as a reaction / Channel."
  if forced_die >= 0:return "Resolve the forced result before using an Action Reroll."
  if not h.opening:return "Opening window closed: use your Action Reroll before resolving an ordinary action. Focus can still reroll another unresolved die."
@@ -1456,3 +1492,6 @@ func reset_soul_allowance(id: int) -> void:
  heroes[id].soul_moves_used = 0
  heroes[id].soul_move_used = false
  if reward:record_event("soul_refresh","%s refreshes Blank movement: %d/%d uses available for this own turn." % [unit_name(id),v("soul.uses"),v("soul.uses")],id,id)
+
+static func valid_face_number(value: Variant) -> bool:
+ return (value is int or value is float) and is_finite(float(value)) and float(value) == floor(float(value)) and value >= 0 and value < 59

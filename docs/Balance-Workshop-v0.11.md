@@ -1,6 +1,6 @@
-> Updated for v0.13: adds Advance adjacency Block, phase-II Chain Rooted and Smoking Strike fire damage. [See current boss rules](Changes-v0.13.md). Saved overrides remain in force.
+> Updated for v0.15: invalid JSON is rejected without applying it. Higher-value Numeric sides are capped by the positive-side count; zero positive sides uses the Blank value on all six sides. [See the bug-fix notes](Changes-v0.15.md). Saved overrides remain in force.
 
-# Balance Workshop · v0.13
+# Balance Workshop · v0.15
 
 Open **Menu → Game options → Balance workshop**. From the opening screens, use **Game options / Options → Balance workshop**.
 

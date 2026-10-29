@@ -1,8 +1,18 @@
-# Ash & Oath v0.14 — playable prototype
+# Ash & Oath v0.15 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, instant rolls, pixel arena and knight sprites, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
 
-## Current v0.14
+## Current v0.15
+
+See [the bug-fix guide](../docs/Changes-v0.15.md). Reproduced fixes cover Stunned with no unused dice, dead Broken actors, zero-charge bargains, rear geometry independent of Ward range, Ward after damage prevention, actual-value logs and Numeric positive-side counts. Obsolete modal callbacks and invalid indices are rejected. `preset.gd` validates and normalizes a whole saved team before applying it. Manual legal presets with unequipped owned designs remain supported. Restore regenerates a legal build including the two selected designs.
+
+```bash
+godot --headless --path . --script prototype/tests/bugfix_v15_test.gd
+godot --headless --path . --script prototype/tests/preset_v15_test.gd
+godot --path . --audio-driver Dummy --script prototype/tests/bugfix_v15_ui_test.gd
+```
+
+## Historical v0.14
 
 See [the v0.14 change guide](../docs/Changes-v0.14.md). Bonus cards quick-equip with one click and support actual drag gestures onto a die or exact square. Installed faces swap by dragging. The draft shows the live dice and preserves placements through hero switching and starting combat. `face_loadout.gd` validates previews and placements atomically. Body / ownership / Blank rules remain enforced.
 

@@ -1524,7 +1524,7 @@ const DEFINITIONS = [
  {
   "key": "numeric.high_faces",
   "group": "Numeric die",
-  "label": "Leading sides using the higher value",
+  "label": "Leading positive sides using higher value (capped by positive side count)",
   "default": 2,
   "min": 0,
   "max": 6,

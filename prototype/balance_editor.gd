@@ -104,7 +104,9 @@ func open_json() -> void:
  json_text = TextEdit.new();json_text.position = Vector2(220,198);json_text.size = Vector2(1000,463);json_text.text = JSON.stringify({"format":"ash-and-oath-balance-v1","base_rules":"tuned" if tuned else "original","values":draft},"  ");json_layer.add_child(json_text)
  json_error = label("",Vector2(220,755),Vector2(1000,75),16,json_layer);json_error.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  button("Use this JSON",Vector2(220,693),Vector2(310,45),func():
-  var decoded = JSON.parse_string(json_text.text)
+  var parser := JSON.new()
+  if parser.parse(json_text.text) != OK:json_error.text = "Invalid JSON at line %d: %s" % [parser.get_error_line()+1,parser.get_error_message()];return
+  var decoded = parser.data
   var values = decoded.get("values",decoded) if decoded is Dictionary else decoded
   var error := Balance.validate(values)
   if error != "":json_error.text = error;return

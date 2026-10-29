@@ -8,6 +8,7 @@ var draft_error := ""
 const Catalog = preload("res://prototype/catalog.gd")
 const Model = preload("res://prototype/battle.gd")
 const FaceLoadout = preload("res://prototype/face_loadout.gd")
+const Preset = preload("res://prototype/preset.gd")
 const TITLE = preload("res://prototype/assets/body.ttf")
 const BACKDROP = preload("res://prototype/assets/pixel_arena.png")
 const PORTRAITS = preload("res://prototype/assets/pixel_portraits.png")
@@ -208,13 +209,13 @@ func rebuild() -> void:
  for c in ui.get_children(): ui.remove_child(c); c.queue_free()
  if page == "battle":
   label_at("ASH & OATH",Vector2(24,16),25,GOLD,300,true)
-  label_at("v0.14 · ABILITY LAB" if lab else "v0.14 · THE HOLLOW",Vector2(26,49),12,MUTED,450)
+  label_at("v0.15 · ABILITY LAB" if lab else "v0.15 · THE HOLLOW",Vector2(26,49),12,MUTED,450)
   button("View dice",Vector2(1016,22),Vector2(120,38),func(): show_dice = true;dice_hero = game.active;rebuild(),Color("9fc7e6"))
   button("Turn help",Vector2(1148,22),Vector2(120,38),func():show_turn = true;rebuild(),MUTED)
   button("Menu",Vector2(1280,22),Vector2(128,38),func():show_menu = true;rebuild(),GOLD)
  else:
   label_at("ASH & OATH",Vector2(42,26),27,GOLD,500,true)
-  label_at("A DICE-BUILDING BOSS BATTLER · v0.14",Vector2(44,65),11,MUTED)
+  label_at("A DICE-BUILDING BOSS BATTLER · v0.15",Vector2(44,65),11,MUTED)
   button("View dice",Vector2(350,30),Vector2(235,40),func(): show_dice = true;dice_hero = build_hero;rebuild(),Color("9fc7e6"))
   button("Tutorial / Ability Lab",Vector2(605,30),Vector2(245,40),start_lab,Color("82c8b9"))
   button("What changed",Vector2(866,30),Vector2(225,40),func():show_changes = true;rebuild())
@@ -265,7 +266,7 @@ func forge_ui() -> void:
  button("Save build preset",Vector2(75,811),Vector2(245,40),save_preset,MUTED)
  button("Load preset",Vector2(560,811),Vector2(220,40),load_preset,MUTED)
  soul_toggle(Vector2(350,756),false)
- button("Restore balanced build",Vector2(75,756),Vector2(245,46),func(): builds[build_hero] = Model.default_build(balance_values); rebuild(),MUTED)
+ button("Restore balanced build",Vector2(75,756),Vector2(245,46),restore_hero_build,MUTED)
  label_at("YOUR INHERITANCE",Vector2(886,300),13,GOLD)
  label_at("Memory   /   Empty\nSoul          /   %d HP · %d+ Blanks per die\nBody         /   Broken Body" % [balance_number("hero.hp"),balance_number("body.blanks")],Vector2(886,335),16,Color("d2d8df"))
  label_at("OWNED FACE POOL",Vector2(886,445),12,GOLD)
@@ -285,6 +286,9 @@ func retry(with_soul: bool = false) -> void:
  SceneLoader.load_scene("res://prototype/prototype.tscn")
 
 func begin() -> void:
+ for hero in range(3):
+  var error := Model.validate(builds[hero],gifts[hero],balance_values)
+  if error != "":hint = error;page = "forge";rebuild();return
  training = false
  lab = false
  draft_modal = false
@@ -342,11 +346,12 @@ func battle_ui() -> void:
     if selected >= 0 and game.face(game.active,selected) == 6 and selected != d:
      if game.hero_action(selected,d):selected = d if not game.heroes[game.active].used[d] else -1
     elif game.forced_die < 0 or game.forced_die == d:selected = d;shove_target = -1
-    hint = selected_die_help(d);rebuild(),color_for_face(f),not game.pending.is_empty() or game.outcome != "")
+    hint = selected_die_help(d);rebuild(),color_for_face(f),not game.pending.is_empty() or game.outcome != "" or h.dead or h.hp <= 0)
    die_button.add_theme_font_size_override("font_size",15);die_button.tooltip_text = face_help(f)
    if selected == d and not h.used[d]:
     var chosen := style(Color("2b3d48"),color_for_face(f));chosen.set_border_width_all(2);die_button.add_theme_stylebox_override("normal",chosen)
   var instruction: String = "Choose a die, then its target. You can end your turn with dice left." if selected < 0 else hint
+  if h.dead or h.hp <= 0:instruction = "This hero cannot act. End their turn to continue with the party."
   if training:
    instruction = "Lesson %d/8: " % (training_step+1)+LESSONS[training_step]
    if training_step == 6:instruction = "Soul lesson: select a Blank and move up to %d cells. You have %d conversions this hero turn." % [game.v("soul.move"),game.v("soul.uses")]
@@ -437,7 +442,11 @@ func pending_ui() -> void:
   catalog_pending_ui(p)
  elif p.kind == "reaction":
   label_at(game.heroes[p.hero].name + " is targeted.",Vector2(399,300),26,Color("ece6d9"),620,true)
-  var reaction_face: int = game.face(p.hero,p.get("die",game.heroes[p.hero].reaction[0]))
+  var reaction_die: int = p.get("die",-1)
+  if reaction_die not in range(3):
+   if game.heroes[p.hero].reaction.is_empty():return
+   reaction_die = game.heroes[p.hero].reaction[0]
+  var reaction_face: int = game.face(p.hero,reaction_die)
   label_at("Spend Tactical Defense: gain %d Block, optionally move %d.\nThe boss rechecks its target before the attack resolves." % [game.v("face5.block"),game.v("face5.move")],Vector2(399,352),15,MUTED)
   if reaction_face != 5:
    for c in ui.get_children():
@@ -460,7 +469,7 @@ func pending_ui() -> void:
   label_at("Stunned · " + game.heroes[p.hero].name,Vector2(399,301),26,Color("ece6d9"),620,true)
   label_at("Choose one die to set aside before the shared roll." if p.kind == "preroll_stun" else "Choose one unresolved Action Die to set aside.",Vector2(399,356),16,MUTED)
   for d in range(3):
-   button("Die %d" % [d+1] if p.kind == "preroll_stun" else "Die %d · %s" % [d+1,Model.FACES[game.face(p.hero,d)]],Vector2(399,416+d*56),Vector2(520,45),func(): game.stun_die(d); rebuild(),GOLD,p.kind != "preroll_stun" and game.heroes[p.hero].used[d])
+   button("Die %d" % [d+1] if p.kind == "preroll_stun" else "Die %d · %s" % [d+1,Model.FACES[game.face(p.hero,d)]],Vector2(399,416+d*56),Vector2(520,45),func(): game.stun_die(d); rebuild(),GOLD,(p.kind != "preroll_stun" and game.heroes[p.hero].used[d]) or (p.kind == "preroll_stun" and not game.heroes[p.hero].channel.is_empty() and game.heroes[p.hero].channel.die == d))
 
 func overlay() -> void:
  var shade := ColorRect.new(); shade.color = Color(0.02,0.03,0.05,0.93); shade.size = Vector2(1440,900); ui.add_child(shade)
@@ -785,7 +794,7 @@ func confirm_gifts() -> void:
 
 func draft_ui() -> void:
  var shade := ColorRect.new();shade.color = Color("101922");shade.size = Vector2(1440,900);ui.add_child(shade)
- label_at("CHOOSE TWO FACES · v0.14",Vector2(60,27),29,GOLD,1000,true)
+ label_at("CHOOSE TWO FACES · v0.15",Vector2(60,27),29,GOLD,1000,true)
  label_at("Click to quick equip. Drag a card onto a die or a square. Drag installed faces to swap them.",Vector2(62,74),15,MUTED,1300)
  button("Back to forge",Vector2(1150,26),Vector2(230,40),func():draft_modal = false;rebuild(),MUTED)
  for hero in range(3):
@@ -966,13 +975,13 @@ func lab_tools_ui() -> void:
  button("Next turn",Vector2(689,446),Vector2(285,39),func():show_lab_tools = false;Lab.next_turn(game,lab_numeric);selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
  button("Roll chosen face again",Vector2(399,502),Vector2(275,39),func():show_lab_tools = false;Lab.roll_test_face(game,lab_face,lab_numeric);selected = -1;rebuild(),Color("82c8b9"))
  button("Combine faces",Vector2(689,502),Vector2(285,39),func():show_lab_tools = false;show_lab_setup = true;rebuild(),MUTED)
- button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.14 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
+ button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.15 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
  button("Back to battle",Vector2(689,570),Vector2(285,43),func():show_lab_tools = false;rebuild())
  button("Phase II active" if game.phase_two else "Test boss phase II",Vector2(399,632),Vector2(575,39),test_boss_phase_two,Color("e9a36a"),game.phase_two or not game.pending.is_empty() or game.outcome != "" or game.v("boss.phase.percent") == 0)
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.14",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.15",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
  var nav_step := minf(75,610.0/Changes.SECTIONS.size())
  for i in range(Changes.SECTIONS.size()):
@@ -1093,7 +1102,7 @@ func explain_invalid(f: int, target: int, cell: Vector2i) -> String:
 func save_preset() -> void:
  if gifts.any(func(pool):return pool.size() != 2):hint = "Choose two bonus faces per hero before saving a preset."; rebuild(); return
  for hero in range(3):
-  if Model.validate(builds[hero],gifts[hero],balance_values) != "": hint = "Fix illegal builds before saving."; rebuild(); return
+  if Model.validate(builds[hero],gifts[hero],balance_values) != "":hint = "Fix illegal builds before saving.";rebuild();return
  var file := FileAccess.open("user://ash_build_preset.json",FileAccess.WRITE)
  if not file: hint = "Could not save preset."; rebuild(); return
  file.store_string(JSON.stringify({"builds":builds,"gifts":gifts,"balanced":balanced,"test_soul":reward_soul}));file.close()
@@ -1101,20 +1110,11 @@ func save_preset() -> void:
 
 func load_preset() -> void:
  if not FileAccess.file_exists("user://ash_build_preset.json"):hint = "No saved preset on this device yet."; rebuild(); return
- var saved = JSON.parse_string(FileAccess.get_file_as_string("user://ash_build_preset.json"))
- if not saved is Dictionary or not saved.get("builds") is Array or not saved.get("gifts") is Array or saved.builds.size() != 3 or saved.gifts.size() != 3:hint = "Preset is not valid."; rebuild(); return
- for hero in range(3):
-  if not saved.builds[hero] is Array or saved.builds[hero].size() != 3 or not saved.gifts[hero] is Array:return
-  for die in saved.builds[hero]:
-   if not die is Array or die.size() != 6 or not die.all(func(f):return f is float or f is int):return
-   for f in die:
-    if int(f) < 0 or int(f) >= Model.FACES.size():return
-  for die in saved.builds[hero]:
-   for side in range(6):die[side] = int(die[side])
-  for i in range(saved.gifts[hero].size()):saved.gifts[hero][i] = int(saved.gifts[hero][i])
-  if saved.gifts[hero].size() != 2 or saved.gifts[hero][0] == saved.gifts[hero][1] or not saved.gifts[hero].all(func(id):return id in Catalog.extended_ids()) or Model.validate(saved.builds[hero],saved.gifts[hero],balance_values) != "":hint = "Preset contains an illegal build."; rebuild(); return
- builds = saved.builds;gifts = saved.gifts;balanced = saved.get("balanced",true);reward_soul = saved.get("test_soul",false);draft_modal = false
- hint = "Loaded all three heroes’ saved builds."; rebuild()
+ var saved := Preset.decode(FileAccess.get_file_as_string("user://ash_build_preset.json"),balance_values)
+ if saved.error != "":hint = saved.error;rebuild();return
+ builds = saved.builds;gifts = saved.gifts;balanced = saved.balanced;reward_soul = saved.test_soul;draft_modal = false
+ hint = "Loaded all three heroes’ saved builds.";rebuild()
+
 
 func start_training() -> void:
  training_step = 0;start_lab();training = true;prepare_lesson()
@@ -1221,7 +1221,9 @@ func balance_number(key: String) -> int:
 func load_balance_profile() -> void:
  var path := "user://ash_balance_profile.json"
  if not FileAccess.file_exists(path):return
- var decoded = JSON.parse_string(FileAccess.get_file_as_string(path))
+ var parser := JSON.new()
+ if parser.parse(FileAccess.get_file_as_string(path)) != OK:hint = "Saved balance profile was invalid; defaults loaded.";return
+ var decoded = parser.data
  var values = decoded.get("values",{}) if decoded is Dictionary else null
  if Balance.validate(values) == "":
   balance_values = values.duplicate(true)
@@ -1358,3 +1360,9 @@ func draw_hero_debuffs(id: int, center: Vector2) -> void:
   draw_line(badge+Vector2(2,-2),badge+Vector2(5,-8),Color("d7a2ed"),3)
   draw_line(badge+Vector2(-7,3),badge+Vector2(0,7),Color("d7a2ed"),2)
   draw_line(badge+Vector2(-5,0),badge+Vector2(5,-1),Color("f28c9e"),2)
+
+func restore_hero_build() -> void:
+ var restored: Array = Model.bonus_build(gifts[build_hero],balance_values) if gifts[build_hero].size() == 2 else Model.default_build(balance_values)
+ if restored.is_empty():hint = "The selected bonus designs cannot fit this balance profile. Choose different designs or adjust the limits."
+ else:builds[build_hero] = restored;hint = "Restored a legal starter build with your selected bonus designs equipped."
+ rebuild()
