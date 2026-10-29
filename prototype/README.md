@@ -1,8 +1,17 @@
-# Ash & Oath v0.16 — playable prototype
+# Ash & Oath v0.17 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, instant rolls, pixel arena and knight sprites, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
 
-## Current v0.16
+## Current v0.17
+
+See [combat clarity changes](../docs/Changes-v0.17.md). Focus identifies legal targets, spends / greys its source and selects the new result. Banked rerolls distinguish saved charges from the opening window. Non-rerollable faces explain why; Focus respects the same restriction. `ability_copy.gd` supplies short descriptions with active values. Weak Point has a persistent marker and inspectable duration. Boss phase upgrades remain visible; stronger impact effects can be disabled in options.
+
+```bash
+godot --path . --audio-driver Dummy --script prototype/tests/clarity_v17_test.gd
+godot --path . --audio-driver Dummy --script prototype/tests/choice_layout_v17_test.gd
+```
+
+## Historical v0.16
 
 See [the trial report and fixes](../docs/Changes-v0.16.md). 3,600 before / 3,600 after matched encounters cover six team builds and three Blank movement settings. The normal random-bonus / Soul-OFF bot wins 99/200. There were no stalls. Default balance values stay unchanged; direct regressions cover Black Oath cost expiry, Ward attacker attribution, zero-count Fracture and killing-hit rewards.
 

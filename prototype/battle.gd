@@ -205,6 +205,7 @@ func report_changes() -> void:
     var description: String = status
     if status == "Weakness":description += " %d (Attacks deal %d less damage)" % [hero_weakness(h) if id < 3 else v("face51.weakness"),hero_weakness(h) if id < 3 else v("face51.weakness")]
     if status == "Damage Reduction":description += " %d (after Block)" % h.dr
+    if status == "Backstab":description = "Weak Point READY (next rear Attack repeats)"
     if status == "Numeric Power": description += " +"+str(h.num_boost)+" for the next Numeric damage this turn"
     if status == "Debt Boost":description += " +%d on the next Attack/Defense this turn" % h.debt_buff
     if status == "Debt Penalty":description += " −%d on the next Attack/Defense" % h.debt_penalty
@@ -510,6 +511,7 @@ func hero_action(d: int, target: int = -1, destination: Vector2i = Vector2i(-99,
  if h.dead or h.hp <= 0:return false
  if h.used[d] or (forced_die >= 0 and forced_die != d): return false
  var f := face(active,d)
+ if f == 6 and focus_reason(d,target) != "":return false
  begin_action(active,FACES[f],target if f != 6 else -1,d)
  if f >= 9: return catalog_action(d,target,destination)
  match f:
@@ -527,7 +529,8 @@ func hero_action(d: int, target: int = -1, destination: Vector2i = Vector2i(-99,
    h.pos = destination
   4: h.block += modified_value(d,v("face4.block"))
   6:
-   if target not in range(3) or target == d or h.used[target]: return false
+   var old_face: int = face(active,target)
+   var old_side: int = h.rolls[target]
    spend(d)
    roll_context = "Focus · Action Die reroll"
    roll_serial += 1
@@ -538,6 +541,8 @@ func hero_action(d: int, target: int = -1, destination: Vector2i = Vector2i(-99,
    note(h.name + " focuses Die " + str(target+1) + " → " + FACES[face(active,target)])
    if Catalog.is_reaction(face(active,target)): h.used[target] = true; h.reaction.append(target)
    else: forced_die = target
+   record_event("focus","%s uses Focus: Die %s, %s → %s.%s" % [unit_name(active),["I","II","III"][target],FACES[old_face],FACES[face(active,target)]," Held as a Reaction." if h.used[target] else " Resolve this die next, or decline it."],active,active)
+   event_log[-1]["die"] = target;event_log[-1]["old_face"] = old_face;event_log[-1]["new_face"] = face(active,target);event_log[-1]["old_side"] = old_side;event_log[-1]["new_side"] = h.rolls[target]
    return true
   7:
    if target < 0 or target == 3 or heroes[target].dead or (target != active and distance(active,target) > face_range(f)): return false
@@ -1401,18 +1406,35 @@ func check_phase() -> void:
  else:roar_queued = true
  record_event("phase","HALF-HEALTH PHASE: The Hollow ignites. Cinder Brand expands to a square; Ashen Chain gains Rooted. Furnace Roar unlocks. Its next unresolved die becomes Roar; Brace on Die I is replaced for future rolls. Inspect the boss intent for damage and push range.",3)
 
-func reroll_reason(d: int) -> String:
+func reroll_face_reason(f: int) -> String:
+ if f == 56:return "Red Tile is locked: it cannot be rerolled."
+ if f in [9,11,15]:return FACES[f]+" is non-rerollable by its rules."
+ return ""
+
+func reroll_window_reason() -> String:
  if active not in [0,1,2] or outcome != "":return "No active hero turn."
  if not pending.is_empty():return "Finish the pending choice first."
- if d not in [0,1,2]:return "Select a die first."
  var h: Dictionary = heroes[active]
  if h.dead or h.hp <= 0:return "This hero is incapacitated. End the turn or revive them before taking actions."
- if h.used[d]:return "This die is already spent or held as a reaction / Channel."
  if forced_die >= 0:return "Resolve the forced result before using an Action Reroll."
- if not h.opening:return "Opening window closed: use your Action Reroll before resolving an ordinary action. Focus can still reroll another unresolved die."
+ if not h.opening:return "Opening window closed: an action has already resolved. Saved charges are usable next own turn; Focus is a separate ability."
  if h.rerolls < v("hero.reroll_cost"):return "Not enough Action Rerolls. The starting charge does not refill each round."
- if face(active,d) in [9,11,15,56]:return "This face cannot use an Action Reroll."
  return ""
+
+func reroll_reason(d: int) -> String:
+ var window := reroll_window_reason()
+ if window != "":return window
+ if d not in range(3):return "Select a die first."
+ var h: Dictionary = heroes[active]
+ if h.used[d]:return "This die is already spent or held as a reaction / Channel."
+ return reroll_face_reason(face(active,d))
+
+func focus_reason(source: int, target: int) -> String:
+ if active not in [0,1,2] or source not in range(3) or target not in range(3):return "Choose another die."
+ var h: Dictionary = heroes[active]
+ if target == source:return "Focus cannot reroll itself. Choose another READY die."
+ if h.used[target]:return "That die is spent or held. Choose another READY die."
+ return reroll_face_reason(face(active,target))
 
 func status_description(id: int) -> String:
  var h: Dictionary = boss if id == 3 else heroes[id]
@@ -1433,7 +1455,7 @@ func status_description(id: int) -> String:
   if h.numeric_focus:lines.append("Numeric Focus: next Blank counts as %d." % v("face20.blank_value"))
   if h.stored_num >= 0:lines.append("Stored Numeric: %d." % h.stored_num)
   if h.gambler:lines.append("Gambler: Numeric die has ×0 and ×%d." % v("face9.multiplier"))
-  if h.backstab >= round_no and h.backstab > 0:lines.append("Weak Point: next rear Attack repeats.")
+  if h.backstab >= round_no and h.backstab > 0:lines.append("Weak Point READY: next rear Attack repeats; expires after round %d." % h.backstab)
   if h.debt_buff > 0:lines.append("Debt: next Attack/Defense +%d." % h.debt_buff)
   if h.debt_penalty > 0:lines.append("Debt: next Attack/Defense −%d." % h.debt_penalty)
   if h.debt_next > 0:lines.append("Debt owed next turn: −%d." % h.debt_next)

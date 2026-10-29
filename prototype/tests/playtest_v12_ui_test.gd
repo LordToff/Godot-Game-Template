@@ -41,9 +41,9 @@ func run():
  await capture("live-dice-nets")
  check(app.ui.get_children().filter(func(c):return c is Button and c.name.begins_with("ViewDie")).all(func(c):return c.size == Vector2(102,102)),"all six net squares retain exact dimensions without overlap")
  app.show_dice = false;app.game = Lab.create(0);app.selected = 0;app.rebuild()
- var reroll = app.ui.get_children().filter(func(c):return c is Button and c.text.begins_with("Reroll selected"))[0]
+ var reroll = app.ui.get_node("ActionReroll")
  check(not reroll.disabled,"ready Blank can use Action Reroll")
  app.game.heroes[0].opening = false;app.rebuild()
- reroll = app.ui.get_children().filter(func(c):return c is Button and c.text.begins_with("Reroll selected"))[0]
+ reroll = app.ui.get_node("ActionReroll")
  check(reroll.disabled and reroll.tooltip_text.contains("Opening window closed"),"closed reroll window explains why")
  print("V0.12 UI: %d checks, %d failures" % [checks,failures]);quit(1 if failures else 0)
