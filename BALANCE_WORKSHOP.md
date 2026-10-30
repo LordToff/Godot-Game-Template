@@ -1,3 +1,5 @@
+> v0.20: Boss · Brass Cantor edits Resonance, abilities, core bonuses and phase upgrades. Starter Reaction grants 2 Block; the old movement field is retained as unused for saved-profile compatibility. [Changes](CHANGES_v0.20.md).
+
 > v0.19: new command movement / bite / empty-brood summon values, retreat and Hollow fire damage are editable. Soul Link’s phase cutoff is structural. Legacy Chorus fields are marked unused. [Changes](CHANGES_v0.19.md).
 
 > v0.18: choose boss and rules on the pre-fight review screen. Advanced numeric rules includes Nu’gh’s brood, Soul Link and every Hollow phase bonus. [Changes and reasons](CHANGES_v0.18.md).
@@ -8,7 +10,7 @@
 
 > Updated for v0.15: invalid JSON is rejected without applying it. Higher-value Numeric sides are capped by the positive-side count; zero positive sides uses the Blank value on all six sides. [See the bug-fix notes](CHANGES_v0.15.md). Saved overrides remain in force.
 
-# Balance Workshop · v0.19
+# Balance Workshop · v0.20
 
 Open **Menu → Game options → Balance workshop**. From the opening screens, use **Game options / Options → Balance workshop**.
 

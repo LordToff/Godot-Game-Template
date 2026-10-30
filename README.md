@@ -1,18 +1,16 @@
 # Play Ash & Oath in a browser
 
-**Live game:** https://lordtoff.github.io/Godot-Game-Template/?v=0.19
+**Live game:** https://lordtoff.github.io/Godot-Game-Template/?v=0.20
 
-**Current rules:** [Read here](current-rules.html) · [Download the v0.19 PDF](AshAndOath-Current-Rules-v0.19.pdf).
+**Current rules:** [Read here](current-rules.html) · [Download the v0.20 PDF](AshAndOath-Current-Rules-v0.20.pdf).
 
-v0.19 rebuilds Nu’gh as a large human-worm. He retreats and uses **Brood Command** to move and attack with each worm; no worms means summon two instead. Commands finish before the next die, with Reactions between bites. His Soul Link breaks permanently at half HP. Summons cannot overlap heroes, the boss or other worms.
+**New optional third boss: Veyl, the Brass Cantor.** Select Veyl after choosing all heroes’ faces. The walking bell reliquary has original pixel sprites, six unique abilities, sound-wave effects and bell audio. Attack faces charge Resonance; own-turn Skills and Defenses calm it. Crescendo opens a core damage window while charging the next dangerous chime. Every ability upgrades at half HP. No boss summons or terrain hazards.
 
-The Hollow’s positive Smoking Strikes ignite even when blocked. Ending a hero turn on fire burns; Brand deals 2 / 3 and phase-II Sweep deals 2 within 2. Movement and reading the intent matter. **LAST ENEMY RESULT** keeps fallback movement / Block visible during hero turns. [Changes and reasons](CHANGES_v0.19.md).
+**Starter Reaction now grants 2 Block with no movement.** Its dialog has no direction buttons, and old movement overrides cannot restore its step. Other named Reactions keep their own stated effects. [Changes and reasons](CHANGES_v0.20.md).
 
-The final 1,620 scripted trials finished without stalls. The hazard-aware Hollow bot won 152/540 fights; ignoring hazards won 74/540. Nu’gh’s phase-aware bot won 100/540. These are results for specific scripted policies, not predicted human win rates. Starting-only and Soul-OFF stress tests are difficult; normal setup includes two bonus designs per hero. [Trial details](CHANGES_v0.19.md#final-scripted-trials) · [Raw results](Trial-results-v0.19.json).
+The new boss completed 540 final scripted trials: 184 hero wins, 356 boss wins, no stalls. The existing 30-script regression suite and dedicated model / interface checks pass. Browser checks cover the real third-boss selection, meter, phase guide, turn progression and block-only Reaction. These are results for specific scripted policies, not predicted human win rates. Other boss cohorts and one Nu’gh round-limit attrition timeout are documented in the [trial notes](CHANGES_v0.20.md#verification) and [raw results](Trial-results-v0.20.json).
 
-The regression suites, encounter / UI checks and browser checks cover both encounters, command sequencing, actual worm reactions, phase guides and persistent results.
-
-**Advanced numeric rules** on the review screen or **Menu → Game options → Balance workshop** edits values. Saved custom overrides still take precedence; reset the relevant sections and apply to try the new defaults. [Workshop guide](BALANCE_WORKSHOP.md).
+**Advanced numeric rules** on review or **Menu → Game options → Balance workshop** edits values, including Brass Cantor HP, Resonance, abilities and phase bonuses. Saved custom overrides still take precedence. [Workshop guide](BALANCE_WORKSHOP.md).
 
 **Historical v0.16 report:** [View](playtest-report.html) · [Excel](Ash-and-Oath-Playtest-v0.16.xlsx). It retains its original version and results.
 
