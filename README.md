@@ -2,6 +2,8 @@
 
 **Live game:** https://lordtoff.github.io/Godot-Game-Template/?v=0.18
 
+**Current rulebook:** [Read in your browser](current-rules.html) · [Download PDF](AshAndOath-Current-Rules-v0.18.pdf). One v0.18 reference for setup, timing, statuses, all 59 faces and both bosses.
+
 This branch contains the browser-tested Godot Web export of Ash & Oath 0.18. GitHub Pages publishes `gh-pages` / root.
 
 Choose two bonus faces per hero, then review the boss and rules before entering. Pick **Nu’gh** for the new worm-summoner encounter. Living worms strengthen attacks; killing them reduces pressure and deals Soul Link damage to their master. Worms occupy cells and block sight, but take no separate attack turn.
