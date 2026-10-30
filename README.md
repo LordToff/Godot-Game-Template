@@ -1,14 +1,14 @@
-# Ash & Oath v0.19 — playable prototype
+# Ash & Oath v0.20 — playable prototype
 
 [**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/) — no installation required.
 
-[**Current rules: timing, abilities and bosses**](docs/current-rules.html) · [Download PDF](docs/AshAndOath-Current-Rules-v0.19.pdf). One consolidated v0.19 reference.
+[**Current rules: timing, abilities and bosses**](docs/current-rules.html) · [Download PDF](docs/AshAndOath-Current-Rules-v0.20.pdf). One consolidated v0.20 reference.
 
-[**Read the explained playtest report**](https://lordtoff.github.io/Godot-Game-Template/playtest-report.html) · [Download the polished Excel workbook](downloads/Ash-and-Oath-Playtest-v0.16.xlsx). Includes plain-language team descriptions, each hero’s abilities, dice layouts, win rates and the test method.
+[**Historical v0.16 playtest report**](https://lordtoff.github.io/Godot-Game-Template/playtest-report.html) · [Download the polished Excel workbook](downloads/Ash-and-Oath-Playtest-v0.16.xlsx). Includes plain-language team descriptions, each hero’s abilities, dice layouts, win rates and the test method.
 
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
 
-v0.19 rebuilds Nu’gh as a retreating human-worm with commanded moving/attacking minions and Soul Link that breaks at half HP. The Hollow’s fire and upgraded area attacks punish staying put; fallback results remain visible. [Changes and reasons](docs/Changes-v0.19.md).
+v0.20 adds optional third boss **Veyl, the Brass Cantor**: manage Resonance, time damage around its exposed core, and face six new abilities with original pixel sprites. Starter Reaction now grants 2 Block without movement. [Changes and reasons](docs/Changes-v0.20.md).
 
 This checkout now starts **Ash & Oath**, a tactical dice-building boss battler based on the supplied Master Rules v10 and Action Faces. Open `project.godot` in Godot 4.6.3 and press **F5**, or run `godot --path .`.
 

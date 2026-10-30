@@ -40,7 +40,7 @@ func run():
  check(g.unit_data(worm).pos == Vector2i(2,6),"command moves worm along legal path to adjacency")
  check(g.pending.get("source",-1) == worm and g.pending.get("kind","") == "reaction","worm bite opens a real reaction with its own source")
  var hp: int = g.heroes[0].hp;g.react(true)
- check(g.heroes[0].hp == hp and g.heroes[0].block == 0,"Reaction blocks worm damage; boss Weakness does not reduce unrelated worm")
+ check(g.heroes[0].hp == hp and g.heroes[0].block == 1,"Reaction blocks worm damage; boss Weakness does not reduce unrelated worm")
  g.boss_step();check(not g.command_active,"command ends after each living worm activated once")
  check(g.event_log.filter(func(e):return e.kind == "attack" and e.source == worm).size() == 1,"one attack per worm per Command")
  g = fresh();g.minions.clear();g.spawn_worms(1);worm = g.living_minions()[0];g.unit_data(worm).pos = Vector2i(2,6)

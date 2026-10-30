@@ -1,10 +1,12 @@
+> v0.20: optional third boss Veyl, Resonance / open-core windows, original bell sprites and block-only starter Reaction. [Rules and test notes](../docs/Changes-v0.20.md).
+
 > v0.19: retreating human-worm Nu’gh, active Brood Command, phase-I-only Soul Link, stronger Hollow hazards and persistent fallback outcomes. [Changes and trials](../docs/Changes-v0.19.md).
 
-[Current consolidated rules](../docs/Current-Rules-v0.19.md) · [PDF rulebook](../docs/AshAndOath-Current-Rules-v0.19.pdf)
+[Current consolidated rules](../docs/Current-Rules-v0.20.md) · [PDF rulebook](../docs/AshAndOath-Current-Rules-v0.20.pdf)
 
 > v0.18 adds Nu’gh, the pre-fight review screen, Stunned stars and upgrades for every boss action. [Changes and reasons](../docs/Changes-v0.18.md).
 
-# Ash & Oath v0.19 — playable prototype
+# Ash & Oath v0.20 — playable prototype
 
 A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, instant rolls, pixel arena and knight sprites, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
 

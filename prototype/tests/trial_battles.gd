@@ -1,6 +1,7 @@
 extends SceneTree
 # Deterministic heuristic playtester. Reads visible rolls/board only; never alters live state or RNG.
 const Battle = preload("res://prototype/battle.gd")
+const Cantor = preload("res://prototype/cantor.gd")
 const Nugh = preload("res://prototype/nugh.gd")
 const Catalog = preload("res://prototype/catalog.gd")
 var activations := {}
@@ -15,7 +16,7 @@ func run():
    var stat := {"kit":kit,"blank_move":move,"wins":0,"losses":0,"stalls":0,"rounds":0,"phase_two":0,"loss_boss_hp":0,"downings":0,"damage":{},"ability_uses":{}}
    activations = {};choice_misses = {}
    for seed_value in range(1,count+1):
-    var g = Nugh.new() if OS.get_environment("ASH_BOSS") == "nugh" else Battle.new();var builds: Array = []
+    var g = Cantor.new() if OS.get_environment("ASH_BOSS") == "cantor" else (Nugh.new() if OS.get_environment("ASH_BOSS") == "nugh" else Battle.new());var builds: Array = []
     var picker := RandomNumberGenerator.new();picker.seed = seed_value*173
     var ids: Array = Catalog.extended_ids()
     for hero in range(3):
@@ -193,7 +194,8 @@ func resolve_choice(g) -> void:
   "push":g.push(p.get("direction",g.impact_direction(p.hero)))
   "channel":g.channel_choice(true)
   "bind":
-   if g.encounter_id == "nugh":g.choose_bind(1,"Brood Command")
+   if g.encounter_id == "cantor":g.choose_bind(1,"Toll of Reckoning")
+   elif g.encounter_id == "nugh":g.choose_bind(1,"Brood Command")
    else:g.choose_bind(0,"Smoking Strike")
   "ember":
    var value := 0

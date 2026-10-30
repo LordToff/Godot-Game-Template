@@ -69,7 +69,7 @@ func run() -> void:
  g.continue_attack()
  expect(g.pending.kind == "reaction","attack opens stored Reaction window")
  g.react(true,Vector2i.LEFT)
- expect(g.heroes[0].hp == 6 and g.heroes[0].block == 1,"Reaction movement avoids attack; fallback replaces it")
+ expect(g.heroes[0].hp == 6 and g.heroes[0].block == 0 and g.heroes[0].pos == Vector2i(2,3),"Reaction blocks two damage without moving")
  expect(g.pending.is_empty(),"reaction resolution completes without stale prompt")
  g = fresh(); g.active = 3; g.boss_rolls = ["Brace","Brace","Brace"]; g.boss_index = 0
  for i in range(3):g.boss_step()

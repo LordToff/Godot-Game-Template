@@ -37,7 +37,7 @@ func run():
  app.lab_face = 5;app.reset_lab()
  var hits = app.ui.get_children().filter(func(c):return c is Button and c.text == "Boss hits")
  hits[0].pressed.emit()
- check(app.ui.get_children().any(func(c):return c is Button and c.text == "Block + stay"),"lab boss hit opens real reaction controls")
+ check(app.ui.get_children().any(func(c):return c is Button and c.text == "Gain 2 Block"),"lab boss hit opens real reaction controls")
  app.game.react(true);app.rebuild()
  app.show_changes = true;app.rebuild()
  check(app.ui.get_node("ChangeLog").text.contains("Why") or app.ui.get_node("ChangeLog").text.contains("Previously"),"in-game changelog explains reasons")

@@ -52,7 +52,7 @@ func run():
  check(app.effects.any(func(fx):return fx.kind == "debuff"),"debuff creates purple animation")
  app.game.pending = {"kind":"reaction","hero":0,"action":"Strike","victims":[0],"reacted":[],"amount":2}
  app.game.heroes[0].results[1] = 5;app.game.heroes[0].reaction = [1]; app.rebuild()
- check(app.ui.get_children().any(func(c):return c is Button and c.text == "Block + stay"),"Reaction choices displayed")
+ check(app.ui.get_children().any(func(c):return c is Button and c.text == "Gain 2 Block"),"Reaction choices displayed")
  app.game.pending = {"kind":"fracture","hero":1}; app.rebuild()
  check(app.ui.get_children().filter(func(c):return c is Button).size() >= 18,"Fracture face picker displayed")
  app.game.pending = {}; app.show_help = true; app.rebuild()

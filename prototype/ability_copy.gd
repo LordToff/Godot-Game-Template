@@ -13,7 +13,7 @@ func face(f: int) -> String:
   2:return "Move up to %d orthogonal spaces. Occupied cells block the path." % n("face2.move")
   3:return "Move up to %d spaces in a straight line. No turning or passing through units." % n("face3.move")
   4:return "Gain %d Block. Unspent Block expires at your next turn." % n("face4.block")
-  5:return "When attacked, gain %d Block and optionally step %d before the hit." % [n("face5.block"),n("face5.move")]
+  5:return "When personally attacked, gain %d Block before the hit. No movement." % n("face5.block")
   6:return "Click another READY die to reroll it. Resolve its new result next, or decline it.\n\nWorks after other actions. Uses this Focus face, not a reroll charge. Locked faces cannot be rerolled."
   7:return "Heal yourself or an ally within %d for %d HP. A Downed ally revives as Broken." % [n("face7.range"),n("face7.heal")]
   8:return "Push %s up to %d spaces away. No collision damage." % [reach(f),n("face8.move")]

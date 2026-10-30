@@ -745,6 +745,7 @@ func continue_attack() -> void:
  var action: String = pending.action
  var source: int = pending.get("source",3)
  var reach: int = pending.get("range",boss_range(action))
+ var area: bool = pending.get("area",action in ["Sweep","Furnace Roar"])
  for victim in pending.victims:
   for actor in range(3):
    if heroes[actor].hp <= 0 or heroes[actor].dead: continue
@@ -752,16 +753,16 @@ func continue_attack() -> void:
     var key := str(actor) + ":" + str(die)
     if key in pending.reacted: continue
     var f: int = face(actor,die)
-    var trigger: bool = actor == victim and (f in [5,28] or heroes[actor].smoke.has(die))
+    var trigger: bool = actor == victim and (f == 5 or (f == 28 and not area) or heroes[actor].smoke.has(die))
     if f == 44: trigger = actor != victim and distance(actor,victim) <= v("face44.range") and sight(actor,victim,v("face44.range"))
-    if f == 45: trigger = actor != victim and distance(actor,source) <= mini(v("face45.range"),reach) and pending.action not in ["Sweep","Furnace Roar"]
+    if f == 45: trigger = actor != victim and distance(actor,source) <= mini(v("face45.range"),reach) and not area
     if f == 46: trigger = actor == victim and pending.amount-(v("face51.weakness") if boss.weak and source == 3 else 0)-heroes[actor].block-heroes[actor].dr >= heroes[actor].hp
     if f == 48: trigger = true
     if trigger:
      pending.kind = "reaction"; pending.hero = actor; pending.die = die; pending.victim = victim
      return
  var victims: Array = pending.victims.duplicate()
- if action not in ["Sweep","Furnace Roar"] and (heroes[victims[0]].hp <= 0 or distance(source,victims[0]) > reach):
+ if not area and (heroes[victims[0]].hp <= 0 or distance(source,victims[0]) > reach):
   var ts := attack_targets(source,reach)
   if ts.is_empty():
    note(action + " has no legal adjacent target after Reactions; " + ("worm holds; bite ends." if source >= 4 else ("completed movement is kept, attack ends." if action == "Skirmish" else "attack is replaced by fallback.")))
@@ -775,7 +776,7 @@ func continue_attack() -> void:
  pending = {}
  for t in victims:
   # Sweep locks its area after all reactions, and hits each adjacent unit once.
-  if action in ["Sweep","Furnace Roar"] and distance(3,t) > boss_range(action): continue
+  if area and distance(source,t) > reach: continue
   record_event("attack","%s attacks %s with %s for %d damage." % [unit_name(source),unit_name(t),action,maxi(0,amount-(v("face51.weakness") if boss.weak and source == 3 else 0))],source,t,amount)
   var hp_before: int = heroes[t].hp
   damage(t,maxi(0,amount-(v("face51.weakness") if boss.weak and source == 3 else 0)),false,"",source)
@@ -820,8 +821,8 @@ func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
     if outcome != "": return
    _:
     if not h.smoke.has(die) or h.smoke[die] == 4: h.block += v("face32.block") if h.smoke.has(die) else v("face5.block")
-    if dir != Vector2i.ZERO and h.get("rooted",0) <= 0:
-     for step in range(v("face32.move") if h.smoke.has(die) else v("face5.move")):
+    if h.smoke.get(die,-1) in [2,3] and dir != Vector2i.ZERO and h.get("rooted",0) <= 0:
+     for step in range(v("face32.move")):
       if not legal(t,h.pos+dir):break
       h.pos += dir
     h.smoke.erase(die)
@@ -964,9 +965,11 @@ func modified_value(d: int, value: int) -> int:
   if Catalog.category(face(active,d)) == "Defense": value *= 1+h.mods[d].get("repeat",0)
  return maxi(0,value)
 
+func attack_bonus(_target: int) -> int:return 0
+
 func strike(d: int, target: int, base: int, pierce: int = 0, numeric_attack: bool = false) -> int:
  var h: Dictionary = heroes[active]
- var value := maxi(0,modified_value(d,base)-hero_weakness(h))
+ var value := maxi(0,modified_value(d,base+attack_bonus(target))-hero_weakness(h))
  if numeric_attack and h.numeric_zero: value = 0
  var repeats := 1
  if h.backstab >= round_no and target == 3 and rear(active): repeats += v("face10.repeat"); h.backstab = 0
@@ -980,7 +983,7 @@ func strike(d: int, target: int, base: int, pierce: int = 0, numeric_attack: boo
   if face(active,d) == 35 and not sight(active,target,face_range(35)): break
   if n > 0:
    var next_base: int = numeric_attack_base(d,target) if numeric_attack else base
-   value = maxi(0,modified_value(d,next_base)-hero_weakness(h))
+   value = maxi(0,modified_value(d,next_base+attack_bonus(target))-hero_weakness(h))
    if numeric_attack and h.numeric_zero: value = 0
   var unit: Dictionary = unit_data(target)
   var before: int = unit.hp
@@ -1344,7 +1347,7 @@ func detonate_brand() -> void:
 func turn_explanation() -> String:
  if outcome != "": return "Encounter ended. Open the chronicle to review the result."
  if active == 3:
-  return "BOSS TURN: marked Cinder cells detonate first; old boss Block expires. Click Resolve I, II, III in order. Reactions pause before damage; choose whether to spend them. After III, click Resolve end of turn."
+  return "BOSS TURN: "+("marked Cinder cells detonate first; " if encounter_id == "hollow" else "")+"old boss Block expires. Click Resolve I, II, III in order. Reactions pause before damage; choose whether to spend them. After III, click Resolve end of turn."
  var h: Dictionary = heroes[active]
  var available := 0
  for used in h.used:
