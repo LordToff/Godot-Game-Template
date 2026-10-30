@@ -36,6 +36,7 @@ func run():
  var worm: int = g.living_minions()[0];g.unit_data(worm).pos = Vector2i(2,5)
  g.heroes[0].pos = Vector2i(2,7);g.heroes[0].results = [5,1,4];g.heroes[0].reaction = [0];g.heroes[0].used = [true,false,false]
  g.heroes[1].pos = Vector2i(0,8);g.heroes[2].pos = Vector2i(8,8);g.boss.weak = true
+ g.balance["nugh.worm_hit_faces"] = 6
  action(g,"Brood Command")
  check(g.unit_data(worm).pos == Vector2i(2,6),"command moves worm along legal path to adjacency")
  check(g.pending.get("source",-1) == worm and g.pending.get("kind","") == "reaction","worm bite opens a real reaction with its own source")
@@ -46,6 +47,7 @@ func run():
  g = fresh();g.minions.clear();g.spawn_worms(1);worm = g.living_minions()[0];g.unit_data(worm).pos = Vector2i(2,6)
  g.heroes[0].pos = Vector2i(2,7);g.heroes[1].pos = Vector2i(0,8);g.heroes[2].pos = Vector2i(8,8)
  for h in g.heroes:h.reaction.clear()
+ g.balance["nugh.worm_hit_faces"] = 6
  action(g,"Brood Command")
  check(g.heroes[0].hp == 5,"worm actually damages hero without a reaction")
  g = fresh();g.boss.hp = 6;g.action_owner = 0;g.damage(g.living_minions()[0],1)

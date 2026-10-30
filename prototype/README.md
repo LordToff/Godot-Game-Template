@@ -1,14 +1,18 @@
+> v0.21: autonomous worms, chance-based bites and poison, projected 3D Numeric rolls, hover-only combat details, face-picker previews and tile-by-tile movement. [Changes](../docs/Changes-v0.21.md).
+
 > v0.20: optional third boss Veyl, Resonance / open-core windows, original bell sprites and block-only starter Reaction. [Rules and test notes](../docs/Changes-v0.20.md).
 
 > v0.19: retreating human-worm Nu’gh, active Brood Command, phase-I-only Soul Link, stronger Hollow hazards and persistent fallback outcomes. [Changes and trials](../docs/Changes-v0.19.md).
 
-[Current consolidated rules](../docs/Current-Rules-v0.20.md) · [PDF rulebook](../docs/AshAndOath-Current-Rules-v0.20.pdf)
+Versioned sections below describe their historical releases; use the current rulebook for current mechanics.
+
+[Current consolidated rules](../docs/Current-Rules-v0.21.md) · [PDF rulebook](../docs/AshAndOath-Current-Rules-v0.21.pdf)
 
 > v0.18 adds Nu’gh, the pre-fight review screen, Stunned stars and upgrades for every boss action. [Changes and reasons](../docs/Changes-v0.18.md).
 
-# Ash & Oath v0.20 — playable prototype
+# Ash & Oath v0.21 — playable prototype
 
-A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, instant rolls, pixel arena and knight sprites, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
+A local tactical dice-building boss battler built from the supplied Master Rules v10 and Action Faces. This update responds to playtesting: clearer boss effects, animated Numeric rolls, pixel arena and knight sprites, one starting reroll per hero, a full-catalog starter draft, and a tuned tutorial. The original balance remains selectable.
 
 ## Current v0.17
 
@@ -101,7 +105,7 @@ The opening Tutorial offers eight guided lessons and can launch a practice prese
 
 Interaction rulings: Short Shot’s cap includes Mark Prey and consumes the mark on a damaging shot; Pierce cannot restore Block after Downed; Break Rhythm restores original initiative next round; Contained Power shared-roll bonuses wait for Maintain. Repeated Attacks recheck targets and reroll Numeric separately; Hooked Slash / Engrave riders apply per hit. Balance constants stay unchanged.
 
-Read the [six-page plain-language guide](../docs/AshAndOath-Plain-Language-Guide-v0.8.pdf). `dice_tray.gd` is now a nonvisual compatibility endpoint; the 3D presentation was removed in v0.9. `polish_test.gd` and `polish_ui_test.gd` exercise interaction fixes, instant rolls, Channels, practice progression, presets and friendly-fire confirmation.
+Read the [six-page plain-language guide](../docs/AshAndOath-Plain-Language-Guide-v0.8.pdf). In v0.9, `dice_tray.gd` became a nonvisual compatibility endpoint. v0.21 restores projected 3D cubes for Numeric values only. `polish_test.gd` and `polish_ui_test.gd` exercise interaction fixes, instant rolls, Channels, practice progression, presets and friendly-fire confirmation.
 
 ## New in v0.7
 
@@ -133,10 +137,10 @@ Run the Windows executable from the extracted download; no Godot installation is
 
 1. Each hero chooses **two distinct bonus faces directly from the entire 47-face extended hero pool**. There are no random offers. Search and category filtering are available. The eight starter designs, boss-only Hamstring, archived Heart/Vital Die and generated/penalty tiles are excluded. You can inspect each printed prototype effect before confirming.
 2. Both chosen faces become owned. Confirming installs a legal twelve-ability build containing both, retaining First Aid and prioritizing useful basic attacks/movement. Every one of the 1,081 possible distinct pairs has been validated. Customize the three dice in the forge afterward. Keep two Blanks per die, at most twelve equipped abilities, and the separate Movement/Defense/Skill caps. Owning the gift does not bypass construction limits.
-3. Click **Enter the hollow**. Results appear immediately; all dice stay public and controls are available without waiting.
+3. Click **Enter the hollow**. Results appear immediately; all dice stay public; Numeric feedback briefly holds action controls until its recorded result is shown.
 4. Click a hero's die, then a highlighted destination or target. Some self/setup effects use **Resolve selected face**, while effects needing a choice open a dedicated picker. Decline spends a beneficial result without using it.
 5. Each hero starts the encounter with **one Action Reroll**. Select an unresolved eligible die and click **Reroll selected die** before resolving any ordinary face that turn. The charge is once per encounter, not per round. Focus is its own later reroll exception. Downed clears the bank; Clairvoyance can replenish it, subject to cap 1.
-6. Boss turns show full explanations for all three actions, with completed actions checked off. On hero turns click any compact intent row to inspect it. Click Resolve I/II/III, then end of turn. Reactions, Fracture, pushes, channels and catalog choices pause for player input.
+6. Boss turns show full explanations for all three actions, with completed actions checked off. Hover any compact intent row to inspect it, then move away to restore the log. Click Resolve I/II/III, then end of turn. Reactions, Fracture, pushes, channels and catalog choices pause for player input.
 7. Attacks use brief lunges, tracer/slash effects; Block uses blue shields; buffs/healing use green rising runes; debuffs use purple rings. A ruined courtyard and moonlit chapel backdrop frame the board. The chronicle shows round and event sequence, actor, ability, exact target, blocked/reduced damage, actual HP loss, remaining HP/Block and movement coordinates. **Chronicle / history** provides readable paragraphs, All/Combat/Turns filters, automatic scrolling and Copy log (up to 2,000 current-encounter events).
 
 You control all three heroes locally. Escape cancels ordinary selection and closes help/history. Settings uses the existing template window. Browser audio requires the first click to activate playback.

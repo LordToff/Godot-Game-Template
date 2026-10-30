@@ -2,14 +2,26 @@ extends "res://prototype/battle.gd"
 const DICE = [["Birth Cry","Brood Command","Burrow","Brood Command","Gnashing Maw","Brood Guard"],["Brood Command","Brood Command","Birth Cry","Burrow","Gnashing Maw","Devour Brood"],["Brood Command","Birth Cry","Burrow","Brood Command","Devour Brood","Brood Guard"]]
 var brood_queue: Array = []
 var command_active := false
+var autonomous := false
+var brood_finished := false
+func activate() -> void:
+ if cursor < order.size() and order[cursor] == 3:brood_finished = false;autonomous = false
+ super.activate()
+func finish_turn() -> void:
+ if outcome != "" or not pending.is_empty():return
+ if active == 3 and not brood_finished:
+  brood_finished = true;autonomous = true;command_active = true;brood_queue = living_minions().duplicate()
+  record_event("minion_action","Nu’gh has finished all three dice. BROOD TURN: each surviving worm moves and rolls one bite, even if it already acted through Command.",3)
+  activate_worm();return
+ super.finish_turn()
 func boss_name() -> String:return "Nu’gh"
 func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: bool = true, profile: Dictionary = {}) -> void:
- encounter_id = "nugh";brood_queue.clear();command_active = false
+ encounter_id = "nugh";brood_queue.clear();command_active = false;autonomous = false;brood_finished = false
  super.start(builds,seed_value,soul,balanced,profile)
 func prepare_encounter() -> void:
  boss.hp = v("nugh.hp");boss.max_hp = boss.hp
  spawn_worms(v("nugh.initial_worms"))
- record_event("guide","Nu’gh retreats while Brood Command moves and attacks with each worm. Soul Link damages him only BEFORE half HP. At half HP it breaks permanently: hunt Nu’gh directly while controlling his brood.",3)
+ record_event("guide","Nu’gh retreats. Each worm moves and rolls a bite after his three dice; Brood Command grants extra activations. Bites roll 1,1,0,0,0,0; HP damage applies Poison 1. Soul Link damages him only BEFORE half HP. At half HP it breaks permanently: hunt Nu’gh directly while controlling his brood.",3)
 func boss_dice() -> Array:return DICE.duplicate(true)
 func pressure() -> int:return mini(v("nugh.pressure_cap")+(v("nugh.pressure_bonus") if phase_two else 0),living_minions().size())
 func summon_cell_free(cell: Vector2i) -> bool:
@@ -75,10 +87,10 @@ func boss_range(action: String) -> int:
  if action == "Worm Bite":return 1
  if action == "Gnashing Maw":return v("nugh.maw_range")+(v("nugh.maw_range_bonus") if phase_two else 0)
  return super.boss_range(action)
-func boss_visible_index() -> int:return boss_index-1 if command_active else boss_index
-func boss_display_action() -> String:return "Brood Command" if command_active else super.boss_display_action()
+func boss_visible_index() -> int:return 3 if autonomous else (boss_index-1 if command_active else boss_index)
+func boss_display_action() -> String:return ("Brood turn" if autonomous else "Brood Command") if command_active else super.boss_display_action()
 func boss_step_label() -> String:
- if command_active:return "Activate next worm (%d left) →" % brood_queue.size() if not brood_queue.is_empty() else "Finish Brood Command →"
+ if command_active:return "Activate worm (%d left) →" % brood_queue.size() if not brood_queue.is_empty() else ("Finish brood turn →" if autonomous else "Finish Brood Command →")
  return super.boss_step_label()
 func move_worm(id: int, steps: int) -> void:
  var origin: Vector2i = unit_data(id).pos
@@ -102,11 +114,18 @@ func move_worm(id: int, steps: int) -> void:
  var chosen: Array = paths[rng.randi_range(0,paths.size()-1)]
  if chosen.is_empty():return
  unit_data(id).pos = chosen.back()
- record_event("move","Brood Command: %s moves %s → %s." % [unit_name(id),cell_name(origin),cell_name(unit_data(id).pos)],id,id)
+ record_event("move","Worm activation: %s moves %s → %s." % [unit_name(id),cell_name(origin),cell_name(unit_data(id).pos)],id,id)
+func worm_faces() -> Array:
+ var faces: Array = []
+ for side in range(6):faces.append(str(worm_damage() if side < v("nugh.worm_hit_faces") else 0))
+ return faces
 func worm_damage() -> int:return v("nugh.worm_damage")+(v("nugh.worm_damage_bonus") if phase_two else 0)
 func activate_worm() -> void:
  while not brood_queue.is_empty() and unit_data(brood_queue[0]).dead:brood_queue.pop_front()
- if brood_queue.is_empty():command_active = false;last_boss_result = "Brood Command complete: every surviving worm activated once.";return
+ if brood_queue.is_empty():
+  command_active = false;last_boss_result = "Brood turn complete." if autonomous else "Brood Command complete."
+  if autonomous:autonomous = false;super.finish_turn()
+  return
  var id: int = brood_queue.pop_front()
  action_owner = id;action_label = "Worm Bite";action_before = state_snapshot()
  move_worm(id,v("nugh.command_move")+(v("nugh.command_move_bonus") if phase_two else 0))
@@ -116,9 +135,17 @@ func activate_worm() -> void:
   record_event("minion_action",last_boss_result,id,id)
  else:
   var target := nearest_attacked(id,options);last_targets = [target]
+  var side := rng.randi_range(0,5)
+  var amount := worm_damage() if side < v("nugh.worm_hit_faces") else 0
+  var faces := worm_faces()
+  roll_presentations.append({"actor":unit_name(id),"kind":"Numeric · Worm Bite","faces":[faces],"sides":[side],"results":[str(amount)],"dice":[0]})
+  record_event("roll","%s → Worm Bite against %s: d6 side %d [%s] = %d damage. Poison only if HP is lost." % [unit_name(id),unit_name(target),side+1,", ".join(faces),amount],id,target)
+  if amount == 0:
+   last_boss_result = "%s → %s: rolled 0; bite misses, no Poison." % [unit_name(id),unit_name(target)]
+   record_event("minion_action",last_boss_result,id,target);report_changes();return
   last_boss_result = "%s → %s: Bite %d. Reactions apply." % [unit_name(id),unit_name(target),worm_damage()]
   record_event("minion_action",last_boss_result,id,target)
-  pending = {"kind":"attack","action":"Worm Bite","source":id,"range":1,"victims":[target],"reacted":[],"amount":worm_damage()}
+  pending = {"kind":"attack","action":"Worm Bite","source":id,"range":1,"victims":[target],"reacted":[],"amount":amount}
   continue_attack()
  report_changes()
 func boss_step() -> void:
@@ -137,7 +164,7 @@ func boss_step() -> void:
    brood_queue = living_minions().duplicate()
    if brood_queue.is_empty():
     var spawned := spawn_worms(v("nugh.command_empty")+(v("nugh.summon_bonus") if phase_two else 0))
-    last_boss_result = "Brood Command: no worms → summon %d. New worms wait for the next Command." % spawned
+    last_boss_result = "Brood Command: no worms → summon %d. New worms can act in the brood turn after Nu’gh." % spawned
     record_event("minion_action",last_boss_result,3)
    else:
     command_active = true;record_event("minion_action","BROOD COMMAND: activate each of %d worms once. Move then bite; resolve Reactions between worms." % brood_queue.size(),3)
@@ -190,8 +217,9 @@ func check_end() -> void:
   for worm in minions:worm.hp = 0;worm.dead = true
 func default_boss_help(action: String) -> String:
  match action:
+  "Brood turn":return "After Nu’gh’s three dice, each worm moves up to %d toward a standing hero, then bites if adjacent.\n\nDie: %s. HP loss applies Poison %d (next own turn: unavoidable HP loss, then clear; refresh, never stack). Reactions apply.\n\nThis is extra to Brood Command." % [v("nugh.command_move")+(v("nugh.command_move_bonus") if phase_two else 0),", ".join(worm_faces()),v("nugh.poison")]
   "Birth Cry":return "Summon %d worms on empty cells within 2; cap %d living, %d HP each. Never on heroes, the boss or other worms." % [v("nugh.summon")+(v("nugh.summon_bonus") if phase_two else 0),v("nugh.worm_cap"),v("nugh.worm_hp")]
-  "Brood Command":return "Each living worm moves up to %d toward the nearest standing hero, then bites an adjacent hero for %d. One activation per worm; Reactions apply between bites. No worms: summon %d instead; new worms wait for the next Command." % [v("nugh.command_move")+(v("nugh.command_move_bonus") if phase_two else 0),worm_damage(),v("nugh.command_empty")+(v("nugh.summon_bonus") if phase_two else 0)]
+  "Brood Command":return "Each worm: move up to %d toward a standing hero, then bite if adjacent.\n\nDie: %s. HP loss applies Poison %d (next own turn: unavoidable HP loss, then clear; refresh, never stack). Reactions apply.\n\nNo worms: summon %d instead. New worms can act after Nu’gh." % [v("nugh.command_move")+(v("nugh.command_move_bonus") if phase_two else 0),", ".join(worm_faces()),v("nugh.poison"),v("nugh.command_empty")+(v("nugh.summon_bonus") if phase_two else 0)]
   "Gnashing Maw":return "Closest standing hero within %d: %d base + %d brood pressure damage. No target: RETREAT %d or gain %d Block if cornered." % [boss_range(action),v("nugh.maw_damage"),pressure(),v("nugh.fallback_move"),v("nugh.guard_block")]
   "Burrow":return "RETREAT up to %d cells to maximize distance from the nearest hero. No safer route: +%d Block." % [v("nugh.burrow_move")+(v("nugh.retreat_bonus") if phase_two else 0),v("nugh.guard_block")]+(" Also leave %d worm(s) near the old location." % v("nugh.burrow_worms") if phase_two else "")
   "Brood Guard":return "Gain %d Block + one per living worm, bonus capped at %d." % [v("nugh.guard_block"),v("nugh.guard_worm_cap")]+(" Also shield one worm with %d non-stacking Block." % v("nugh.guard_worm_block") if phase_two else "")
@@ -205,7 +233,7 @@ func phase_upgrades() -> Array:
  if v("nugh.devour_heal_bonus") > 0:devour_upgrade += " Healing +%d." % v("nugh.devour_heal_bonus")
  return [["Birth Cry","Summon +%d worm(s); Soul Link switches OFF permanently." % v("nugh.summon_bonus")],["Brood Command",command_upgrade],["Gnashing Maw","Reach +%d; brood pressure cap +%d." % [v("nugh.maw_range_bonus"),v("nugh.pressure_bonus")]],["Burrow","Retreat +%d and leave %d worm(s)." % [v("nugh.retreat_bonus"),v("nugh.burrow_worms")]],["Brood Guard","Shield one worm with %d non-stacking Block." % v("nugh.guard_worm_block")],["Devour Brood",devour_upgrade]]
 func turn_explanation() -> String:
- return "NU’GH: Brood Command makes worms move and attack. He retreats. "+("SOUL LINK OFF permanently: attack Nu’gh directly; clear worms to survive. " if phase_two else "Soul Link ON until half HP: hero worm kills deal %d to Nu’gh. " % v("nugh.link_damage"))+super.turn_explanation()
+ return "NU’GH: all worms also move and roll a bite after his three dice. Brood Command grants extra activations. He retreats. "+("SOUL LINK OFF permanently: attack Nu’gh directly; clear worms to survive. " if phase_two else "Soul Link ON until half HP: hero worm kills deal %d to Nu’gh. " % v("nugh.link_damage"))+super.turn_explanation()
 func status_description(id: int) -> String:
  var text := super.status_description(id)
  if id == 3:

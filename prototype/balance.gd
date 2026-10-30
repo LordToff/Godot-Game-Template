@@ -1631,6 +1631,8 @@ const DEFINITIONS = [
  {"key": "phase.boss.tithe.cap", "group": "Boss · Half-HP upgrades", "label": "Grave Tithe Block cap bonus at half HP", "default": 1, "min": 0, "max": 9},
  {"key": "phase.boss.Furnace Roar.range", "group": "Boss · Half-HP upgrades", "label": "Furnace Roar reach bonus at half HP", "default": 1, "min": 0, "max": 9},
  {"key": "nugh.hp", "group": "Boss · Nu’gh", "label": "Boss HP", "default": 10, "min": 1, "max": 999},
+ {"key":"nugh.poison","group":"Boss · Nu’gh","label":"Worm bite: Poison on HP damage","default":1,"min":0,"max":16},
+ {"key":"nugh.worm_hit_faces","group":"Boss · Nu’gh","label":"Worm Numeric: successful sides out of six","default":2,"min":0,"max":6},
  {"key": "nugh.worm_hp", "group": "Boss · Nu’gh", "label": "Worm HP", "default": 1, "min": 1, "max": 99},
  {"key": "nugh.worm_cap", "group": "Boss · Nu’gh", "label": "Maximum living worms", "default": 4, "min": 0, "max": 12},
  {"key": "nugh.initial_worms", "group": "Boss · Nu’gh", "label": "Starting worms", "default": 2, "min": 0, "max": 12},

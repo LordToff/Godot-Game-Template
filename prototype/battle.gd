@@ -181,6 +181,7 @@ func status_map(id: int) -> Dictionary:
   result["Debt Penalty"] = h.debt_penalty > 0
   result["Channel"] = not h.channel.is_empty()
   result["Stunned"] = h.stun
+  result["Poison"] = h.get("poison",0) > 0
   result["Rooted"] = h.get("rooted",0) > 0
   result["Broken"] = h.broken
   result["Gambler Armed"] = h.gambler
@@ -312,6 +313,10 @@ func activate() -> void:
   var h: Dictionary = heroes[active]
   if h.dead or h.hp == 0 or active in replaced:
    cursor += 1; activate(); return
+  tick_poison(active)
+  if h.hp <= 0 or outcome != "":
+   if outcome == "":finish_turn()
+   return
   if h.echo_due:
    h.echo_due = false; damage(active,v("face48.penalty"),true)
    if h.hp <= 0 or outcome != "":
@@ -330,6 +335,14 @@ func activate() -> void:
    h.channel.block_lost = 0
    pending = {"kind":"channel","hero":active}
 
+func tick_poison(id: int) -> void:
+ var h: Dictionary = heroes[id]
+ var amount: int = h.get("poison",0)
+ h.poison = 0
+ if amount <= 0 or h.hp <= 0 or h.dead:return
+ action_owner = 3;action_label = "Poison"
+ record_event("poison","%s: Poison %d triggers at own turn start, bypassing Block, then expires." % [unit_name(id),amount],3,id,amount)
+ damage(id,amount,true,"Poison")
 func finish_turn() -> void:
  if outcome != "" or not pending.is_empty(): return
  forced_die = -1
@@ -369,6 +382,7 @@ func finish_turn() -> void:
   heroes[active].setaside = -1
   roll_hero(heroes[active])
   present_action_roll(active,[0,1,2],"Recovery roll")
+  tick_poison(active)
   note(heroes[active].name + " · Immediate recovery turn. Broken: next zero HP is death.")
  else: activate()
 
@@ -504,7 +518,7 @@ func damage(id: int, amount: int, unavoidable: bool = false, reason: String = ""
    else:h.protected = true;note(h.name+" is Downed. Protected until this full turn ends.")
    h.block = 0;h.weak = false;h.bulwark_weak = false;h.stun = false
    h.reaction.clear();h.channel = {};h.dr = 0;h.rerolls = 0;h.used = [true,true,true]
-   h.ward = false;h.num_boost = 0;h.numeric_focus = false;h.stored_num = -1;h.rooted = 0
+   h.ward = false;h.num_boost = 0;h.numeric_focus = false;h.stored_num = -1;h.rooted = 0;h.poison = 0
    h.backstab = 0;h.debt_buff = 0;h.debt_next = 0;h.debt_penalty = 0
    h.defy = false;h.black_oath = false;h.echo_due = false;h.mods = {};h.smoke = {}
 
@@ -774,6 +788,7 @@ func continue_attack() -> void:
   pending.victims = [t]; continue_attack(); return
  var amount: int = pending.amount
  pending = {}
+ action_owner = source;action_label = action
  for t in victims:
   # Sweep locks its area after all reactions, and hits each adjacent unit once.
   if area and distance(source,t) > reach: continue
@@ -781,6 +796,9 @@ func continue_attack() -> void:
   var hp_before: int = heroes[t].hp
   damage(t,maxi(0,amount-(v("face51.weakness") if boss.weak and source == 3 else 0)),false,"",source)
   last_boss_result = "%s · %s → %s: %d HP lost (%d incoming)." % [action,unit_name(source),unit_name(t),hp_before-heroes[t].hp,amount]
+  if action == "Worm Bite" and hp_before > heroes[t].hp and heroes[t].hp > 0 and v("nugh.poison") > 0:
+   heroes[t].poison = maxi(heroes[t].get("poison",0),v("nugh.poison"))
+   record_event("poison","%s poisons %s: Poison %d. At next own turn start lose that much HP, bypass Block, then clear. Further bites refresh; do not stack." % [unit_name(source),unit_name(t),heroes[t].poison],source,t,heroes[t].poison)
   if outcome != "": return
   if action in ["Strike","Smoking Strike"] and maxi(0,amount-(v("face51.weakness") if boss.weak else 0)) > 0:smoking_fire(t)
   if outcome != "":return
@@ -935,6 +953,9 @@ func numeric(h: Dictionary, damage_value: bool = false) -> int:
  var value := 0
  var absolute_zero := false
  var numeric_side := 0
+ var stored: bool = h.stored_num >= 0
+ var multiplier_side := -1
+ var multiplier_base := 0
  if h.stored_num >= 0: value = h.stored_num; numeric_side = 0 if value > 0 else 4; h.stored_num = -1
  else:
   var side := rng.randi_range(0,5)
@@ -942,7 +963,9 @@ func numeric(h: Dictionary, damage_value: bool = false) -> int:
   if h.gambler and side == 4: absolute_zero = true
   elif h.gambler and side == 5:
    var base := rng.randi_range(0,5)
-   value = v("face9.multiplier")*(ordinary_numeric(base,h.numeric_focus))
+   multiplier_side = base
+   multiplier_base = ordinary_numeric(base,h.numeric_focus)
+   value = v("face9.multiplier")*multiplier_base
   else: value = ordinary_numeric(side,h.numeric_focus)
  var rolled_value := value
  h.numeric_focus = false
@@ -950,8 +973,12 @@ func numeric(h: Dictionary, damage_value: bool = false) -> int:
   if not h.channel.is_empty() and h.channel.face == 25: value += h.channel.get("boost",0)
   if damage_value: value += h.num_boost; h.num_boost = 0
  h.numeric_zero = absolute_zero
- roll_presentations.append({"actor":h.name.capitalize(),"kind":("Numeric · base %d → value %d" % [rolled_value,value]) + (" · Attack modifiers follow" if damage_value else ""),"faces":[numeric_faces(h.gambler)],"sides":[numeric_side],"results":[str(value)],"dice":[0]})
- note(h.name + " rolls Numeric → " + str(value))
+ var shown_faces: Array = numeric_faces(h.gambler)
+ if stored:shown_faces = [str(rolled_value),str(rolled_value),str(rolled_value),str(rolled_value),str(rolled_value),str(rolled_value)]
+ roll_presentations.append({"actor":h.name.capitalize(),"kind":("Numeric · Stored value (no roll)" if stored else "Numeric · base %d → value %d" % [rolled_value,value]),"faces":[shown_faces],"sides":[numeric_side],"results":[str(value)],"dice":[0]})
+ if multiplier_side >= 0:
+  roll_presentations.append({"actor":h.name.capitalize(),"kind":"Numeric · Gambler base ×%d = %d" % [v("face9.multiplier"),value],"faces":[numeric_faces(false)],"sides":[multiplier_side],"results":[str(multiplier_base)],"dice":[0]})
+ record_event("roll",("%s → %s: uses stored Numeric %d → %d after boosts; no new roll." % [h.name.capitalize(),action_label,rolled_value,value]) if stored else ("%s → %s: Numeric side %d [%s] gives base %d → %d after boosts. Face modifiers and defenses follow." % [h.name.capitalize(),action_label,numeric_side+1,", ".join(shown_faces),rolled_value,value]),heroes.find(h))
  roll_context = "Numeric Die · result " + str(value)
  roll_serial += 1
  return value
@@ -1086,7 +1113,11 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
    heal(target,value)
    if f == 15: mutate(active,d,side,0); add_to_blank(target,15)
   17:
-   if h.stored_num < 0: h.stored_num = ordinary_numeric(rng.randi_range(0,5))
+   if h.stored_num < 0:
+    var stored_side := rng.randi_range(0,5)
+    h.stored_num = ordinary_numeric(stored_side)
+    roll_presentations.append({"actor":h.name.capitalize(),"kind":"Numeric · Numeric Echo","faces":[numeric_faces(false)],"sides":[stored_side],"results":[str(h.stored_num)],"dice":[0]})
+    record_event("roll","%s → Numeric Echo: ordinary die side %d = %d, stored for the next Numeric ability (no Gambler or boosts)." % [unit_name(active),stored_side+1,h.stored_num],active,active,h.stored_num)
   18:
    pending = {"kind":"bind","hero":active,"die":d}
    return true
@@ -1494,6 +1525,7 @@ func status_description(id: int) -> String:
  if id < 3:
   if h.dead:lines.append("Dead: cannot act or be revived.")
   elif h.hp == 0:lines.append("Downed: heal to revive with Broken.")
+  if h.get("poison",0) > 0:lines.append("Poison %d: unavoidable HP loss at next own turn start, then expires; does not stack." % h.poison)
   if h.broken:lines.append("Broken: the next Downing is lethal.")
   if hero_weakness(h) > 0:lines.append("Weakness −%d Attack damage." % hero_weakness(h))
   if h.dr > 0:lines.append("Damage Reduction %d after Block; ends at own turn." % h.dr)

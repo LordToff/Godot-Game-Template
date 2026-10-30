@@ -21,7 +21,7 @@ func run():
   g.pending = {"kind":"channel","hero":0};g.channel_choice(keep)
   check(h.block == (1 if keep else 0),"only maintain grants held benefits")
  g = Lab.create(34,1);g.heroes[0].backstab = g.round_no;g.hero_action(0,3)
- check(g.event_log.filter(func(e):return e.text.contains("rolls Numeric")).size() == 2,"repeated Numeric attacks roll separately")
+ check(g.event_log.filter(func(e):return e.kind == "roll" and e.text.contains("Numeric")).size() == 2,"repeated Numeric attacks roll separately")
  check(g.roll_presentations.filter(func(e):return e.kind.begins_with("Numeric")).size() == 2,"both Numeric rolls have presentation data")
  g = Lab.create(1);g.heroes[0].rerolls = 1;g.action_reroll(0)
  check(g.roll_presentations.back().dice == [0] and g.roll_presentations.back().faces.size() == 1,"reroll animates only affected die")
