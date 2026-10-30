@@ -25,6 +25,7 @@ func run():
  app.ui.get_node("StartEncounter").pressed.emit()
  check(app.page == "battle" and app.game.encounter_id == "nugh" and app.game.v("soul.move") == 1,"explicit start uses chosen boss and rules")
  var g = app.game
+ g.active = 0;g.cursor = g.order.find(0);g.pending = {};app.inspect_actor = 0;app.rebuild()
  check(g.living_minions().size() == 2,"real encounter displays the starting brood")
  check(app.ui.get_node("SideChronicle").position.y == 250 and app.ui.get_node("SideChronicle").size.y >= 570,"log gets more room")
  check(app.ui.get_node("BattleDie0").position.y == app.DIE_Y and app.ui.get_node("BattleDie0").size.y >= 88,"action cards move upward and grow")
@@ -46,7 +47,7 @@ func run():
   check(before.get_region(Rect2i(Vector2i(p)-Vector2i(32,42),Vector2i(64,40))).get_data() != after.get_region(Rect2i(Vector2i(p)-Vector2i(32,42),Vector2i(64,40))).get_data(),"Stunned changes sprite area on active AND inactive heroes")
  g.heroes[0].stun = false;g.heroes[1].stun = false;app.rebuild();var cleared = await capture("stun-expired")
  check(before.get_region(Rect2i(Vector2i(p0)-Vector2i(32,42),Vector2i(64,40))).get_data() == cleared.get_region(Rect2i(Vector2i(p0)-Vector2i(32,42),Vector2i(64,40))).get_data(),"Stunned effect disappears when status clears")
- app.set_process(true);g.damage(3,6);app.rebuild()
+ app.set_process(true);g.damage(3,8);app.rebuild()
  check(app.inspect_action == "__phase__" and app.ui.get_node("BossActionDetails").text.contains("Birth Cry") and not app.ui.get_node("BossActionDetails").text.contains("Cinder Brand"),"Nu phase guide shows his own six upgrades")
  await capture("nugh-phase-two")
  app.inspect_action = "";app.combat_inspected = 38;app.rebuild()

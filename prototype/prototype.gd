@@ -243,7 +243,7 @@ func rebuild() -> void:
   button("Menu",Vector2(288,112),Vector2(120,26),func():show_menu = true;rebuild(),GOLD)
  else:
   label_at("ASH & OATH",Vector2(42,26),27,GOLD,500,true)
-  label_at("A DICE-BUILDING BOSS BATTLER · v0.18",Vector2(44,65),11,MUTED)
+  label_at("A DICE-BUILDING BOSS BATTLER · v0.19",Vector2(44,65),11,MUTED)
   button("View dice",Vector2(350,30),Vector2(235,40),func(): show_dice = true;dice_hero = build_hero;rebuild(),Color("9fc7e6"))
   button("Tutorial / Ability Lab",Vector2(605,30),Vector2(245,40),start_lab,Color("82c8b9"))
   button("What changed",Vector2(866,30),Vector2(225,40),func():show_changes = true;rebuild())
@@ -342,9 +342,9 @@ func battle_ui() -> void:
  label_at("%d/%d HP  ·  %d Block" % [game.boss.hp,game.boss.max_hp,game.boss.block],Vector2(1120,22),16,Color("e6c4b6"),285)
  for d in range(3):
   var action: String = game.boss_rolls[d]
-  var done: bool = game.active == 3 and d < game.boss_index
+  var done: bool = game.active == 3 and d < game.boss_visible_index()
   var upgraded: bool = game.phase_two and action != "Bound"
-  var intent := button(["I","II","III"][d]+" · "+action+(" +" if upgraded else "")+(" ✓" if done else ""),Vector2(760+d*220,66),Vector2(208,36),func():inspect_action = action;combat_inspected = -1;show_active_effects = false;detailed_ability = false;rebuild(),GOLD if game.active == 3 and game.boss_index == d else MUTED)
+  var intent := button(["I","II","III"][d]+" · "+action+(" +" if upgraded else "")+(" ✓" if done else ""),Vector2(760+d*220,66),Vector2(208,36),func():inspect_action = action;combat_inspected = -1;show_active_effects = false;detailed_ability = false;rebuild(),GOLD if game.active == 3 and game.boss_visible_index() == d else MUTED)
   intent.add_theme_font_size_override("font_size",14);intent.tooltip_text = game.boss_help(action)
  var threshold := int(floor(game.boss.max_hp*game.v("boss.phase.percent")/100.0))
  var phase_button := button(("PHASE II ACTIVE" if game.phase_two else "UPGRADES AT %d HP" % threshold)+" · view changes",Vector2(760,110),Vector2(328,28),func():inspect_action = "__phase__";combat_inspected = -1;show_active_effects = false;detailed_ability = false;rebuild(),Color("e8a56a") if game.phase_two else GOLD)
@@ -400,6 +400,8 @@ func battle_ui() -> void:
   if game.forced_die >= 0:instruction = (roll_feedback.text if not roll_feedback.is_empty() and roll_feedback.get("die",-1) == game.forced_die else "New result: "+Model.FACES[game.face(game.active,game.forced_die)])+"\nResolve this die next, or Decline."
   elif not roll_feedback.is_empty() and roll_feedback.get("actor",-1) == game.active:instruction = roll_feedback.text
   if h.dead or h.hp <= 0:instruction = "This hero cannot act. End their turn to continue with the party."
+  if h.hp > 0 and h.pos in game.fire_tiles and game.v("boss.fire.end_turn") > 0:
+   instruction = "FIRE: end turn here → %d damage. Move off this cell or prepare enough Block." % game.v("boss.fire.end_turn")
   if training:
    instruction = "Lesson %d/8: " % (training_step+1)+LESSONS[training_step]
    if training_step == 6:instruction = "Soul lesson: select a Blank and move up to %d cells. You have %d conversions this hero turn." % [game.v("soul.move"),game.v("soul.uses")]
@@ -426,11 +428,11 @@ func battle_ui() -> void:
 
  else:
   label_at("BOSS TURN",Vector2(760,180),16,GOLD,328)
-  var current: String = game.boss_rolls[game.boss_index] if game.boss_index < 3 else "Turn complete"
+  var current: String = game.boss_display_action()
   label_at(current,Vector2(760,235),25,Color("f1d2bc"),328,true,true)
-  var description := RichTextLabel.new();description.name = "CurrentBossDetails";description.position = Vector2(760,310);description.size = Vector2(328,280);description.add_theme_font_size_override("normal_font_size",18);description.text = boss_ability_summary(current) if game.boss_index < 3 else "Advance to the next hero.";ui.add_child(description)
+  var description := RichTextLabel.new();description.name = "CurrentBossDetails";description.position = Vector2(760,310);description.size = Vector2(328,280);description.add_theme_font_size_override("normal_font_size",18);description.text = boss_ability_summary(current) if current != "Turn complete" else "Advance to the next hero.";ui.add_child(description)
   label_at("Last: "+(game.last_action if game.last_action != "" else "No action yet"),Vector2(760,625),14,MUTED,328,false,true)
-  button("Resolve "+(["I","II","III"][game.boss_index] if game.boss_index < 3 else "end of turn")+"   →",Vector2(760,682),Vector2(328,54),func():game.boss_step();selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
+  button(game.boss_step_label(),Vector2(760,682),Vector2(328,54),func():game.boss_step();selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
  label_at("BATTLE LOG",Vector2(1128,164),17,GOLD,280)
  button("Summary" if compact_log else "All events",Vector2(1296,159),Vector2(104,29),func():compact_log = not compact_log;rebuild(),MUTED).add_theme_font_size_override("font_size",11)
  button("Full history / filters",Vector2(1128,205),Vector2(272,34),func():show_history = true;rebuild(),MUTED)
@@ -449,8 +451,13 @@ func battle_ui() -> void:
  elif lab:lab_ui()
  if not game.pending.is_empty():pending_ui()
  if game.encounter_id == "nugh":
-  label_at("WORMS %d/%d · +%d attack damage" % [game.living_minions().size(),game.v("nugh.worm_cap"),game.pressure()],Vector2(428,117),13,Color("d7b3eb"),310)
- label_at("v0.18 · KILL WORMS → hurt Nu’gh, reduce pressure and deny healing. Defeat Nu’gh to win." if game.encounter_id == "nugh" else "v0.18 · THE HOLLOW · Read the intent, evade marked fire and prepare for the half-HP upgrades.",Vector2(28,857),15,MUTED,706,false,true)
+  label_at("BROOD %d/%d · SOUL LINK %s" % [game.living_minions().size(),game.v("nugh.worm_cap"),"OFF" if game.phase_two else "ON"],Vector2(428,117),13,Color("d7b3eb"),310)
+ label_at(("v0.19 · SOUL LINK OFF · Hunt Nu’gh directly. Kill commanded worms to survive." if game.phase_two else "v0.19 · SOUL LINK ON until half HP · Kill worms, then hunt their retreating master.") if game.encounter_id == "nugh" else "v0.19 · THE HOLLOW · Read the intent, evade marked fire and prepare for the half-HP upgrades.",Vector2(28,857),15,MUTED,706,false,true)
+ if game.last_boss_result != "":
+  var outcome_label := label_at("LAST ENEMY RESULT · "+game.last_boss_result,Vector2(752,849),14,Color("e6c394"),664,false,true)
+  outcome_label.name = "BossResolution"
+  outcome_label.tooltip_text = game.last_boss_result
+
  if game.outcome != "":outcome_ui()
 
 func open_settings() -> void:
@@ -497,7 +504,7 @@ func pending_ui() -> void:
    if game.heroes[p.hero].reaction.is_empty():return
    reaction_die = game.heroes[p.hero].reaction[0]
   var reaction_face: int = game.face(p.hero,reaction_die)
-  label_at(p.action+" · %d incoming damage" % maxi(0,p.amount-(game.v("face51.weakness") if game.boss.weak else 0)),Vector2(399,333),14,Color("edba8b"),570)
+  label_at(game.unit_name(p.get("source",3))+" · "+p.action+" · %d incoming damage" % maxi(0,p.amount-(game.v("face51.weakness") if game.boss.weak and p.get("source",3) == 3 else 0)),Vector2(399,333),14,Color("edba8b"),570)
   label_at("Spend Tactical Defense: gain %d Block, optionally move %d.\nThe boss rechecks its target before the attack resolves." % [game.v("face5.block"),game.v("face5.move")],Vector2(399,352),15,MUTED)
   if reaction_face != 5:
    for c in ui.get_children():
@@ -553,11 +560,12 @@ func help_ui() -> void:
  label_at("01   BUILD",Vector2(162,215),17,GOLD)
  label_at("Each hero chooses TWO distinct bonus faces from the full 47-face extended pool.\nStarter faces are excluded. Equip up to 12 abilities from your starter pool plus both gifts. Each die needs 2+ Blanks.\nBroken Body: max 3 Movement, 3 Defense, 3 Skill. Gift cards label prototype variants.",Vector2(162,250),16,Color("d8dfe5"))
  label_at("02   ROLL & RESOLVE",Vector2(162,345),17,GOLD)
- label_at("Initiative is rolled once. All available dice roll together at each round boundary.\nEach hero starts with 1 Action Reroll: select a die and reroll BEFORE resolving any face.\nFocus is a separate exception. Dice animate without changing their final results.\nBoss I → II → III: effects are shown on each card. Click compact intent rows to inspect.",Vector2(162,380),16,Color("d8dfe5"))
+ label_at("Initiative is rolled once. All available dice roll together at each round boundary.\nEach hero starts with 1 Action Reroll: select a die and reroll BEFORE resolving any face.\nFocus is a separate exception. Rolls resolve instantly. A reroll can repeat the same result.\nBoss I → II → III: effects are shown on each card. Click compact intent rows to inspect.",Vector2(162,380),16,Color("d8dfe5"))
  label_at("03   SURVIVE",Vector2(162,500),17,GOLD)
  label_at("Reactions store immediately and expire before the next round’s roll. Block is spent\non damage and expires at your next turn. First zero HP: Downed, protected through\nthe acting turn. First Aid revives with Broken and queues a full recovery turn.\nAt zero again, a Broken hero dies. All heroes Downed/dead means immediate defeat.",Vector2(162,535),16,Color("d8dfe5"))
  label_at("PROTOTYPE SCOPE",Vector2(162,660),13,GOLD)
- label_at("Tuned default: boss 12 HP, Basic Strike 1, Brace 1. Advance pursues highest HP; adjacent to a tied highest: +1 Block.\nSelect Original rulebook in the forge for 18 HP / Strike 1 / Brace 2.\nBonus faces use the printed playtest variants. The boss faces north for rear attacks.\nNo campaign Events or online multiplayer. Click Chronicle to review every result.",Vector2(162,696),14,MUTED)
+ label_at("Tuned: The Hollow 12 HP; Nu’gh 10 HP. Choose boss and rules after picking faces.\nThe Hollow: fire burns at hero turn end; Brand and phase-II Sweep punish staying close.\nNu’gh: retreats and commands worms. Soul Link stops at half HP. Reactions work against bites.\nOriginal uses the prototype’s older numbers. Full current rules: use the rulebook link below.",Vector2(162,696),14,MUTED)
+ button("Open current rulebook",Vector2(162,799),Vector2(310,51),func():OS.shell_open("https://lordtoff.github.io/Godot-Game-Template/current-rules.html"),Color("9fc7e6"))
  button("Return to the game",Vector2(1003,799),Vector2(255,51),func(): show_help = false; rebuild())
 
 func _gui_input(event: InputEvent) -> void:
@@ -575,8 +583,8 @@ func _gui_input(event: InputEvent) -> void:
      if not h.channel.is_empty():tooltip_text += "\nChannel: "+Model.FACES[h.channel.face]+"\n"+Catalog.text(h.channel.face)
   if page == "battle":
    for id in game.living_minions():
-    if hover == game.unit_data(id).pos:tooltip_text = game.unit_name(id)+" · HP %d/%d · Block %d\nKill to reduce attack pressure, deny Devour healing and deal Soul Link damage to Nu’gh." % [game.unit_data(id).hp,game.unit_data(id).max_hp,game.unit_data(id).block]
-  if page == "battle" and hover in game.fire_tiles:tooltip_text += "\nFIRE TILE: stays on this cell. A Smoking Strike that deals HP damage here detonates it for %d normal damage." % game.v("boss.smoking.fire_damage")
+    if hover == game.unit_data(id).pos:tooltip_text = game.unit_name(id)+" · HP %d/%d · Block %d\nCommanded worms move and bite. Kill for control; Soul Link damages Nu’gh only BEFORE half HP." % [game.unit_data(id).hp,game.unit_data(id).max_hp,game.unit_data(id).block]
+  if page == "battle" and hover in game.fire_tiles:tooltip_text += "\nFIRE TILE: end your turn here → %d normal damage. A later positive Smoking Strike also detonates it for %d." % [game.v("boss.fire.end_turn"),game.v("boss.smoking.fire_damage")]
  if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
   if page != "battle" or is_instance_valid(balance_editor) or show_menu or show_lab_tools or show_options or show_lab_setup or show_dice or show_turn or show_changes or show_help or show_history or rolling_time > 0 or not game.pending.is_empty() or game.outcome != "" or game.active == 3 or selected < 0: return
   var c := Vector2i((event.position-ORIGIN)/CELL)
@@ -725,10 +733,10 @@ func sync_presentation() -> void:
   if event.kind == "focus":
    roll_feedback = {"actor":event.source,"die":event.die,"text":"FOCUS · Die %s: %s → %s" % [["I","II","III"][event.die],Model.FACES[event.old_face],Model.FACES[event.new_face]]+(" · Reaction held" if game.heroes[event.source].used[event.die] else "")}
    effects.append({"kind":"focus","source":event.source,"target":event.target,"die":event.die,"life":1.5,"length":1.5})
-  if event.kind in ["damage","block"] and event.source == 3 and event.target in [0,1,2]:
+  if event.kind in ["damage","block"] and event.source >= 3 and event.target in [0,1,2]:
    if combat_effects:
     impact_time = 0.22;impact_strength = 3.5 if event.value > 0 else 1.5
-    effects.append({"kind":"impact","source":3,"target":event.target,"life":0.5,"length":0.5,"damage":event.value})
+    effects.append({"kind":"impact","source":event.source,"target":event.target,"life":0.5,"length":0.5,"damage":event.value})
    hit_sound = maxi(hit_sound,2 if event.action == "Screaming Chorus" else (1 if event.value > 0 else 0))
   if event.kind == "buff" and "Weak Point READY" in event.text:
    floaters.append({"at":effect_center(event.target),"text":"WEAK POINT READY","color":GOLD,"life":1.6})
@@ -739,7 +747,7 @@ func sync_presentation() -> void:
   if event.kind in ["attack","block","block_gain","buff","debuff","heal"]:
    var kind: String = event.kind
    if kind == "block_gain": kind = "block"
-   if kind == "attack" and event.source == 3:kind = "boss_attack"
+   if kind == "attack" and event.source >= 3:kind = "boss_attack"
    if event.target >= 0:
     effects.append({"kind":kind,"source":event.source,"target":event.target,"life":1.05,"length":1.05,"action":event.action})
  if hit_sound >= 0 and is_instance_valid(combat_audio) and not muted:
@@ -777,7 +785,7 @@ func history_ui() -> void:
  var lines := RichTextLabel.new(); lines.bbcode_enabled = true; lines.position = Vector2(214,215); lines.size = Vector2(1004,484); lines.add_theme_font_size_override("normal_font_size",15); lines.scroll_following = true
  var text_lines: Array[String] = []
  for entry in game.event_log:
-  if log_filter == "Combat" and entry.kind not in ["action","attack","damage","block","block_gain","heal","buff","debuff","expire","mutation","retarget","collision","stun","decline","focus","summon","minion_death","soul_link"]: continue
+  if log_filter == "Combat" and entry.kind not in ["action","attack","damage","block","block_gain","heal","buff","debuff","expire","mutation","retarget","collision","stun","decline","focus","summon","minion_death","soul_link","minion_action","fallback","boss_result"]: continue
   if log_filter == "Turns" and entry.kind not in ["turn","round","roll"]: continue
   text_lines.append(format_event(entry,true))
  lines.text = "\n\n".join(text_lines); ui.add_child(lines)
@@ -785,7 +793,7 @@ func history_ui() -> void:
  button("Back to battle",Vector2(943,730),Vector2(279,45),func(): show_history = false; show_changes = false; show_dice = false; show_turn = false; show_lab_setup = false; rebuild())
 
 func format_event(entry: Dictionary, expanded: bool) -> String:
- var colors := {"attack":"efb29b","damage":"eea394","block":"9fc7e6","block_gain":"9fc7e6","buff":"91d1b4","debuff":"c9a4e3","heal":"91d1b4","turn":"e4c88f","round":"e4c88f","focus":"e4c88f","summon":"b9d0a6","minion_death":"d9c493","soul_link":"d5a0e4","expire":"9aaaba"}
+ var colors := {"attack":"efb29b","damage":"eea394","block":"9fc7e6","block_gain":"9fc7e6","buff":"91d1b4","debuff":"c9a4e3","heal":"91d1b4","turn":"e4c88f","round":"e4c88f","focus":"e4c88f","summon":"b9d0a6","minion_death":"d9c493","soul_link":"d5a0e4","fallback":"edc785","minion_action":"d5b7eb","boss_result":"edc785","expire":"9aaaba"}
  var color: String = colors.get(entry.kind,"becad3")
  var tag: String = "R%02d · #%03d · %s" % [entry.round,entry.id,entry.kind.replace("_"," ").to_upper()]
  return "[color=#%s][b]%s[/b][/color]%s%s" % [color,tag,"\n" if expanded else "  ",entry.text.replace("[","[lb]")]
@@ -884,7 +892,7 @@ func confirm_gifts() -> void:
 
 func draft_ui() -> void:
  var shade := ColorRect.new();shade.color = Color("101922");shade.size = Vector2(1440,900);ui.add_child(shade)
- label_at("CHOOSE TWO FACES · v0.18",Vector2(60,27),29,GOLD,1000,true)
+ label_at("CHOOSE TWO FACES · v0.19",Vector2(60,27),29,GOLD,1000,true)
  label_at("Click to quick equip. Drag a card onto a die or a square. Drag installed faces to swap them.",Vector2(62,74),15,MUTED,1300)
  button("Back to forge",Vector2(1150,26),Vector2(230,40),func():draft_modal = false;rebuild(),MUTED)
  for hero in range(3):
@@ -1071,13 +1079,13 @@ func lab_tools_ui() -> void:
  button("Next turn",Vector2(689,446),Vector2(285,39),func():show_lab_tools = false;Lab.next_turn(game,lab_numeric);selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
  button("Roll chosen face again",Vector2(399,502),Vector2(275,39),func():show_lab_tools = false;Lab.roll_test_face(game,lab_face,lab_numeric);selected = -1;rebuild(),Color("82c8b9"))
  button("Combine faces",Vector2(689,502),Vector2(285,39),func():show_lab_tools = false;show_lab_setup = true;rebuild(),MUTED)
- button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.18 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
+ button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.19 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
  button("Back to battle",Vector2(689,570),Vector2(285,43),func():show_lab_tools = false;rebuild())
  button("Phase II active" if game.phase_two else "Test boss phase II",Vector2(399,632),Vector2(575,39),test_boss_phase_two,Color("e9a36a"),game.phase_two or not game.pending.is_empty() or game.outcome != "" or game.v("boss.phase.percent") == 0)
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.18",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.19",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
  var nav_step := minf(75,610.0/Changes.SECTIONS.size())
  for i in range(Changes.SECTIONS.size()):
@@ -1144,7 +1152,7 @@ func dice_ui() -> void:
    var rolled := false
    var id := 0
    if is_boss:
-    current = game.boss_dice()[d][side]; original = (Model.TUNED_BOSS_DICE if game.tuned else Model.BOSS_DICE)[d][side]
+    current = game.boss_dice()[d][side]; original = (Nugh.DICE if game.encounter_id == "nugh" else (Model.TUNED_BOSS_DICE if game.tuned else Model.BOSS_DICE))[d][side]
     rolled = game.boss_sides.size() == 3 and game.boss_sides[d] == side
    else:
     var build: Array = game.heroes[dice_hero].build if in_fight else builds[dice_hero]
@@ -1540,7 +1548,7 @@ func phase_help() -> String:return game.phase_description()
 func short_boss_help(action: String) -> String:
  if game.encounter_id == "nugh":return game.default_boss_help(action)
  match action:
-  "Smoking Strike","Strike":return "Hit the closest hero within %d for %d.\n\nHP damage: ignite their cell. Existing fire instead detonates for %d extra normal damage." % [game.v("boss.Strike.range"),game.v("boss.Strike.damage"),game.v("boss.smoking.fire_damage")]
+  "Smoking Strike","Strike":return "Hit the closest hero within %d for %d.\n\nEven blocked: ignite their cell. Existing fire detonates for %d extra normal damage. End your turn on fire: %d damage." % [game.v("boss.Strike.range"),game.v("boss.Strike.damage"),game.v("boss.smoking.fire_damage"),game.v("boss.fire.end_turn")]
   "Cinder Brand":return "Mark a %s under a hero within %d.\n\nAt next boss turn start: %d damage to heroes still inside. Move away to evade." % ["%d×%d square" % [game.v("boss.brand.radius")*2+1,game.v("boss.brand.radius")*2+1] if game.phase_two else "cross",game.v("boss.brand.range"),game.v("boss.brand.damage")]
   "Ashen Chain":return "Pull the closest hero within %d up to %d spaces closer. Remove %d Block." % [game.v("boss.chain.range"),game.v("boss.chain.move"),game.v("boss.chain.strip")]+("\n\nRooted %d until the next boss turn. No voluntary movement." % game.v("boss.chain.root") if game.phase_two else "\n\nPhase I: no Rooted.")
   "Furnace Roar":return "Hit every standing hero within %d for %d damage, then push survivors %d space(s) away.\n\nBlocked movement stops the push; no collision damage." % [game.v("boss.Furnace Roar.range"),game.v("boss.Furnace Roar.damage"),game.v("boss.roar.push")]
@@ -1581,7 +1589,7 @@ func draw_boss_impact(fx: Dictionary) -> void:
    var dir := Vector2.from_angle(n*TAU/6+0.2)
    draw_line(p+dir*radius,p+dir*(radius+8),Color(color,alpha),3)
   return
- var origin_point := effect_center(3);var delta := origin_point.direction_to(p);var side := delta.orthogonal()
+ var origin_point := effect_center(fx.source);var delta := origin_point.direction_to(p);var side := delta.orthogonal()
  var at := origin_point.lerp(p,smoothstep(0.0,0.45,progress))
  draw_line(at-side*17,at+side*17,Color(1,0.8,0.52,alpha),7,true)
  draw_line(origin_point,at,Color(0.95,0.39,0.2,alpha*0.6),8,true)
@@ -1643,7 +1651,7 @@ func setup_ui() -> void:
   if index == 0:
    var atlas := AtlasTexture.new();atlas.atlas = SPRITES;atlas.region = Rect2(32,32,32,32);art.texture = atlas
   ui.add_child(art)
-  label_at("Learn positioning: read attacks, escape fire warnings and adapt at half HP." if index == 0 else "Learn target priority: kill worms to hurt Nu’gh, reduce his attacks and deny healing.",Vector2(190,top+63),17,Color("d6e0e6"),235,false,true)
+  label_at("Learn positioning: read attacks, escape fire warnings and adapt at half HP." if index == 0 else "Hunt a retreating human-worm. Commands make his brood attack. Soul Link breaks at half HP.",Vector2(190,top+63),17,Color("d6e0e6"),235,false,true)
   label_at("Every ability changes at half HP.",Vector2(78,top+179),15,Color("c1a5d9"),350)
  label_at("RULES FOR THIS FIGHT",Vector2(510,164),18,GOLD,830)
  button("Tuned numbers"+(" ✓" if balanced else ""),Vector2(510,205),Vector2(400,43),func():balanced = true;rebuild(),GOLD if balanced else MUTED)

@@ -1,14 +1,14 @@
-# Ash & Oath v0.18 — playable prototype
+# Ash & Oath v0.19 — playable prototype
 
 [**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/) — no installation required.
 
-[**Current rules: timing, abilities and bosses**](docs/current-rules.html) · [Download PDF](docs/AshAndOath-Current-Rules-v0.18.pdf). One consolidated v0.18 reference.
+[**Current rules: timing, abilities and bosses**](docs/current-rules.html) · [Download PDF](docs/AshAndOath-Current-Rules-v0.19.pdf). One consolidated v0.19 reference.
 
 [**Read the explained playtest report**](https://lordtoff.github.io/Godot-Game-Template/playtest-report.html) · [Download the polished Excel workbook](downloads/Ash-and-Oath-Playtest-v0.16.xlsx). Includes plain-language team descriptions, each hero’s abilities, dice layouts, win rates and the test method.
 
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
 
-v0.18 adds Nu’gh and his screaming worms, a pre-fight boss / rules review, a roomier combat layout and Stunned stars. Every boss action upgrades at half HP. [Changes and reasons](docs/Changes-v0.18.md).
+v0.19 rebuilds Nu’gh as a retreating human-worm with commanded moving/attacking minions and Soul Link that breaks at half HP. The Hollow’s fire and upgraded area attacks punish staying put; fallback results remain visible. [Changes and reasons](docs/Changes-v0.19.md).
 
 This checkout now starts **Ash & Oath**, a tactical dice-building boss battler based on the supplied Master Rules v10 and Action Faces. Open `project.godot` in Godot 4.6.3 and press **F5**, or run `godot --path .`.
 

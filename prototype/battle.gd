@@ -51,6 +51,7 @@ var roll_presentations: Array = []
 var initiative_base: Array = []
 var minions: Array = []
 var encounter_id := "hollow"
+var last_boss_result := ""
 var phase_two := false
 var roar_queued := false
 
@@ -107,7 +108,7 @@ static func validate(build: Array, gift: Variant = -1, profile: Dictionary = {})
 
 func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: bool = true, profile: Dictionary = {}) -> void:
  balance = profile.duplicate(true)
- phase_two = false; roar_queued = false;minions.clear()
+ phase_two = false; roar_queued = false;minions.clear();last_boss_result = ""
  rng.randomize()
  if seed_value: rng.seed = seed_value
  initial_builds = builds.duplicate(true); brand_cells.clear();fire_tiles.clear(); roll_presentations.clear()
@@ -128,8 +129,11 @@ func start(builds: Array, seed_value: int = 0, soul: bool = false, balanced: boo
   var bv: int = boss.initiative if b == 3 else heroes[b].initiative
   return false if a == b else (av > bv if av != bv else (a == 3 or (b != 3 and a < b))))
  initiative_base = order.duplicate()
+ prepare_encounter()
  note("The dice remember. Initiative is fixed for this encounter.")
  new_round()
+
+func prepare_encounter() -> void:pass
 
 func unit_name(id: int) -> String:
  if id == 3: return boss_name()
@@ -332,6 +336,13 @@ func finish_turn() -> void:
  for h in heroes: h.protected = false
  record_event("turn",unit_name(active)+" ends its full turn.",active)
  if active < 3:
+  if encounter_id == "hollow" and heroes[active].hp > 0 and not heroes[active].dead and heroes[active].pos in fire_tiles and v("boss.fire.end_turn") > 0:
+   action_owner = 3;action_label = "Smouldering Fire"
+   fire_event(3,[heroes[active].pos],"End-turn fire")
+   record_event("hazard","%s ends their turn on FIRE: %d normal damage. Move off the burning cell to avoid this." % [unit_name(active),v("boss.fire.end_turn")],3,active)
+   last_boss_result = "FIRE: %s ends turn on a burning cell; %d normal damage." % [unit_name(active),v("boss.fire.end_turn")]
+   damage(active,v("boss.fire.end_turn"),false,"Smouldering Fire")
+   if outcome != "":return
   if heroes[active].stun: record_event("expire",unit_name(active)+" loses Stunned at turn end.",active,active)
   heroes[active].stun = false
   heroes[active].debt_buff = 0; heroes[active].num_boost = 0; heroes[active].numeric_focus = false
@@ -422,12 +433,36 @@ func boss_move(steps: int, chosen_target: int = -1) -> bool:
  return moved
 
 func fallback() -> void:
+ var origin: Vector2i = boss.pos
  if not targets(1).is_empty():
   boss.block += v("boss.fallback.idle")
-  note("%s holds position; gains %d Block." % [boss_name(),v("boss.fallback.idle")])
- elif boss_move(v("boss.fallback.move")):note(boss_name()+" closes the gap.")
+  last_boss_result = "%s → FALLBACK: holds position; +%d Block." % [action_label,v("boss.fallback.idle")]
+ elif boss_move(v("boss.fallback.move")):
+  last_boss_result = "%s → FALLBACK: moves %s → %s." % [action_label,cell_name(origin),cell_name(boss.pos)]
  else:
-  boss.block += v("boss.fallback.block");note("Fallback · Block +%d." % v("boss.fallback.block"))
+  boss.block += v("boss.fallback.block")
+  last_boss_result = "%s → FALLBACK: no route; +%d Block." % [action_label,v("boss.fallback.block")]
+ record_event("fallback",last_boss_result,3,3)
+
+func boss_visible_index() -> int:return boss_index
+func boss_display_action() -> String:
+ return boss_rolls[boss_index] if boss_index < boss_rolls.size() else "Turn complete"
+func boss_step_label() -> String:
+ return "Resolve "+(["I","II","III"][boss_index] if boss_index < 3 else "end of turn")+"   →"
+func attack_targets(source: int, reach: int) -> Array:
+ var result: Array = []
+ for id in range(3):
+  if not heroes[id].dead and heroes[id].hp > 0 and distance(source,id) <= reach:result.append(id)
+ return result
+func nearest_attacked(source: int, options: Array) -> int:
+ if source == 3:return nearest(options)
+ if options.is_empty():return -1
+ var best := 100;var choices: Array = []
+ for id in options:
+  var d := distance(source,id)
+  if d < best:best = d;choices = [id]
+  elif d == best:choices.append(id)
+ return choices[rng.randi_range(0,choices.size()-1)]
 
 func check_end() -> void:
  if atomic_damage: return
@@ -608,6 +643,7 @@ func boss_step() -> void:
  begin_action(3,action,-1,boss_index)
  boss_index += 1
  last_action = action
+ last_boss_result = action+" resolved; see battle log for targets and values."
  last_targets.clear()
  match action:
   "Ashen Chain":
@@ -707,6 +743,8 @@ func boss_step() -> void:
 func continue_attack() -> void:
  if pending.is_empty() or outcome != "": return
  var action: String = pending.action
+ var source: int = pending.get("source",3)
+ var reach: int = pending.get("range",boss_range(action))
  for victim in pending.victims:
   for actor in range(3):
    if heroes[actor].hp <= 0 or heroes[actor].dead: continue
@@ -716,33 +754,34 @@ func continue_attack() -> void:
     var f: int = face(actor,die)
     var trigger: bool = actor == victim and (f in [5,28] or heroes[actor].smoke.has(die))
     if f == 44: trigger = actor != victim and distance(actor,victim) <= v("face44.range") and sight(actor,victim,v("face44.range"))
-    if f == 45: trigger = actor != victim and distance(actor,3) <= mini(v("face45.range"),boss_range(pending.action)) and pending.action not in ["Sweep","Furnace Roar"]
-    if f == 46: trigger = actor == victim and pending.amount-(v("face51.weakness") if boss.weak else 0)-heroes[actor].block-heroes[actor].dr >= heroes[actor].hp
+    if f == 45: trigger = actor != victim and distance(actor,source) <= mini(v("face45.range"),reach) and pending.action not in ["Sweep","Furnace Roar"]
+    if f == 46: trigger = actor == victim and pending.amount-(v("face51.weakness") if boss.weak and source == 3 else 0)-heroes[actor].block-heroes[actor].dr >= heroes[actor].hp
     if f == 48: trigger = true
     if trigger:
      pending.kind = "reaction"; pending.hero = actor; pending.die = die; pending.victim = victim
      return
  var victims: Array = pending.victims.duplicate()
- if action not in ["Sweep","Furnace Roar"] and (heroes[victims[0]].hp <= 0 or distance(3,victims[0]) > boss_range(action)):
-  var ts := targets(boss_range(action))
+ if action not in ["Sweep","Furnace Roar"] and (heroes[victims[0]].hp <= 0 or distance(source,victims[0]) > reach):
+  var ts := attack_targets(source,reach)
   if ts.is_empty():
-   note(action + " has no legal adjacent target after Reactions; " + ("completed movement is kept, attack ends." if action == "Skirmish" else "attack is replaced by fallback."))
+   note(action + " has no legal adjacent target after Reactions; " + ("worm holds; bite ends." if source >= 4 else ("completed movement is kept, attack ends." if action == "Skirmish" else "attack is replaced by fallback.")))
    pending = {}
-   if action != "Skirmish": fallback()
+   if source == 3 and action != "Skirmish": fallback()
    return
-  var t := nearest(ts,action in ["Strike","Smoking Strike"])
-  record_event("retarget","%s retargets %s to %s after a Reaction." % [boss_name(),action,unit_name(t)],3,t)
+  var t := nearest(ts,action in ["Strike","Smoking Strike"]) if source == 3 else nearest_attacked(source,ts)
+  record_event("retarget","%s retargets %s to %s after a Reaction." % [unit_name(source),action,unit_name(t)],source,t)
   pending.victims = [t]; continue_attack(); return
  var amount: int = pending.amount
  pending = {}
  for t in victims:
   # Sweep locks its area after all reactions, and hits each adjacent unit once.
   if action in ["Sweep","Furnace Roar"] and distance(3,t) > boss_range(action): continue
-  record_event("attack","%s attacks %s with %s for %d damage." % [boss_name(),unit_name(t),action,maxi(0,amount-(v("face51.weakness") if boss.weak else 0))],3,t,amount)
+  record_event("attack","%s attacks %s with %s for %d damage." % [unit_name(source),unit_name(t),action,maxi(0,amount-(v("face51.weakness") if boss.weak and source == 3 else 0))],source,t,amount)
   var hp_before: int = heroes[t].hp
-  damage(t,maxi(0,amount-(v("face51.weakness") if boss.weak else 0)),false,"",3)
+  damage(t,maxi(0,amount-(v("face51.weakness") if boss.weak and source == 3 else 0)),false,"",source)
+  last_boss_result = "%s · %s → %s: %d HP lost (%d incoming)." % [action,unit_name(source),unit_name(t),hp_before-heroes[t].hp,amount]
   if outcome != "": return
-  if action in ["Strike","Smoking Strike"] and heroes[t].hp < hp_before:smoking_fire(t)
+  if action in ["Strike","Smoking Strike"] and maxi(0,amount-(v("face51.weakness") if boss.weak else 0)) > 0:smoking_fire(t)
   if outcome != "":return
   if action == "Furnace Roar" and heroes[t].hp > 0:
    for step in range(v("boss.roar.push")):
@@ -757,6 +796,8 @@ func continue_attack() -> void:
 func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
  if pending.get("kind","") != "reaction" or outcome != "":return
  var t: int = pending.hero
+ var source: int = pending.get("source",3)
+ var reach: int = pending.get("range",boss_range(pending.action))
  var die: int = pending.get("die",-1)
  if die not in range(3):
   if heroes[t].reaction.is_empty():return
@@ -769,8 +810,8 @@ func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
   begin_action(t,"Reaction: "+FACES[f],victim,die)
   match f:
    28:
-    var options := targets(mini(v("face28.range"),boss_range(pending.action))).filter(func(id):return id != t)
-    if not options.is_empty(): pending.victims = [nearest(options)]
+    var options := attack_targets(source,mini(v("face28.range"),reach)).filter(func(id):return id != t)
+    if not options.is_empty(): pending.victims = [nearest_attacked(source,options)]
    44: h.block += v("face44.self"); heroes[victim].block += v("face44.ally")
    45: pending.victims = [t]
    46: h.defy = true; mutate(t,die,h.rolls[die],0)
@@ -785,7 +826,7 @@ func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
       h.pos += dir
     h.smoke.erase(die)
   report_changes()
-  action_owner = 3; action_label = pending.action; action_before = {}
+  action_owner = source; action_label = pending.action; action_before = {}
  pending.reacted.append(str(t)+":"+str(die)); pending.kind = "attack"; continue_attack()
 
 func fracture(d: int, side: int) -> void:
@@ -868,7 +909,7 @@ func default_boss_help(action: String) -> String:
   "Grave Tithe": return "Remove %d Block from each standing hero within %d. Gain the stolen Block, capped at %d. No HP damage." % [v("boss.tithe.strip"),v("boss.tithe.range"),v("boss.tithe.cap")]
   "Advance": return "Pursue the standing hero with the highest current HP, up to %d cells; highest-HP ties are random. If already adjacent to ANY tied highest-HP hero, stay and gain %d Block. Cannot path to the chosen hero: gain %d Block." % [v("boss.advance.move"),v("boss.advance.block"),v("boss.fallback.block")]
   "Skirmish": return "Move %d toward the closest hero, then attack within %d for %d. Reactions happen before damage." % [v("boss.skirmish.move"),boss_range(action),v("boss.Skirmish.damage")]
-  "Strike", "Smoking Strike": return "Attack the closest standing hero within %d for %d damage (distance ties: lowest Block, then random). Only if HP is lost: put a fire tile under that hero. If a Smoking Strike fire tile is already there, consume it to deal %d extra normal damage on that cell instead. Fire remains on its cell if the hero moves; stepping on it alone does not detonate it." % [v("boss.Strike.range"),v("boss.Strike.damage"),v("boss.smoking.fire_damage")]
+  "Strike", "Smoking Strike": return "Attack the closest standing hero within %d for %d damage (distance ties: lowest Block, then random). Any positive hit, even fully blocked: put a fire tile under that hero. If a Smoking Strike fire tile is already there, consume it to deal %d extra normal damage on that cell instead. Ending a hero turn on fire deals %d normal damage. Moving through it does not detonate it." % [v("boss.Strike.range"),v("boss.Strike.damage"),v("boss.smoking.fire_damage"),v("boss.fire.end_turn")]
   "Sweep": return "Attack EVERY hero within %d for %d each, including Downed heroes. Each hero is hit once." % [boss_range(action),v("boss.Sweep.damage")]
   "Drive Back": return "Attack within %d for %d, then automatically push %d cells along the direction from the boss to the hero. No player direction choice. Collision: %d unavoidable damage + Stunned; two equally aligned directions are resolved randomly." % [v("boss.Drive Back.range"),v("boss.Drive Back.damage"),v("boss.push.move"),v("boss.push.collision")]
   "Brace": return "Gain %d Block. Damage consumes Block; any left expires at the boss’s next turn." % v("boss.brace.block")
@@ -1520,7 +1561,7 @@ func smoking_fire(target: int) -> void:
    if not heroes[id].dead and heroes[id].pos == cell:damage(id,v("boss.smoking.fire_damage"),false,"Smoking Strike fire detonation")
  else:
   fire_tiles.append(cell)
-  record_event("hazard","Smoking Strike ignites %s under %s. Fire stays here until another Smoking Strike that deals HP damage detonates it; moving alone does not detonate it." % [cell_name(cell),unit_name(target)],3,target)
+  record_event("hazard","Smoking Strike ignites %s under %s. Ending a hero turn here burns them; a later positive Smoking Strike detonates and removes it." % [cell_name(cell),unit_name(target)],3,target)
   fire_event(3,[cell],"Smoking Strike fire ignited",true)
 
 func reset_soul_allowance(id: int) -> void:
@@ -1555,17 +1596,19 @@ func cleave_splash(target: int) -> void:
   if other != target and not unit_data(other).get("dead",false) and unit_data(other).hp > 0 and distance(target,other) <= 1:
    damage(other,v("face38.splash"),false,"Cleave secondary hit");return
 func phase_upgrades() -> Array:
+ var smoking_upgrade := "Fire detonation damage +%d." % Balance.value(balance,"phase.boss.smoking.fire_damage")
+ if Balance.value(balance,"phase.boss.fire.end_turn") > 0:smoking_upgrade += " End-turn fire damage +%d." % Balance.value(balance,"phase.boss.fire.end_turn")
  return [
  ["Advance","Movement +%d; adjacent Block +%d." % [Balance.value(balance,"phase.boss.advance.move"),Balance.value(balance,"phase.boss.advance.block")]],
  ["Ashen Chain","Also applies Rooted %d until next boss turn." % Balance.value(balance,"boss.chain.root")],
- ["Smoking Strike","Fire detonation damage +%d." % Balance.value(balance,"phase.boss.smoking.fire_damage")],
+ ["Smoking Strike",smoking_upgrade],
  ["Skirmish","Movement +%d." % Balance.value(balance,"phase.boss.skirmish.move")],
- ["Sweep","Reach +%d (still hits each hero once)." % Balance.value(balance,"phase.boss.Sweep.range")],
+ ["Sweep","Reach +%d; damage +%d (each hero once)." % [Balance.value(balance,"phase.boss.Sweep.range"),Balance.value(balance,"phase.boss.Sweep.damage")]],
  ["Brace","Block +%d; Die I instead becomes Furnace Roar." % Balance.value(balance,"phase.boss.brace.block")],
  ["Drive Back","Push distance +%d." % Balance.value(balance,"phase.boss.push.move")],
  ["Distort","Weakness +%d." % Balance.value(balance,"phase.boss.distort.weakness")],
  ["Fracture","Reach +%d; destruction count stays the same." % Balance.value(balance,"phase.boss.fracture.range")],
- ["Cinder Brand","New warnings become %d×%d squares; already armed cells stay unchanged." % [Balance.value(balance,"boss.brand.radius")*2+1,Balance.value(balance,"boss.brand.radius")*2+1]],
+ ["Cinder Brand","New warnings become %d×%d squares; detonation damage +%d. Already armed cells keep their marked area." % [Balance.value(balance,"boss.brand.radius")*2+1,Balance.value(balance,"boss.brand.radius")*2+1,Balance.value(balance,"phase.boss.brand.damage")]],
  ["Grave Tithe","Steal +%d Block per hero; gain cap +%d." % [Balance.value(balance,"phase.boss.tithe.strip"),Balance.value(balance,"phase.boss.tithe.cap")]],
  ["Furnace Roar","Unlocks; reach +%d over its base test value." % Balance.value(balance,"phase.boss.Furnace Roar.range")]]
 func phase_description() -> String:

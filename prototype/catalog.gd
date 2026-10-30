@@ -42,7 +42,7 @@ const EXTRA = [
  ["Taunt","Defense","Reaction when another hero is attacked: become the target if adjacent to the boss. You must be a legal target."],
  ["Defy Death","Defense","Reaction before a lethal Attack: stay at 1 HP instead, gain Stunned, then blank this face. Prototype sets aside your first available result."],
  ["Bulwark","Defense","Gain Damage Reduction 1 and Weakness 1 until your next turn. Unavoidable damage bypasses reduction."],
- ["Echo of Pain","Defense","Reaction during a boss Attack: deal your actual HP damage taken this round to the boss (cap 3), then blank this face. If unused, take 1 unavoidable damage at next turn start."],
+ ["Echo of Pain","Defense","Reaction during an enemy Attack: deal your actual HP damage taken this round to the boss (cap 3), then blank this face. If unused, take 1 unavoidable damage at next turn start."],
  ["Last Pulse","Defense","Channel: at each maintained turn start, heal 1 if no HP damage got through. HP damage breaks this Channel and blanks it."],
  ["Black Oath","Defense","Gain Numeric +1 Block. Prototype timing: at your turn end, lose 1 HP if Block remains."],
  ["Wither Ward","Defense","Prototype: gain Numeric Block. Until your next turn, an adjacent attacker causing HP loss receives Weakness 1 until its turn ends."],

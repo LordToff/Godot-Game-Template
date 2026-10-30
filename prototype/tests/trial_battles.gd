@@ -9,7 +9,7 @@ var errors := 0
 func _initialize():call_deferred("run")
 func run():
  var count := maxi(1,int(OS.get_environment("ASH_TRIAL_COUNT")))
- var report := {"seeds":count,"policy":"visible-board heuristic v2", "boss":OS.get_environment("ASH_BOSS"),"ignore_worms":OS.get_environment("ASH_IGNORE_WORMS") == "1", "scenarios":[]}
+ var report := {"seeds":count,"policy":"visible-board heuristic v3", "boss":OS.get_environment("ASH_BOSS"),"ignore_worms":OS.get_environment("ASH_IGNORE_WORMS") == "1", "ignore_hazards":OS.get_environment("ASH_IGNORE_HAZARDS") == "1", "scenarios":[]}
  for kit in ["starting","mixed","numeric","support","channel","growth"]:
   for move in [0,1,2]:
    var stat := {"kit":kit,"blank_move":move,"wins":0,"losses":0,"stalls":0,"rounds":0,"phase_two":0,"loss_boss_hp":0,"downings":0,"damage":{},"ability_uses":{}}
@@ -83,8 +83,8 @@ func face_value(g, id: int, f: int) -> float:
 func movement_value(g, id: int, p: Vector2i) -> float:
  var value: float = -g.distance(id,3,p)*1.1
  # Escape a delayed explosion, avoid edge collisions and persistent fire when equivalent.
- if p in g.brand_cells:value -= 3.0
- if p in g.fire_tiles:value -= 0.25
+ if OS.get_environment("ASH_IGNORE_HAZARDS") != "1" and p in g.brand_cells:value -= 3.0*g.v("boss.brand.damage")
+ if OS.get_environment("ASH_IGNORE_HAZARDS") != "1" and p in g.fire_tiles:value -= 3.0*g.v("boss.fire.end_turn")
  if p.x in [0,8] or p.y in [0,8]:value -= 0.15
  return value
 
@@ -111,6 +111,7 @@ func hero_step(g) -> bool:
   if h.used[d] or (g.forced_die >= 0 and g.forced_die != d):continue
   var f: int = g.face(id,d)
   if Catalog.is_attack(f):
+   if g.encounter_id == "nugh" and g.phase_two and g.distance(id,3) <= g.face_range(f) and (f != 35 or g.sight(id,3,g.face_range(f))) and use_action(g,d,3):return true
    if OS.get_environment("ASH_IGNORE_WORMS") != "1":
     var enemies: Array = g.living_minions()
     enemies.sort_custom(func(a,b):return g.distance(id,a) < g.distance(id,b))
@@ -153,7 +154,7 @@ func hero_step(g) -> bool:
 func priority(g, id: int, d: int) -> float:
  var f: int = g.face(id,d)
  if f in [7,15,19,55]:return 50.0
- if f in [0,2,3,53,57] and g.heroes[id].pos in g.brand_cells:return 45.0
+ if OS.get_environment("ASH_IGNORE_HAZARDS") != "1" and f in [0,2,3,53,57] and (g.heroes[id].pos in g.brand_cells or g.heroes[id].pos in g.fire_tiles):return 45.0
  if f in [10,14,20,21,27,29,30,32]:return 40.0
  if Catalog.is_attack(f):return 30.0
  if f in [0,2,3,53,57,58]:return 20.0
@@ -192,7 +193,7 @@ func resolve_choice(g) -> void:
   "push":g.push(p.get("direction",g.impact_direction(p.hero)))
   "channel":g.channel_choice(true)
   "bind":
-   if g.encounter_id == "nugh":g.choose_bind(1,"Screaming Chorus")
+   if g.encounter_id == "nugh":g.choose_bind(1,"Brood Command")
    else:g.choose_bind(0,"Smoking Strike")
   "ember":
    var value := 0

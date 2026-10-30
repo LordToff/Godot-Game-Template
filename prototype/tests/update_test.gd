@@ -45,7 +45,7 @@ func run():
  check(g.brand_cells == marked,"Brand cannot stack or replace an existing warning")
  g.heroes[0].pos = Vector2i(1,7);g.heroes[1].pos = Vector2i(4,4);g.heroes[1].block = 1;g.heroes[2].pos = Vector2i(4,5)
  g.active = 3;g.cursor = 3;g.activate()
- check(g.heroes[0].hp == hp and g.heroes[1].hp == 3 and g.heroes[1].block == 0 and g.heroes[2].hp == 2,"Brand rewards escape, respects Block and hits each marked hero once")
+ check(g.heroes[0].hp == hp and g.heroes[1].hp == maxi(0,3-maxi(0,g.v("boss.brand.damage")-1)) and g.heroes[1].block == 0 and g.heroes[2].hp == maxi(0,3-g.v("boss.brand.damage")),"Brand rewards escape, respects Block and hits each marked hero once")
  check(g.brand_cells.is_empty(),"Brand clears after one detonation")
  g = Lab.create(1);g.heroes[0].block = 2;g.heroes[1].block = 1;g.heroes[2].block = 1
  boss_action(g,"Grave Tithe")

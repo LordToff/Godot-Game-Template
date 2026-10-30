@@ -55,7 +55,7 @@ func run():
  g = Lab.create(1);g.phase_two = true;g.heroes[1].pos = Vector2i(0,8);g.heroes[2].pos = Vector2i(8,8);g.active = 3;g.boss_rolls = ["Cinder Brand","Brace","Strike"];g.boss_step()
  check(g.brand_cells.size() == 9 and Vector2i(3,3) in g.brand_cells and Vector2i(5,5) in g.brand_cells,"Brand marks all nine cells including corners")
  check(g.heroes[0].hp == 3,"Brand still gives time to move")
- g.heroes[1].pos = Vector2i(3,3);g.detonate_brand();check(g.heroes[1].hp == 2,"Brand damage includes square corners")
+ g.heroes[1].pos = Vector2i(3,3);g.detonate_brand();check(g.heroes[1].hp == maxi(0,3-g.v("boss.brand.damage")),"Brand damage includes square corners")
  g = Lab.create(1);g.boss.hp = 16;g.boss.max_hp = 30;g.damage(3,1)
  check(g.phase_two and g.boss_rolls[0] == "Furnace Roar" and g.boss_dice()[0][4] == "Furnace Roar","exact half HP unlocks and previews one new ability")
  var phase_count: int = g.event_log.filter(func(e):return e.kind == "phase").size();g.damage(3,1)

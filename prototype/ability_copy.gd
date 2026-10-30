@@ -56,7 +56,7 @@ func face(f: int) -> String:
   45:return "When another hero is attacked, take their place if you are a legal target within %d. Cannot redirect Sweep or Furnace Roar." % n("face45.range")
   46:return "Before a lethal Attack, remain at %d HP instead and gain Stunned. This face becomes Blank." % n("face46.hp")
   47:return "Gain Damage Reduction %d and Weakness %d until your next turn. Unavoidable damage bypasses reduction." % [n("face47.reduction"),n("face47.weakness")]
-  48:return "During a boss Attack, deal the HP damage you took this round to the boss, capped at %d. This face becomes Blank.\n\nUnused: take %d unavoidable damage at your next turn." % [n("face48.cap"),n("face48.penalty")]
+  48:return "During an enemy Attack, deal the HP damage you took this round to the boss, capped at %d. This face becomes Blank.\n\nUnused: take %d unavoidable damage at your next turn." % [n("face48.cap"),n("face48.penalty")]
   49:return "Maintain: heal %d at your turn start. Any HP loss interrupts the Channel and turns this face Blank." % n("face49.heal")
   50:return "Gain a rolled value +%d Block. At your turn end, lose %d HP if any Block remains." % [n("face50.block"),n("face50.penalty")]
   51:return "Gain rolled Block. Until your next turn, an adjacent boss Attack that removes HP gives the boss Weakness %d." % n("face51.weakness")
