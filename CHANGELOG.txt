@@ -1,57 +1,33 @@
-# v0.20 — Veyl, the Brass Cantor
+# Ash & Oath v0.21 — worms, readable actions and movement
 
-## Optional third boss
+## What changes in a fight
 
-Choose **Veyl · Brass Cantor** on the review screen after selecting all heroes’ faces. The Hollow and Nu’gh remain independently selectable. The three preview cards fit the existing screen, and the review still preserves dice, rule choices and numeric overrides.
+- **Worms act after Nu’gh.** After his three dice, every surviving worm moves toward a standing hero and attempts an adjacent bite. Brood Command still gives extra activations. Resolve the brood before the next hero; Reactions pause individual bites normally. An empty automatic brood turn never summons worms.
+- **Bites roll a special Numeric die: 1, 1, 0, 0, 0, 0.** A zero misses. A one deals normal damage, so Block and Reactions can prevent it. This replaces the old guaranteed bite damage for both Command and automatic activations.
+- **HP damage from a bite applies Poison 1.** At the poisoned hero’s next own turn start, they lose 1 HP through Block, then Poison clears. More bites refresh the value rather than adding stacks. Downing clears Poison. A lethal turn-start tick ends that skipped turn normally. Green particles and a label identify poisoned knights; hover and Effects explain the timing.
 
-Veyl is an original walking bell reliquary with four metal legs, a hammer, a tuning fork and a suspended crystal clapper. It has original pixel sprites for both phases, a glowing exposed core, blue sound-wave attacks and a synthesized bell sound. Its fight uses no boss summons or terrain hazards.
+**Why:** worms should threaten the party without waiting for a Command result. The weaker chance-based bite makes room for automatic activations and a delayed consequence that players can prevent with Block.
 
-## The Resonance lesson
+## What changes on screen
 
-- Veyl starts at **14 HP**, with **0/6 Resonance**.
-- Each resolved hero **Attack face adds 1** Resonance, once per spent face, not per repeated hit.
-- An own-turn **Skill or Defense removes 1**. Movement, Blanks, declines and held Reactions do neither. Invalid actions change nothing.
-- Resonance persists across turns and rounds. The header shows its value, six pips and whether the core is open. Logs name each face and meter change.
-- **Crescendo** creates a risk/reward window: it charges the meter, but exposes the core until Veyl’s next turn. Hero Attack hits gain **+1 before Block**, rising to **+2 at half HP**. Short Shot’s final cap and Gambler’s absolute-zero rule still apply.
+- **Numeric dice roll as projected 3D cubes.** They show the recorded side and value. Attacks, healing and Numeric Block use this feedback; worms use their special die. Stored values are labelled, and Gambler also shows its additional base roll. Animation never draws random numbers or changes outcomes. Action Dice remain instant.
+- **Ability details appear on hover.** Hover hero dice, boss intents, the phase guide or Effects. Move onto the details to read or scroll them, or move away to restore the combat log. Selecting a die no longer pins a window. Duplicate native ability tooltips are removed.
+- **The log includes declarations and rolls.** It also names worm movement, targets, blocked damage, HP actually lost, Poison application and its expiry. Damage after a Reaction retains the actual attacker’s name.
+- **Face choices take fewer clicks.** Cards show a short effect and preview the full short description on hover. Click to equip; click an equipped card again to remove it. Chosen faces and counts remain beside the live dice. Dragging onto dice or exact squares still works and preserves construction limits.
+- **Knight movement has weight.** Sprites step along legal orthogonal routes with a short lift, a landing dust ring and a soft armoured footfall. They do not slide straight across occupied cells. No landing effects play for units that have not moved.
+- **Veyl’s meter and core changes have musical pulses.** Core opening/closing has a floating label. Existing attack waves, shields and phase effects remain.
 
-| Ability | Default effect | Half-HP upgrade |
-|---|---|---|
-| Gathering Note | Gain 2 Resonance. | Gain 3. |
-| Crescendo | Gain 2 Resonance; open the core for +1 damage per hero Attack hit. | Gain 3; exposed-core bonus becomes +2. |
-| Seal the Bell | Gain 2 Block. Does not close an open core. | Gain 3 Block. |
-| Toll of Reckoning | Every standing hero within 3 takes 1 + floor(Resonance / 2). Spend the whole meter when declared. | Reach 4. |
-| Hushed Chime | Closest standing hero within 3 takes 1 + floor(Resonance / 3); spend up to 2 Resonance. | Reach 4. |
-| Tuning Fork | Advance 1, then attack an adjacent hero for 1. | Advance 2. |
+**Why:** make causes and results visible while keeping the battlefield clear. Movement feedback is cosmetic and does not spend additional movement or change legal destinations.
 
-Reactions happen before damage. Toll hits each selected hero once; Taunt / Target Override cannot turn it into a single-target hit. Damage is fixed when declared even though the meter has already been spent. If an attack has no targets, fallback advances or gains Block; Toll / Chime keep their unspent meter. Old Block and an open core expire at the next boss turn start. At 7/14 HP, Grand Peal permanently upgrades every ability.
+## Settings and reference
 
-**Why:** give the third encounter a different lesson: plan attack bursts and use support faces to control a shared resource. It rewards damage windows instead of focusing on fire avoidance or clearing a summoner’s brood.
-
-## Starter Reaction: Block, no free step
-
-The named starter **Reaction (Defense – Reaction)** now grants **2 Block** and no movement. Its former 1 Block + optional step gave both mitigation and a chance to avoid or redirect an attack for one face. Raising Block compensates for removing the step.
-
-The reaction window offers **Gain 2 Block** and **Hold reaction**, with no directional buttons for this face. Old saved `face5.move` overrides cannot restore its movement; that numeric field remains labelled legacy / unused for profile compatibility. This rule applies in both presets.
-
-Oath of Smoke’s explicitly stored Step / Stride still has its own movement Reaction; storing Guard does not grant a step. Other named Reaction faces keep their stated effects. Area attacks now consistently reject whole-area redirection by Taunt / Target Override.
-
-## Current rules and settings
-
-The consolidated browser rulebook and PDF are updated to v0.20, with a Veyl chapter and the new Reaction wording. Veyl’s HP, Resonance, calm / charge amounts, damage, ranges, movement, core bonuses and phase bonuses are editable under **Boss · Brass Cantor** in Advanced numeric rules / Balance workshop.
-
-The long boss name uses **VEYL’S TURN** in the turn banner so it cannot overlap the round number. Its full title remains in the boss header and dice viewer. Combat logs use the short name Veyl.
+Nu’gh’s bite damage, successful Numeric sides out of six, and Poison value are editable in the Balance Workshop. Existing saved values still apply. The updated [current rules](current-rules.html) and [PDF](AshAndOath-Current-Rules-v0.21.pdf) describe the same implementation. Other bosses’ numbers and Blank-movement options are unchanged.
 
 ## Verification
 
-- The existing 30-script regression suite passes.
-- Dedicated model checks cover charge / calm, declines, zero rolls, core damage and repeats, area attacks, fixed declaration damage, phase upgrades, fallback and legacy Reaction movement overrides.
-- Interface checks cover all three boss choices, actual Attack / Defense clicks, the meter, core display, the new block-only reaction button, the phase guide and dice viewer.
-- Final trials: 30 seeds × six legal team configurations × three Blank-movement settings = 540 fights per boss.
+- 22 model / interface / simulation scripts passed, including 2,414 targeted brood checks 17 interface checks, and 52 Numeric-presentation checks. Construction tests still cover all 1,081 bonus-face pairs. The targeted bite sample rolled 111 successes in 300 seeded rolls; this is a sample, not a changed probability.
+- Chromium checks exercise the real face picker, boss selection, Nu’gh turn progression, hover panel opening/closing, Numeric cube, combat log and movement. No game engine or browser console errors were reported.
+- 900 scripted battles: Nu’gh 93 hero wins / 446 losses / one 50-round limit; Hollow 56 / 124 / zero limits; Veyl 53 / 127 / zero limits. Nu’gh used 30 seeds per build/movement scenario; the other bosses used 10. These are legal teams under the visible-board heuristic, not predicted human win rates.
+- The Nu’gh limit was starting faces, Blank Move 1, seed 12. Continuing the same seed ended in defeat at round 53. It was a long attrition fight, not an input deadlock. Raw scenarios are in [Trial-results-v0.21.json](Trial-results-v0.21.json).
 
-| Boss | Hero wins | Boss wins | Round-limit timeouts |
-|---|---:|---:|---:|
-| Veyl | 184 | 356 | 0 |
-| The Hollow | 161 | 379 | 0 |
-| Nu’gh | 124 | 415 | 1 |
-
-The Nu’gh timeout was a long attrition fight with a lone Stonewake survivor; the bot reached the 50-round cutoff with no pending input. It was not a frozen control. These are scripted policy results, not human win-rate predictions. The old v0.16 spreadsheet remains a historical report.
+This release updates the browser game. The older Windows download remains its original version.
