@@ -1,3 +1,5 @@
+> v0.19: new command movement / bite / empty-brood summon values, retreat and Hollow fire damage are editable. Soul Link’s phase cutoff is structural. Legacy Chorus fields are marked unused. [Changes](CHANGES_v0.19.md).
+
 > v0.18: choose boss and rules on the pre-fight review screen. Advanced numeric rules includes Nu’gh’s brood, Soul Link and every Hollow phase bonus. [Changes and reasons](CHANGES_v0.18.md).
 
 > v0.17: short combat descriptions use active custom values. Open More rules / custom values for the complete reference. Focus respects non-rerollable faces; reroll charges and the opening window are shown separately. [Combat clarity guide](CHANGES_v0.17.md).
@@ -6,7 +8,7 @@
 
 > Updated for v0.15: invalid JSON is rejected without applying it. Higher-value Numeric sides are capped by the positive-side count; zero positive sides uses the Blank value on all six sides. [See the bug-fix notes](CHANGES_v0.15.md). Saved overrides remain in force.
 
-# Balance Workshop · v0.18
+# Balance Workshop · v0.19
 
 Open **Menu → Game options → Balance workshop**. From the opening screens, use **Game options / Options → Balance workshop**.
 

@@ -1,19 +1,19 @@
 # Play Ash & Oath in a browser
 
-**Live game:** https://lordtoff.github.io/Godot-Game-Template/?v=0.18
+**Live game:** https://lordtoff.github.io/Godot-Game-Template/?v=0.19
 
-**Current rulebook:** [Read in your browser](current-rules.html) · [Download PDF](AshAndOath-Current-Rules-v0.18.pdf). One v0.18 reference for setup, timing, statuses, all 59 faces and both bosses.
+**Current rules:** [Read here](current-rules.html) · [Download the v0.19 PDF](AshAndOath-Current-Rules-v0.19.pdf).
 
-This branch contains the browser-tested Godot Web export of Ash & Oath 0.18. GitHub Pages publishes `gh-pages` / root.
+v0.19 rebuilds Nu’gh as a large human-worm. He retreats and uses **Brood Command** to move and attack with each worm; no worms means summon two instead. Commands finish before the next die, with Reactions between bites. His Soul Link breaks permanently at half HP. Summons cannot overlap heroes, the boss or other worms.
 
-Choose two bonus faces per hero, then review the boss and rules before entering. Pick **Nu’gh** for the new worm-summoner encounter. Living worms strengthen attacks; killing them reduces pressure and deals Soul Link damage to their master. Worms occupy cells and block sight, but take no separate attack turn.
+The Hollow’s positive Smoking Strikes ignite even when blocked. Ending a hero turn on fire burns; Brand deals 2 / 3 and phase-II Sweep deals 2 within 2. Movement and reading the intent matter. **LAST ENEMY RESULT** keeps fallback movement / Block visible during hero turns. [Changes and reasons](CHANGES_v0.19.md).
 
-The combat header now holds party cards and boss intents. Stunned heroes show orbiting stars. Every boss action has a half-HP upgrade, explained by the permanent phase guide. [Changes and reasons](CHANGES_v0.18.md).
+The final 1,620 scripted trials finished without stalls. The hazard-aware Hollow bot won 152/540 fights; ignoring hazards won 74/540. Nu’gh’s phase-aware bot won 100/540. These are results for specific scripted policies, not predicted human win rates. Starting-only and Soul-OFF stress tests are difficult; normal setup includes two bonus designs per hero. [Trial details](CHANGES_v0.19.md#final-scripted-trials) · [Raw results](Trial-results-v0.19.json).
 
-The regression suites, encounter and interface checks passed. The final 1,620 scripted battles completed without stalls; [cohort results and limits](CHANGES_v0.18.md#automated-checks-and-their-limits) and [raw results](Trial-results-v0.18.json). These are bot results, not predicted human win rates.
+The regression suites, encounter / UI checks and browser checks cover both encounters, command sequencing, actual worm reactions, phase guides and persistent results.
 
-**Recorded v0.16 playtest report:** [View in browser](playtest-report.html) · [Download Excel](Ash-and-Oath-Playtest-v0.16.xlsx). This historical report retains its original version and results.
+**Advanced numeric rules** on the review screen or **Menu → Game options → Balance workshop** edits values. Saved custom overrides still take precedence; reset the relevant sections and apply to try the new defaults. [Workshop guide](BALANCE_WORKSHOP.md).
 
-Open **Advanced numeric rules** on the review screen or **Menu → Game options → Balance workshop** in combat to edit values, including Nu’gh, phase bonuses and Blank movement. Saved overrides stay active. [Workshop guide](BALANCE_WORKSHOP.md).
+**Historical v0.16 report:** [View](playtest-report.html) · [Excel](Ash-and-Oath-Playtest-v0.16.xlsx). It retains its original version and results.
 
-Rolls remain instant. Heavy effects and sound are independently configurable. This release updates the browser build; the older Windows download is unchanged.
+This release updates the browser build. The older Windows download is unchanged.
