@@ -42,6 +42,11 @@ func boss_range(action: String) -> int:
  return super.boss_range(action)
 func toll_damage() -> int:return v("cantor.toll_base")+int(resonance/maxi(1,v("cantor.toll_divisor")))
 func chime_damage() -> int:return v("cantor.chime_base")+int(resonance/maxi(1,v("cantor.chime_divisor")))
+func resonance_help() -> String:
+ var example := mini(4,v("cantor.resonance_cap"))
+ var toll_example := v("cantor.toll_base")+int(example/maxi(1,v("cantor.toll_divisor")))
+ var chime_example := v("cantor.chime_base")+int(example/maxi(1,v("cantor.chime_divisor")))
+ return "[b]WHAT IS RESONANCE?[/b]\nVeyl’s stored bell power, shared by the whole party: %d/%d now. More power makes his bell attacks hit harder. It stays between turns and rounds; it is separate from HP and Block. You cannot spend it on hero abilities.\n\n[b]HOW YOU CHANGE IT[/b]\nResolve an Attack face: +%d. Resolve a Skill or Defense on your own turn: −%d. Count each face once, even if it hits several times or deals 0 damage. Movement, Blanks, declined faces and held Reactions do not change it. Veyl’s Gathering Note and Crescendo also add power.\n\n[b]WHAT THE POWER DOES[/b]\nToll of Reckoning: %d base damage +1 for every %d power, rounded down. Hits each standing hero in range; spends ALL power when declared, before the hit.\nHushed Chime: %d base damage +1 for every %d power, rounded down. Hits one hero; spends up to %d power when declared, before the hit.\nExample at %d power: Toll deals %d to each target; Chime deals %d to one target. These are incoming damage before Block. No targets means fallback, with no power spent.\n\n[b]RIGHT NOW[/b]\nToll would hit for %d per target; Chime for %d. Their damage is fixed when declared, before Reactions.\n\n[b]OPEN CORE IS A SEPARATE RULE[/b]\nCrescendo raises power but also opens a weak spot: your Attack hits against Veyl gain +%d before Block until his next turn. The bonus becomes +%d at half HP. Open Core does not lower Resonance.\n\n[b]A USEFUL SEQUENCE[/b]\nAttack while the core is open, then use Skills or Defenses to lower the power before Veyl’s next bell attack. Check the visible boss dice: a Gathering Note before Toll can raise its damage again." % [resonance,v("cantor.resonance_cap"),v("cantor.attack_charge"),v("cantor.calm"),v("cantor.toll_base"),v("cantor.toll_divisor"),v("cantor.chime_base"),v("cantor.chime_divisor"),v("cantor.chime_spend"),example,toll_example,chime_example,toll_damage(),chime_damage(),v("cantor.core_bonus"),v("cantor.core_bonus")+v("cantor.core_bonus_phase")]
 func fallback() -> void:
  var origin: Vector2i = boss.pos
  if boss_move(v("cantor.fallback_move")):last_boss_result = "%s → FALLBACK: Veyl advances %s → %s." % [action_label,cell_name(origin),cell_name(boss.pos)]
@@ -106,7 +111,7 @@ func default_boss_help(action: String) -> String:
 func phase_upgrades() -> Array:
  return [["Gathering Note","Resonance gain +%d." % v("cantor.gather_phase")],["Crescendo","Resonance gain +%d; exposed-core Attack bonus +%d." % [v("cantor.crescendo_phase"),v("cantor.core_bonus_phase")]],["Seal the Bell","Block +%d." % v("cantor.seal_phase")],["Toll of Reckoning","Reach +%d." % v("cantor.toll_range_phase")],["Hushed Chime","Reach +%d." % v("cantor.chime_range_phase")],["Tuning Fork","Movement +%d." % v("cantor.fork_move_phase")]]
 func turn_explanation() -> String:
- return "BRASS CANTOR: Attack faces +%d Resonance; own-turn Skill / Defense faces −%d. Movement, Blanks, declines and held Reactions do not change it. Toll spends the meter; open-core Attacks gain extra damage. " % [v("cantor.attack_charge"),v("cantor.calm")]+super.turn_explanation()
+ return "BRASS CANTOR: Resonance is shared enemy power: higher power means stronger bell hits. Attack faces +%d Resonance; own-turn Skill / Defense faces −%d. Movement, Blanks, declines and held Reactions do not change it. Toll spends the meter; open-core Attacks gain extra damage. " % [v("cantor.attack_charge"),v("cantor.calm")]+super.turn_explanation()
 func status_description(id: int) -> String:
  var text := super.status_description(id)
  if id == 3:

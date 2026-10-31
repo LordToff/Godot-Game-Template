@@ -275,7 +275,7 @@ func rebuild() -> void:
   button("Menu",Vector2(288,112),Vector2(120,26),func():show_menu = true;rebuild(),GOLD)
  else:
   label_at("ASH & OATH",Vector2(42,26),27,GOLD,500,true)
-  label_at("A DICE-BUILDING BOSS BATTLER · v0.21",Vector2(44,65),11,MUTED)
+  label_at("A DICE-BUILDING BOSS BATTLER · v0.21.1",Vector2(44,65),11,MUTED)
   button("View dice",Vector2(350,30),Vector2(235,40),func(): show_dice = true;dice_hero = build_hero;rebuild(),Color("9fc7e6"))
   button("Tutorial / Ability Lab",Vector2(605,30),Vector2(245,40),start_lab,Color("82c8b9"))
   button("What changed",Vector2(866,30),Vector2(225,40),func():show_changes = true;rebuild())
@@ -488,12 +488,13 @@ func battle_ui() -> void:
  if not game.pending.is_empty():pending_ui()
  if game.encounter_id == "nugh":
   label_at("BROOD %d/%d · SOUL LINK %s" % [game.living_minions().size(),game.v("nugh.worm_cap"),"OFF" if game.phase_two else "ON"],Vector2(428,117),13,Color("d7b3eb"),310)
- var goal := "v0.21 · THE HOLLOW · Read the intent, evade fire and prepare for half HP."
- if game.encounter_id == "nugh":goal = "v0.21 · SOUL LINK OFF · Hunt Nu’gh; clear worms for control." if game.phase_two else "v0.21 · SOUL LINK ON until half HP · Kill worms, then hunt the master."
+ var goal := "v0.21.1 · THE HOLLOW · Read the intent, evade fire and prepare for half HP."
+ if game.encounter_id == "nugh":goal = "v0.21.1 · SOUL LINK OFF · Hunt Nu’gh; clear worms for control." if game.phase_two else "v0.21.1 · SOUL LINK ON until half HP · Kill worms, then hunt the master."
  if game.encounter_id == "cantor":
-  goal = "v0.21 · ATTACKS charge Resonance · SKILL / DEFENSE calm it · Burst during OPEN CORE."
-  var meter := label_at("RESONANCE %d/%d · CORE %s" % [game.resonance,game.v("cantor.resonance_cap"),"OPEN +%d" % game.core_bonus() if game.core_open else "closed"],Vector2(428,117),12,Color("8cdae4"),310)
-  meter.name = "ResonanceStatus";meter.tooltip_text = game.status_description(3)
+  goal = "v0.21.1 · ATTACKS charge Resonance · SKILL / DEFENSE calm it · Burst during OPEN CORE."
+  var meter := button("RESONANCE %d/%d · CORE %s · ?" % [game.resonance,game.v("cantor.resonance_cap"),"OPEN +%d" % game.core_bonus() if game.core_open else "closed"],Vector2(424,112),Vector2(314,24),func():show_turn = true;rebuild(),Color("8cdae4"))
+  meter.add_theme_font_size_override("font_size",12);meter.name = "ResonanceStatus"
+  meter.tooltip_text = "Resonance = Veyl’s shared power. More power means harder bell hits. Click for rules and examples."
  label_at(goal,Vector2(28,857),14,MUTED,706,false,true)
  if game.last_boss_result != "":
   var outcome_label := label_at("LAST ENEMY RESULT · "+game.last_boss_result,Vector2(752,849),14,Color("e6c394"),664,false,true)
@@ -969,7 +970,7 @@ func confirm_gifts() -> void:
 
 func draft_ui() -> void:
  var shade := ColorRect.new();shade.color = Color("101922");shade.size = Vector2(1440,900);ui.add_child(shade)
- label_at("CHOOSE TWO FACES · v0.21",Vector2(60,27),29,GOLD,1000,true)
+ label_at("CHOOSE TWO FACES · v0.21.1",Vector2(60,27),29,GOLD,1000,true)
  label_at("1 · Pick two abilities     2 · Arrange your dice (optional)     3 · Next hero",Vector2(62,74),15,MUTED,1300)
  button("Back to forge",Vector2(1150,26),Vector2(230,40),func():draft_modal = false;rebuild(),MUTED)
  for hero in range(3):
@@ -1168,13 +1169,13 @@ func lab_tools_ui() -> void:
  button("Next turn",Vector2(689,446),Vector2(285,39),func():show_lab_tools = false;Lab.next_turn(game,lab_numeric);selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
  button("Roll chosen face again",Vector2(399,502),Vector2(275,39),func():show_lab_tools = false;Lab.roll_test_face(game,lab_face,lab_numeric);selected = -1;rebuild(),Color("82c8b9"))
  button("Combine faces",Vector2(689,502),Vector2(285,39),func():show_lab_tools = false;show_lab_setup = true;rebuild(),MUTED)
- button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.21 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
+ button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.21.1 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
  button("Back to battle",Vector2(689,570),Vector2(285,43),func():show_lab_tools = false;rebuild())
  button("Phase II active" if game.phase_two else "Test boss phase II",Vector2(399,632),Vector2(575,39),test_boss_phase_two,Color("e9a36a"),game.phase_two or not game.pending.is_empty() or game.outcome != "" or game.v("boss.phase.percent") == 0)
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.21",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.21.1",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
  var nav_step := minf(75,610.0/Changes.SECTIONS.size())
  for i in range(Changes.SECTIONS.size()):
@@ -1207,17 +1208,17 @@ func choice_eligible(p: Dictionary, hero: int, d: int, side: int = -1) -> bool:
 
 func turn_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("HOW THIS TURN WORKS",Vector2(125,80),32,GOLD,1200,true)
+ label_at("RESONANCE & TURN HELP" if game.encounter_id == "cantor" else "HOW THIS TURN WORKS",Vector2(125,80),32,GOLD,1200,true)
  var actor: String = game.unit_name(game.active)
  label_at("ROUND %d · %s" % [game.round_no,actor],Vector2(130,145),22,GOLD,1100)
  var text := RichTextLabel.new(); text.name = "TurnGuide"; text.bbcode_enabled = true; text.position = Vector2(130,210); text.size = Vector2(1175,480); text.add_theme_font_size_override("normal_font_size",21)
- text.text = "[b]"+actor+" is acting now.[/b]\n\n"+game.turn_explanation()+"\n\n[b]What to do next[/b]\n"
+ text.text = (game.resonance_help()+"\n\n[b]THIS TURN[/b]\n" if game.encounter_id == "cantor" else "")+"[b]"+actor+" is acting now.[/b]\n\n"+game.turn_explanation()+"\n\n[b]What to do next[/b]\n"
  if not game.pending.is_empty(): text.text += "Finish the open choice / reaction window first. It pauses the attack or turn; no other action can resolve until that decision is complete."
  elif game.active == 3:
   text.text += ("Resolve boss die %s: %s.\n%s" % [["I","II","III"][game.boss_index],game.boss_rolls[game.boss_index],game.boss_help(game.boss_rolls[game.boss_index])]) if game.boss_index < 3 else "All three boss dice are finished. Click Resolve end of turn to move to the next hero."
  else:
   var h: Dictionary = game.heroes[game.active]
-  text.text += "Choose a bright, unspent die. Its description appears below your dice. Movement needs an empty highlighted cell; attacks and healing need a legal unit; setup effects use Resolve. Grey dice are spent, held as reactions or channelled. You may End turn without using every die."
+  text.text += "Choose a bright, unspent die. Hover it to read its description beside the arena. Movement needs an empty highlighted cell; attacks and healing need a legal unit; setup effects use Resolve. Grey dice are spent, held as reactions or channelled. You may End turn without using every die."
   if game.reward: text.text += "\n\nReward Soul: " + ("%d/%d" % [game.soul_remaining(game.active),game.v("soul.uses")]) + " Blank-to-Move-%d conversions remain this hero turn.\n" % game.v("soul.move")
   text.text += "\n\nReroll window: " + ("OPEN" if h.opening else "CLOSED after your first ordinary resolution") + " · saved charges: " + str(h.rerolls) + ". A starting charge does not refill each round."
  text.text += "\n\n[b]Initiative[/b]\n"+" → ".join(game.order.map(func(id):return game.unit_name(id)))
@@ -1776,7 +1777,7 @@ func setup_ui() -> void:
   if index == 0:
    var atlas := AtlasTexture.new();atlas.atlas = SPRITES;atlas.region = Rect2(32,32,32,32);art.texture = atlas
   ui.add_child(art)
-  var lesson: String = ["Read attacks, escape fire warnings and adapt at half HP.","Pursue the human-worm; control his attacking brood. Soul Link breaks at half HP.","Manage RESONANCE with Skills / Defenses. Attacks charge the bell; an open core rewards burst damage."][index]
+  var lesson: String = ["Read attacks, escape fire warnings and adapt at half HP.","Pursue the human-worm; control his attacking brood. Soul Link breaks at half HP.","Resonance = shared boss power. Attacks +%d; Skills / Defenses −%d. Higher power means harder bell hits. Click the meter in combat for examples." % [balance_number("cantor.attack_charge"),balance_number("cantor.calm")]][index]
   label_at(lesson,Vector2(169,top+49),15,Color("d6e0e6"),260,false,true)
  label_at("Every boss ability upgrades at half HP.",Vector2(70,740),14,Color("c1a5d9"),370)
  label_at("RULES FOR THIS FIGHT",Vector2(510,164),18,GOLD,830)

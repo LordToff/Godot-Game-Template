@@ -1,12 +1,14 @@
-# Ash & Oath v0.21 — playable prototype
+# Ash & Oath v0.21.1 — playable prototype
 
-[**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/) — no installation required.
+[**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/?v=0.21.1) — no installation required.
 
 [**Current rules: timing, abilities and bosses**](docs/current-rules.html) · [Download PDF](docs/AshAndOath-Current-Rules-v0.21.pdf). One consolidated v0.21 reference.
 
 [**Historical v0.16 playtest report**](https://lordtoff.github.io/Godot-Game-Template/playtest-report.html) · [Download the polished Excel workbook](downloads/Ash-and-Oath-Playtest-v0.16.xlsx). Includes plain-language team descriptions, each hero’s abilities, dice layouts, win rates and the test method.
 
 [**Download the playable Windows build**](downloads/README.md) — extract the ZIP and run `AshAndOath.exe`. No Godot installation needed.
+
+v0.21.1 explains Resonance through a clickable meter guide, live incoming damage and worked examples. [Details](docs/Changes-v0.21.1.md).
 
 v0.21 adds autonomous worm turns and poison, 3D-style Numeric rolls, hover-only combat descriptions, quicker face selection and heavier knight movement. [Changes and reasons](docs/Changes-v0.21.md).
 
