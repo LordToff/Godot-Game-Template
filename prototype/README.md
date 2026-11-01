@@ -239,3 +239,8 @@ Campaign Events, online multiplayer, persistent saves and resurrection remain ou
 - The legal auto-build never discards First Aid to make room for the two choices.
 
 The original encounter settings remain selectable; these are targeted rules/implementation corrections rather than a claim that every extended-face synergy is equally strong.
+
+
+## v0.22 development continuation
+
+Bu’gh and friendly Summon Nu’gh were reconstructed from the handoff at source a8884c3d. Read [changes](../docs/Changes-v0.22.md) and [validation](../docs/Validation-v0.22.md) before continuing balance work. Browser-only release; the older Windows artifact is unchanged. Export with `tools/export_web.sh`. New model/UI checks are `prototype/tests/summons_v22_test.gd` and `prototype/tests/summons_v22_ui_test.gd`.

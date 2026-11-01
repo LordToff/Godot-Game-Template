@@ -19,6 +19,6 @@ func _initialize():
    if second >= first:second += 1
    var pair: Array = [ids[first],ids[second]]
    result.random_draws.append({"seed":seed_value,"hero":["Vesper","Rook","Wren"][hero],"pair":pair,"build":B.bonus_build(pair)})
- for id in range(59):
+ for id in range(60):
   result.faces.append({"id":id,"name":C.name_for(id),"type":C.category(id),"timing":C.timing(id),"description":C.text(id) if id >= 9 else ""})
  var f := FileAccess.open("/tmp/ash-trial-reference.json",FileAccess.WRITE);f.store_string(JSON.stringify(result,"  "));quit()

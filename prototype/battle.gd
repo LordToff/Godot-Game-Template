@@ -8,7 +8,7 @@ static var FACES: Array = make_face_names()
 
 static func make_face_names() -> Array:
  var names: Array = []
- for id in range(59): names.append(Catalog.name_for(id))
+ for id in range(60): names.append(Catalog.name_for(id))
  return names
 const CAPS = [18, 4, 2, 1, 2, 1, 1, 1, 1]
 const BOSS_DICE = [["Advance","Advance","Smoking Strike","Smoking Strike","Brace","Drive Back"], ["Advance","Skirmish","Smoking Strike","Sweep","Brace","Distort"], ["Advance","Skirmish","Smoking Strike","Sweep","Drive Back","Fracture"]]
@@ -81,25 +81,25 @@ static func validate(build: Array, gift: Variant = -1, profile: Dictionary = {})
  elif not (gift is int and gift == -1):return "Owned designs must be valid face numbers."
  var canonical_owned: Array = []
  for id in owned:
-  if not valid_face_number(id):return "Owned designs must be whole face numbers from 0 to 58."
+  if not valid_face_number(id):return "Owned designs must be whole face numbers from 0 to 59."
   canonical_owned.append(int(id))
  owned = canonical_owned
  var counts := []
- counts.resize(59);counts.fill(0)
+ counts.resize(60);counts.fill(0)
  for die in build:
   if not die is Array or die.size() != 6:return "Every die must have exactly six faces."
   var blanks := 0
   for f in die:
-   if not valid_face_number(f):return "Each die face must be a whole number from 0 to 58."
+   if not valid_face_number(f):return "Each die face must be a whole number from 0 to 59."
    counts[int(f)] += 1
    if int(f) == 0:blanks += 1
   if blanks < Balance.value(profile,"body.blanks"):return "Every six-sided die needs at least %d Blanks." % Balance.value(profile,"body.blanks")
  for i in range(1,9):
   if counts[i] > Balance.value(profile,"owned."+str(i)) + (Balance.value(profile,"owned.bonus") if i in owned else 0): return "Not enough owned copies of " + FACES[i] + "."
- for i in range(9,59):
+ for i in range(9,60):
   if counts[i] > (Balance.value(profile,"owned.bonus") if i in owned else 0): return "Only owned bonus faces may be equipped."
  var totals := {"Movement":0,"Defense":0,"Skill":0}
- for id in range(1,59):
+ for id in range(1,60):
   var cat: String = Catalog.category(id)
   if totals.has(cat): totals[cat] += counts[id]
  if totals.Movement > Balance.value(profile,"body.Movement") or totals.Defense > Balance.value(profile,"body.Defense") or totals.Skill > Balance.value(profile,"body.Skill"):
@@ -298,6 +298,8 @@ func activate() -> void:
  record_event("turn",unit_name(active)+" begins its turn.",active)
  record_event("guide",turn_explanation(),active)
  if active == 3:
+  tick_poison(3)
+  if outcome != "":return
   for id in range(3):
    if heroes[id].rooted > 0:record_event("expire","Rooted ends on "+unit_name(id)+" at the boss turn start.",3,id)
    heroes[id].rooted = 0
@@ -307,7 +309,9 @@ func activate() -> void:
   boss.block = 0
   for id in range(3):
    if heroes[id].weak: record_event("expire","Distort ends on "+unit_name(id)+" at the boss turn start.",3,id)
-   heroes[id].weak = false
+   heroes[id].weak = false;heroes[id].weak_amount = v("boss.distort.weakness")
+  for id in living_minions("friendly"):
+   unit_data(id).weak = 0;unit_data(id).rooted = 0
   note(boss_name()+" takes its turn. Resolve I → II → III.")
  else:
   var h: Dictionary = heroes[active]
@@ -336,12 +340,12 @@ func activate() -> void:
    pending = {"kind":"channel","hero":active}
 
 func tick_poison(id: int) -> void:
- var h: Dictionary = heroes[id]
+ var h: Dictionary = unit_data(id)
  var amount: int = h.get("poison",0)
  h.poison = 0
- if amount <= 0 or h.hp <= 0 or h.dead:return
- action_owner = 3;action_label = "Poison"
- record_event("poison","%s: Poison %d triggers at own turn start, bypassing Block, then expires." % [unit_name(id),amount],3,id,amount)
+ if amount <= 0 or h.hp <= 0 or h.get("dead",false):return
+ action_owner = int(h.get("poison_source",3));action_label = "Poison"
+ record_event("poison","%s: Poison %d triggers at own turn start, bypassing Block, then expires." % [unit_name(id),amount],action_owner,id,amount)
  damage(id,amount,true,"Poison")
 func finish_turn() -> void:
  if outcome != "" or not pending.is_empty(): return
@@ -365,6 +369,10 @@ func finish_turn() -> void:
     action_owner = active;action_label = "Black Oath cost"
     damage(active,v("face50.penalty"),true,"Black Oath cost")
     if outcome != "": return
+ if active < 3:
+  var worm := owned_worm(active)
+  if worm >= 0:activate_friendly(worm)
+  if outcome != "":return
  if active == 3: boss.weak = false
  if recovery_active:
   recovery_active = false
@@ -419,8 +427,8 @@ func nearest(ts: Array, low_block: bool = false) -> int:
   elif d == best: candidates.append(t)
  if low_block:
   var lowest := 100
-  for t in candidates: lowest = mini(lowest,heroes[t].block)
-  candidates = candidates.filter(func(t): return heroes[t].block == lowest)
+  for t in candidates: lowest = mini(lowest,unit_data(t).block)
+  candidates = candidates.filter(func(t): return unit_data(t).block == lowest)
  return candidates[rng.randi_range(0,candidates.size()-1)]
 
 func boss_move(steps: int, chosen_target: int = -1) -> bool:
@@ -465,8 +473,10 @@ func boss_step_label() -> String:
  return "Resolve "+(["I","II","III"][boss_index] if boss_index < 3 else "end of turn")+"   →"
 func attack_targets(source: int, reach: int) -> Array:
  var result: Array = []
- for id in range(3):
-  if not heroes[id].dead and heroes[id].hp > 0 and distance(source,id) <= reach:result.append(id)
+ for id in range(unit_count()):
+  if id == source or not enemies(source,id):continue
+  var unit := unit_data(id)
+  if not unit.get("dead",false) and unit.hp > 0 and distance(source,id) <= reach:result.append(id)
  return result
 func nearest_attacked(source: int, options: Array) -> int:
  if source == 3:return nearest(options)
@@ -510,7 +520,7 @@ func damage(id: int, amount: int, unavoidable: bool = false, reason: String = ""
   h.hp = maxi(0,h.hp-amount)
   if id < 3: h.taken += old_hp-h.hp
   if id < 3 and h.ward and attacker == 3 and old_hp > h.hp and distance(id,3) == 1:
-   boss.weak = true
+   boss.weak = true;boss.weak_amount = v("face51.weakness")
    record_event("debuff","Wither Ward: %s inflicts Weakness %d on %s until the boss turn ends." % [unit_name(id),v("face51.weakness"),boss_name()],id,3)
    if action_before.has(3): action_before[3].statuses["Weakness"] = true
   if id < 3 and h.hp == 0:
@@ -567,7 +577,7 @@ func hero_action(d: int, target: int = -1, destination: Vector2i = Vector2i(-99,
  if h.used[d] or (forced_die >= 0 and forced_die != d): return false
  var f := face(active,d)
  if f == 6 and focus_reason(d,target) != "":return false
- begin_action(active,FACES[f],target if f != 6 else -1,d)
+ begin_action(active,action_name(active,f),target if f != 6 else -1,d)
  if f >= 9: return catalog_action(d,target,destination)
  match f:
   0:
@@ -705,7 +715,7 @@ func boss_step() -> void:
    note("Grave Tithe steals %d Block; The Hollow gains %d (cap %d). No HP damage." % [stolen,mini(v("boss.tithe.cap"),stolen),v("boss.tithe.cap")])
   "Bound": note("Lethargic Bind suppresses this action.")
   "Furnace Roar":
-   var victims := targets(boss_range(action))
+   var victims := attack_targets(3,boss_range(action))
    last_targets = victims.duplicate()
    if victims.is_empty():fallback()
    else:
@@ -743,13 +753,16 @@ func boss_step() -> void:
    else: last_targets = [t]; pending = {"kind":"fracture","hero":t,"remaining":v("boss.fracture.count")}
   _:
    if action == "Skirmish": boss_move(v("boss.skirmish.move"))
-   var ts := targets(boss_range(action),action == "Sweep")
+   var ts := attack_targets(3,boss_range(action))
+   if action == "Sweep":
+    for id in targets(boss_range(action),true):
+     if id not in ts:ts.append(id)
    if ts.is_empty():
     if action != "Skirmish": fallback()
    else:
     var victims: Array = ts if action == "Sweep" else [nearest(ts,action in ["Strike","Smoking Strike"])]
     last_targets = victims.duplicate()
-    note(action + " targets " + ", ".join(victims.map(func(t): return heroes[t].name)))
+    note(action + " targets " + ", ".join(victims.map(func(t): return unit_name(t))))
     pending = {"kind":"attack","action":action,"victims":victims,"reacted":[],"amount":v("boss."+("Strike" if action == "Smoking Strike" else action)+".damage")}
     continue_attack()
  report_changes()
@@ -768,15 +781,15 @@ func continue_attack() -> void:
     if key in pending.reacted: continue
     var f: int = face(actor,die)
     var trigger: bool = actor == victim and (f == 5 or (f == 28 and not area) or heroes[actor].smoke.has(die))
-    if f == 44: trigger = actor != victim and distance(actor,victim) <= v("face44.range") and sight(actor,victim,v("face44.range"))
+    if f == 44: trigger = victim < 3 and actor != victim and distance(actor,victim) <= v("face44.range") and sight(actor,victim,v("face44.range"))
     if f == 45: trigger = actor != victim and distance(actor,source) <= mini(v("face45.range"),reach) and not area
-    if f == 46: trigger = actor == victim and pending.amount-(v("face51.weakness") if boss.weak and source == 3 else 0)-heroes[actor].block-heroes[actor].dr >= heroes[actor].hp
+    if f == 46: trigger = actor == victim and pending.amount-(boss_weakness() if boss.weak and source == 3 else 0)-heroes[actor].block-heroes[actor].dr >= heroes[actor].hp
     if f == 48: trigger = true
     if trigger:
      pending.kind = "reaction"; pending.hero = actor; pending.die = die; pending.victim = victim
      return
  var victims: Array = pending.victims.duplicate()
- if not area and (heroes[victims[0]].hp <= 0 or distance(source,victims[0]) > reach):
+ if not area and (unit_data(victims[0]).hp <= 0 or distance(source,victims[0]) > reach):
   var ts := attack_targets(source,reach)
   if ts.is_empty():
    note(action + " has no legal adjacent target after Reactions; " + ("worm holds; bite ends." if source >= 4 else ("completed movement is kept, attack ends." if action == "Skirmish" else "attack is replaced by fallback.")))
@@ -792,24 +805,26 @@ func continue_attack() -> void:
  for t in victims:
   # Sweep locks its area after all reactions, and hits each adjacent unit once.
   if area and distance(source,t) > reach: continue
-  record_event("attack","%s attacks %s with %s for %d damage." % [unit_name(source),unit_name(t),action,maxi(0,amount-(v("face51.weakness") if boss.weak and source == 3 else 0))],source,t,amount)
-  var hp_before: int = heroes[t].hp
-  damage(t,maxi(0,amount-(v("face51.weakness") if boss.weak and source == 3 else 0)),false,"",source)
-  last_boss_result = "%s · %s → %s: %d HP lost (%d incoming)." % [action,unit_name(source),unit_name(t),hp_before-heroes[t].hp,amount]
-  if action == "Worm Bite" and hp_before > heroes[t].hp and heroes[t].hp > 0 and v("nugh.poison") > 0:
-   heroes[t].poison = maxi(heroes[t].get("poison",0),v("nugh.poison"))
-   record_event("poison","%s poisons %s: Poison %d. At next own turn start lose that much HP, bypass Block, then clear. Further bites refresh; do not stack." % [unit_name(source),unit_name(t),heroes[t].poison],source,t,heroes[t].poison)
+  record_event("attack","%s attacks %s with %s for %d damage." % [unit_name(source),unit_name(t),action,maxi(0,amount-(boss_weakness() if boss.weak and source == 3 else 0))],source,t,amount)
+  var hp_before: int = unit_data(t).hp
+  damage(t,maxi(0,amount-(boss_weakness() if boss.weak and source == 3 else 0)),false,"",source)
+  last_boss_result = "%s · %s → %s: %d HP lost (%d incoming)." % [action,unit_name(source),unit_name(t),hp_before-unit_data(t).hp,amount]
+  if action == "Worm Bite" and hp_before > unit_data(t).hp and unit_data(t).hp > 0 and v("nugh.poison") > 0:
+   unit_data(t).poison = maxi(unit_data(t).get("poison",0),v("nugh.poison"));unit_data(t).poison_source = source
+   record_event("poison","%s poisons %s: Poison %d. At next own turn start lose that much HP, bypass Block, then clear. Further bites refresh; do not stack." % [unit_name(source),unit_name(t),unit_data(t).poison],source,t,unit_data(t).poison)
+  if hp_before > unit_data(t).hp and unit_data(t).hp > 0:
+   on_enemy_bite(source,t,action)
   if outcome != "": return
-  if action in ["Strike","Smoking Strike"] and maxi(0,amount-(v("face51.weakness") if boss.weak else 0)) > 0:smoking_fire(t)
+  if action in ["Strike","Smoking Strike"] and maxi(0,amount-(boss_weakness() if boss.weak else 0)) > 0:smoking_fire(t)
   if outcome != "":return
-  if action == "Furnace Roar" and heroes[t].hp > 0:
+  if action == "Furnace Roar" and unit_data(t).hp > 0:
    for step in range(v("boss.roar.push")):
     var dirs := away_dirs(3,t)
     var moved := false
     for dir in dirs:
-     if legal(t,heroes[t].pos+dir):heroes[t].pos += dir;moved = true;break
+     if legal(t,unit_data(t).pos+dir):unit_data(t).pos += dir;moved = true;break
     if not moved:break
-  if action == "Drive Back":
+  if action == "Drive Back" and t < 3:
    pending = {"kind":"push","hero":t,"direction":impact_direction(t)};push(pending.direction);return
 
 func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
@@ -831,7 +846,7 @@ func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
    28:
     var options := attack_targets(source,mini(v("face28.range"),reach)).filter(func(id):return id != t)
     if not options.is_empty(): pending.victims = [nearest_attacked(source,options)]
-   44: h.block += v("face44.self"); heroes[victim].block += v("face44.ally")
+   44: h.block += v("face44.self"); unit_data(victim).block += v("face44.ally")
    45: pending.victims = [t]
    46: h.defy = true; mutate(t,die,h.rolls[die],0)
    48:
@@ -864,20 +879,20 @@ func push(dir: Vector2i) -> void:
  if pending.has("direction"):dir = pending.direction
  if dir not in away_dirs(3,t):return
  pending = {}
- var origin: Vector2i = heroes[t].pos
+ var origin: Vector2i = unit_data(t).pos
  for step in range(v("boss.push.move")):
-  if legal(t,heroes[t].pos+dir):heroes[t].pos += dir
+  if legal(t,unit_data(t).pos+dir):unit_data(t).pos += dir
   else:
    record_event("collision","Drive Back: %s hits an obstruction; suffers %d unavoidable damage and Stunned." % [unit_name(t),v("boss.push.collision")],3,t)
    damage(t,v("boss.push.collision"),true,"Drive Back collision")
-   if outcome != "" or heroes[t].dead or heroes[t].hp == 0:return
+   if outcome != "" or heroes[t].dead or unit_data(t).hp == 0:return
    if heroes[t].stun:damage(t,v("status.stun_repeat"),true)
    else:
     heroes[t].stun = true
     if heroes[t].used.has(false):pending = {"kind":"stun","hero":t}
     else:record_event("stun","%s gains Stunned. No unused die remains now; if still Stunned at the next shared roll, choose a die to set aside." % unit_name(t),3,t)
    break
- if origin != heroes[t].pos:record_event("move","Drive Back pushes %s %s → %s." % [unit_name(t),cell_name(origin),cell_name(heroes[t].pos)],3,t)
+ if origin != unit_data(t).pos:record_event("move","Drive Back pushes %s %s → %s." % [unit_name(t),cell_name(origin),cell_name(unit_data(t).pos)],3,t)
 
 func stun_die(d: int) -> void:
  if pending.get("kind","") not in ["stun","preroll_stun"] or d not in range(3):return
@@ -1091,6 +1106,12 @@ func catalog_action(d: int, target: int, destination: Vector2i) -> bool:
  var f := face(active,d)
  var side: int = h.rolls[d]
  match f:
+  59:
+   var worm := owned_worm(active)
+   if worm >= 0:activate_friendly(worm)
+   else:
+    if destination not in summon_cells(active):return false
+    spawn_friendly(active,destination)
   9:
    if not h.gambler: h.gambler = true; note(h.name + " arms Gambler's Coin (x0 / x2).")
    else: h.gold += v("face9.gold"); mutate(active,d,side,0); note("Gambler's Coin becomes Blank · +%d Gold." % v("face9.gold"))
@@ -1371,8 +1392,8 @@ func detonate_brand() -> void:
  record_event("hazard","Cinder Brand detonates now, before boss dice resolve. Each hero on the marked square takes %d normal damage; moving away avoids it." % v("boss.brand.damage"),3)
  fire_event(3,marked,"Cinder Brand detonation")
  atomic_damage = true
- for id in range(3):
-  if not heroes[id].dead and heroes[id].pos in marked: damage(id,v("boss.brand.damage"),false,"Cinder Brand")
+ for id in [0,1,2]+living_minions("all"):
+  if not unit_data(id).get("dead",false) and unit_data(id).pos in marked: damage(id,v("boss.brand.damage"),false,"Cinder Brand")
  atomic_damage = false; check_end()
 
 func turn_explanation() -> String:
@@ -1429,8 +1450,9 @@ func v(key: String) -> int:
  var value := Balance.value(balance,key,tuned)
  if phase_two and encounter_id == "hollow" and Balance.INDEX.has("phase."+key):value += Balance.value(balance,"phase."+key,tuned)
  return value
+func boss_weakness() -> int:return int(boss.get("weak_amount",v("face51.weakness")))
 func hero_weakness(h: Dictionary) -> int:
- return maxi(v("boss.distort.weakness") if h.weak else 0,v("face47.weakness") if h.bulwark_weak else 0)
+ return maxi(int(h.get("weak_amount",v("boss.distort.weakness"))) if h.weak else 0,v("face47.weakness") if h.bulwark_weak else 0)
 func soul_remaining(id: int) -> int:
  var h: Dictionary = heroes[id]
  var used: int = int(h.get("soul_moves_used",0))
@@ -1520,8 +1542,10 @@ func focus_reason(source: int, target: int) -> String:
  return reroll_face_reason(face(active,target))
 
 func status_description(id: int) -> String:
- var h: Dictionary = boss if id == 3 else heroes[id]
+ var h: Dictionary = unit_data(id)
+ if id >= 4:return summon_description(id)
  var lines: Array[String] = []
+ if id == 3 and h.get("poison",0) > 0:lines.append("Poison %d: unavoidable HP damage at next boss activation, then clears." % h.poison)
  if id < 3:
   if h.dead:lines.append("Dead: cannot act or be revived.")
   elif h.hp == 0:lines.append("Downed: heal to revive with Broken.")
@@ -1587,13 +1611,13 @@ func impact_direction(target: int) -> Vector2i:
  return candidates[rng.randi_range(0,candidates.size()-1)]
 
 func smoking_fire(target: int) -> void:
- var cell: Vector2i = heroes[target].pos
+ var cell: Vector2i = unit_data(target).pos
  if cell in fire_tiles:
   fire_tiles.erase(cell)
   record_event("hazard","Smoking Strike detonates and consumes the fire at %s: %d extra normal damage to each hero on that cell." % [cell_name(cell),v("boss.smoking.fire_damage")],3,target)
   fire_event(3,[cell],"Smoking Strike fire detonation")
-  for id in range(3):
-   if not heroes[id].dead and heroes[id].pos == cell:damage(id,v("boss.smoking.fire_damage"),false,"Smoking Strike fire detonation")
+  for id in [0,1,2]+living_minions("all"):
+   if not unit_data(id).get("dead",false) and unit_data(id).pos == cell:damage(id,v("boss.smoking.fire_damage"),false,"Smoking Strike fire detonation")
  else:
   fire_tiles.append(cell)
   record_event("hazard","Smoking Strike ignites %s under %s. Ending a hero turn here burns them; a later positive Smoking Strike detonates and removes it." % [cell_name(cell),unit_name(target)],3,target)
@@ -1605,16 +1629,16 @@ func reset_soul_allowance(id: int) -> void:
  if reward:record_event("soul_refresh","%s refreshes Blank movement: %d/%d uses available for this own turn." % [unit_name(id),v("soul.uses"),v("soul.uses")],id,id)
 
 static func valid_face_number(value: Variant) -> bool:
- return (value is int or value is float) and is_finite(float(value)) and float(value) == floor(float(value)) and value >= 0 and value < 59
+ return (value is int or value is float) and is_finite(float(value)) and float(value) == floor(float(value)) and value >= 0 and value < 60
 
 func boss_name() -> String:return "The Hollow"
 func unit_count() -> int:return 4+minions.size()
 func unit_data(id: int) -> Dictionary:
  return boss if id == 3 else (heroes[id] if id < 3 else minions[id-4])
-func living_minions() -> Array:
+func living_minions(faction: String = "enemy") -> Array:
  var ids: Array = []
  for i in range(minions.size()):
-  if not minions[i].dead and minions[i].hp > 0:ids.append(i+4)
+  if not minions[i].dead and minions[i].hp > 0 and (faction == "all" or minions[i].get("faction","enemy") == faction):ids.append(i+4)
  return ids
 func damage_minion(id: int, amount: int, unavoidable: bool = false, reason: String = "") -> void:
  var worm := unit_data(id)
@@ -1624,11 +1648,11 @@ func damage_minion(id: int, amount: int, unavoidable: bool = false, reason: Stri
  var old: int = worm.hp;worm.hp = maxi(0,worm.hp-maxi(0,amount-absorbed))
  record_event("damage" if worm.hp < old else "block","%s — %s → %s: %d blocked; %d HP lost. HP %d/%d, Block %d." % [action_label,unit_name(action_owner),unit_name(id),absorbed,old-worm.hp,worm.hp,worm.max_hp,worm.block],action_owner,id,old-worm.hp)
  if worm.hp == 0:
-  worm.dead = true
-  record_event("minion_death",unit_name(id)+" falls silent. It no longer strengthens Nu’gh or blocks this cell.",action_owner,id)
+  worm.dead = true;worm.poison = 0;worm.block = 0
+  record_event("minion_death",unit_name(id)+" dies; its cell is now empty.",action_owner,id)
 func cleave_splash(target: int) -> void:
  for other in range(3,unit_count()):
-  if other != target and not unit_data(other).get("dead",false) and unit_data(other).hp > 0 and distance(target,other) <= 1:
+  if other != target and enemies(active,other) and not unit_data(other).get("dead",false) and unit_data(other).hp > 0 and distance(target,other) <= 1:
    damage(other,v("face38.splash"),false,"Cleave secondary hit");return
 func phase_upgrades() -> Array:
  var smoking_upgrade := "Fire detonation damage +%d." % Balance.value(balance,"phase.boss.smoking.fire_damage")
@@ -1650,3 +1674,79 @@ func phase_description() -> String:
  var text := "[b]PHASE II ACTIVE[/b]" if phase_two else "[b]At %d/%d HP[/b]" % [int(floor(boss.max_hp*v("boss.phase.percent")/100.0)),boss.max_hp]
  for item in phase_upgrades():text += "\n\n[b]"+item[0]+"[/b]\n"+item[1]
  return text
+
+
+# Faction is explicit for summons; older enemy fixtures default to enemy.
+func friendly(id: int) -> bool:
+ return id < 3 or (id >= 4 and unit_data(id).get("faction","enemy") == "friendly")
+func enemies(a: int, b: int) -> bool:return friendly(a) != friendly(b)
+func owned_worm(owner: int) -> int:
+ for id in living_minions("friendly"):
+  if unit_data(id).get("owner",-1) == owner:return id
+ return -1
+func summon_cells(owner: int) -> Array:
+ var result: Array = []
+ for dir in DIRS:
+  var pos: Vector2i = heroes[owner].pos+dir
+  if legal(unit_count(),pos):result.append(pos)
+ return result
+func spawn_friendly(owner: int, pos: Vector2i) -> int:
+ if owned_worm(owner) >= 0 or pos not in summon_cells(owner):return -1
+ var hp := v("face59.hp")
+ minions.append({"name":unit_name(owner)+"’s Nu’gh","kind":"friendly_worm","faction":"friendly","owner":owner,"pos":pos,"hp":hp,"max_hp":hp,"block":0,"dead":false,"poison":0})
+ var id := unit_count()-1
+ record_event("summon","%s summons friendly Nu’gh at %s: %d HP. All their copies now Command this worm." % [unit_name(owner),cell_name(pos),hp],owner,id)
+ return id
+func move_summon(id: int, steps: int) -> void:
+ var origin: Vector2i = unit_data(id).pos
+ var queue: Array = [[origin,[]]];var visited: Array = [origin]
+ var paths: Array = [];var best := 100
+ while not queue.is_empty():
+  var item: Array = queue.pop_front();var at: Vector2i = item[0];var path: Array = item[1]
+  var dist := 100
+  for target in attack_targets(id,99):dist = mini(dist,distance(id,target,at))
+  if dist < best:best = dist;paths = [path]
+  elif dist == best:paths.append(path)
+  if path.size() >= steps or dist <= 1:continue
+  for dir in DIRS:
+   var next: Vector2i = at+dir
+   if next not in visited and legal(id,next):visited.append(next);queue.append([next,path+[next]])
+ var shortest := 100
+ for path in paths:shortest = mini(shortest,path.size())
+ paths = paths.filter(func(path):return path.size() == shortest)
+ if paths.is_empty():return
+ var chosen: Array = paths[rng.randi_range(0,paths.size()-1)]
+ if chosen.is_empty():return
+ unit_data(id).pos = chosen.back()
+ record_event("move","%s moves %s → %s." % [unit_name(id),cell_name(origin),cell_name(unit_data(id).pos)],id,id)
+func apply_poison(source: int, target: int, amount: int) -> void:
+ var victim := unit_data(target)
+ if victim.hp <= 0 or victim.get("dead",false) or amount <= 0:return
+ victim.poison = maxi(int(victim.get("poison",0)),amount);victim.poison_source = source
+ record_event("poison","%s applies Poison %d to %s: unavoidable HP damage at next activation, then clear; refresh, never stack." % [unit_name(source),victim.poison,unit_name(target)],source,target,victim.poison)
+func activate_friendly(id: int) -> void:
+ if unit_data(id).dead or outcome != "":return
+ tick_poison(id)
+ if unit_data(id).dead or outcome != "":return
+ action_owner = id;action_label = "Friendly Nu’gh Bite"
+ record_event("minion_action",unit_name(id)+" activates: Move, then one bite.",id)
+ move_summon(id,0 if unit_data(id).get("rooted",0) > 0 else v("face59.move"))
+ var options := attack_targets(id,v("face59.range"))
+ if options.is_empty():note("No enemy in bite range.");return
+ var target := nearest_attacked(id,options);var side := rng.randi_range(0,5)
+ var amount := v("face59.damage") if side < v("face59.hit_faces") else 0
+ var faces: Array = []
+ for n in range(6):faces.append(str(v("face59.damage") if n < v("face59.hit_faces") else 0))
+ roll_presentations.append({"actor":unit_name(id),"kind":"Numeric · Friendly Bite","faces":[faces],"sides":[side],"results":[str(amount)],"dice":[0]})
+ record_event("roll","%s bites %s: d6 side %d [%s] = %d." % [unit_name(id),unit_name(target),side+1,", ".join(faces),amount],id,target)
+ var before: int = unit_data(target).hp
+ damage(target,maxi(0,amount-int(unit_data(id).get("weak",0))),false,"Friendly Nu’gh Bite",id)
+ if unit_data(target).hp < before:apply_poison(id,target,v("face59.poison"))
+func on_enemy_bite(_source: int, _target: int, _action: String) -> void:pass
+func summon_description(id: int) -> String:
+ var unit := unit_data(id)
+ var text := "Friendly · owner: "+unit_name(unit.owner)+". Acts after owner’s turn; Command grants an extra activation. Bite HP damage applies Poison." if friendly(id) else "Enemy summon."
+ if unit.get("poison",0) > 0:text += " Poison %d: HP loss at next activation, then clear." % unit.poison
+ return text
+func action_name(owner: int, f: int) -> String:
+ return "Command Nu’gh" if f == 59 and owned_worm(owner) >= 0 else FACES[f]

@@ -68,7 +68,7 @@ func run():
  app.combat_effects = false;app.effects.clear();app.impact_time = 0;app.game = Lab.create(1);app.seen_event = app.game.event_id;app.Lab.attack(app.game,1);app.rebuild()
  check(not app.effects.any(func(f):return f.kind == "impact") and app.impact_time == 0,"impact opt-out suppresses recoil and shake")
  app.combat_effects = true;app.game = Lab.create(31);app.inspect_action = "";app.show_active_effects = false;app.selected = -1;app.rebuild()
- for f in range(59):
+ for f in range(60):
   app.game.heroes[0].results[0] = f;app.game.heroes[0].used[0] = false;app.combat_inspected = f;app.detailed_ability = false;app.rebuild()
   check(not app.short_face_help(f).is_empty() and not app.ui.get_node("CombatAbilityDetails").text.contains("ACTIVE HERO"),"short description exists without unrelated status dump: %d" % f)
   check(app.ui.get_node("BattleDie0").size.x == 328,"long face names do not expand cards into the log: %d" % f)

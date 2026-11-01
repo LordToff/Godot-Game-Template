@@ -20,7 +20,7 @@ func run():
  check(app.ui.get_children().any(func(c):return c is Label and "VESPER’S TURN" in c.text and c.get_theme_font_size("font_size") >= 20),"large active turn label")
  app.ui.get_children().filter(func(c):return c is Button and c.text == "Lab tools")[0].pressed.emit()
  var picker = app.ui.get_node("LabAbilities")
- check(picker.item_count == 59,"all hero, generated and penalty faces selectable")
+ check(picker.item_count == 60,"all hero, generated and penalty faces selectable")
  picker.item_selected.emit(33)
  check(app.lab_face == 33 and app.game.face(0,0) == 33,"ability selector resets fixture")
  app.game.hero_action(0);app.rebuild()

@@ -52,27 +52,30 @@ const EXTRA = [
 const GENERATED = [["Bone","Skill","Gain 1 Block and optionally step 1."],["Recovery","Skill","Heal yourself or an adjacent hero for Numeric."],["Red Tile","Penalty","Inert, non-rerollable, not a Blank, locked for this encounter."]]
 const MOVEMENT = [["Ashstep","Movement","Slip through ash: move up to 2 orthogonal spaces, turning allowed, then gain 1 Block. Cannot pass through units."],["Oathbound Exchange","Movement","Swap positions with a living standing ally within 3 and clear sight. Both heroes gain 1 Block. Cannot swap with the boss or a Downed hero."]]
 static func extended_ids() -> Array:
- return range(9,54) + [57,58]
+ return range(9,54) + [57,58,59]
 static func name_for(id: int) -> String:
+ if id == 59:return "Summon Nu’gh"
  if id < 9: return ["Blank","Strike","Step","Stride","Guard","Reaction","Focus","First Aid","Shove"][id]
  if id >= 57: return MOVEMENT[id-57][0]
  return EXTRA[id-9][0] if id < 54 else GENERATED[id-54][0]
 static func category(id: int) -> String:
+ if id == 59:return "Skill"
  if id < 9: return ["Blank","Attack","Movement","Movement","Defense","Defense","Skill","Skill","Skill"][id]
  if id >= 57: return "Movement"
  return EXTRA[id-9][1] if id < 54 else GENERATED[id-54][1]
 static func text(id: int) -> String:
+ if id == 59:return "Summon one friendly Nu’gh on an adjacent empty tile: 1 HP, Move 2, bite range 1, Numeric 1,1,0,0,0,0. HP damage applies Poison 1. Acts after its owner’s turn. While alive, all copies become Command Nu’gh: activate it immediately as well. One worm per hero."
  if id in [25,31,49]: return EXTRA[id-9][2] + " Prototype limit: one active Channel per hero; a second cannot replace it."
  if id >= 57: return MOVEMENT[id-57][2]
  return EXTRA[id-9][2] if id < 54 else GENERATED[id-54][2]
 static func draft_ids() -> Array:
- return range(1,54) + [57,58]
+ return range(1,54) + [57,58,59]
 static func is_reaction(id: int) -> bool:
  return id in [5,28,44,45,46,48]
 static func is_attack(id: int) -> bool:
  return category(id) == "Attack"
 static func can_copy(id: int) -> bool:
- return id in [1,2,3,4,7,8,19,20,21,22,34,35,36,37,38,39,40,42,43,47,50,51,52,53,54,55,57,58]
+ return id in [1,2,3,4,7,8,19,20,21,22,34,35,36,37,38,39,40,42,43,47,50,51,52,53,54,55,57,58,59]
 
 static func readiness(id: int) -> String:
  if id in [9,11]: return "LIMITED · see effect notes"

@@ -45,7 +45,7 @@ func spawn_worms(count: int, origin: Vector2i = Vector2i(-99,-99)) -> int:
   var pool: Array = candidates.filter(func(c):return c.y == candidates[0].y)
   var pos: Vector2i = pool[rng.randi_range(0,pool.size()-1)]
   var hp := v("nugh.worm_hp")
-  minions.append({"name":"Screaming Worm %d" % (minions.size()+1),"hp":hp,"max_hp":hp,"block":0,"dead":false,"pos":pos})
+  minions.append({"kind":"worm","faction":"enemy","name":"Screaming Worm %d" % (minions.size()+1),"hp":hp,"max_hp":hp,"block":0,"dead":false,"pos":pos})
   record_event("summon","Nu’gh summons %s at %s (%d HP). Never on occupied cells." % [unit_name(unit_count()-1),cell_name(pos),hp],3,unit_count()-1)
   spawned += 1
  if spawned < count:record_event("info","Brood cap or occupied cells prevented %d summon(s)." % (count-spawned),3)
@@ -93,28 +93,7 @@ func boss_step_label() -> String:
  if command_active:return "Activate worm (%d left) →" % brood_queue.size() if not brood_queue.is_empty() else ("Finish brood turn →" if autonomous else "Finish Brood Command →")
  return super.boss_step_label()
 func move_worm(id: int, steps: int) -> void:
- var origin: Vector2i = unit_data(id).pos
- var best := 100;var paths: Array = []
- var queue: Array = [[origin,[]]];var visited: Array = [origin]
- while not queue.is_empty():
-  var item: Array = queue.pop_front();var at: Vector2i = item[0];var path: Array = item[1]
-  var d := 100
-  for hero in range(3):
-   if heroes[hero].hp > 0 and not heroes[hero].dead:d = mini(d,distance(id,hero,at))
-  if d < best:best = d;paths = [path]
-  elif d == best:paths.append(path)
-  if path.size() >= steps or d == 1:continue
-  for dir in DIRS:
-   var next: Vector2i = at+dir
-   if next not in visited and legal(id,next):visited.append(next);queue.append([next,path+[next]])
- var shortest := 100
- for path in paths:shortest = mini(shortest,path.size())
- paths = paths.filter(func(path):return path.size() == shortest)
- if paths.is_empty():return
- var chosen: Array = paths[rng.randi_range(0,paths.size()-1)]
- if chosen.is_empty():return
- unit_data(id).pos = chosen.back()
- record_event("move","Worm activation: %s moves %s → %s." % [unit_name(id),cell_name(origin),cell_name(unit_data(id).pos)],id,id)
+ move_summon(id,steps)
 func worm_faces() -> Array:
  var faces: Array = []
  for side in range(6):faces.append(str(worm_damage() if side < v("nugh.worm_hit_faces") else 0))
@@ -127,6 +106,8 @@ func activate_worm() -> void:
   if autonomous:autonomous = false;super.finish_turn()
   return
  var id: int = brood_queue.pop_front()
+ tick_poison(id)
+ if unit_data(id).dead or outcome != "":return
  action_owner = id;action_label = "Worm Bite";action_before = state_snapshot()
  move_worm(id,v("nugh.command_move")+(v("nugh.command_move_bonus") if phase_two else 0))
  var options := attack_targets(id,1)
@@ -194,7 +175,7 @@ func boss_step() -> void:
     last_boss_result = "Devour: consumes one worm; heals %d HP." % restored
     if phase_two:boss.block += v("nugh.devour_block");last_boss_result += " +%d Block." % v("nugh.devour_block")
   "Gnashing Maw":
-   var options := targets(boss_range(action))
+   var options := attack_targets(3,boss_range(action))
    if options.is_empty():fallback()
    else:
     var target := nearest(options);last_targets = [target]
@@ -214,7 +195,7 @@ func check_end() -> void:
  super.check_end()
  if outcome != "":brood_queue.clear();command_active = false
  if outcome == "victory":
-  for worm in minions:worm.hp = 0;worm.dead = true
+  for id in living_minions():unit_data(id).hp = 0;unit_data(id).dead = true
 func default_boss_help(action: String) -> String:
  match action:
   "Brood turn":return "After Nu’gh’s three dice, each worm moves up to %d toward a standing hero, then bites if adjacent.\n\nDie: %s. HP loss applies Poison %d (next own turn: unavoidable HP loss, then clear; refresh, never stack). Reactions apply.\n\nThis is extra to Brood Command." % [v("nugh.command_move")+(v("nugh.command_move_bonus") if phase_two else 0),", ".join(worm_faces()),v("nugh.poison")]
@@ -243,6 +224,10 @@ func status_description(id: int) -> String:
 func damage_minion(id: int, amount: int, unavoidable: bool = false, reason: String = "") -> void:
  var alive: bool = not unit_data(id).dead
  super.damage_minion(id,amount,unavoidable,reason)
- if alive and unit_data(id).dead and not phase_two and action_owner in [0,1,2] and outcome == "":
+ if alive and unit_data(id).dead and not friendly(id) and not phase_two and action_owner in [0,1,2] and outcome == "":
   record_event("soul_link","Soul Link (phase I only): worm kill → %d unavoidable damage to Nu’gh." % v("nugh.link_damage"),action_owner,3,v("nugh.link_damage"))
   damage(3,v("nugh.link_damage"),true,"Brood Soul Link")
+
+func summon_description(id: int) -> String:
+ if friendly(id):return super.summon_description(id)
+ return default_boss_help("Brood turn")+" Soul Link "+("OFF." if phase_two else "ON until half HP.")+(" Poison %d at next activation." % unit_data(id).poison if unit_data(id).get("poison",0)>0 else "")

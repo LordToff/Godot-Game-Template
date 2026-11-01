@@ -16,7 +16,7 @@ func fresh(id: int = 1):
  return g
 func _initialize():call_deferred("run")
 func run():
- check(Catalog.draft_ids().size() == 55,"entire playable hero-action catalog in draft")
+ check(Catalog.draft_ids().size() == 56,"entire playable hero-action catalog in draft")
  for id in Catalog.draft_ids():
   var build: Array = [[1,2,4,0,0,0],[1,3,5,0,0,0],[1,7,id,0,0,0]]
   check(Battle.validate(build,id) == "","gift can be legally installed: "+Catalog.name_for(id))

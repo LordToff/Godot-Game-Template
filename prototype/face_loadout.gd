@@ -13,7 +13,7 @@ static func trial(build: Array, gifts: Array, profile: Dictionary, die: int, sid
  if not data is Dictionary or data.get("kind","") != "ash_face":return {"error":"Drag an ability card or an installed face."}
  if die not in range(3) or side not in range(6):return {"error":"Choose a square on one of the three dice."}
  var face: int = int(data.get("face",-1))
- if face not in range(59):return {"error":"Unknown face."}
+ if face not in range(60):return {"error":"Unknown face."}
  var next: Array = build.duplicate(true);var owned: Array = gifts.duplicate();var note := ""
  var source_die: int = int(data.get("from_die",-1));var source_side: int = int(data.get("from_side",-1))
  if source_die < 0:

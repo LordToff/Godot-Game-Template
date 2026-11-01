@@ -71,7 +71,7 @@ func boss_step() -> void:
    last_boss_result = "Seal the Bell: +%d Block. An already open core stays exposed." % value
    record_event("block_gain",last_boss_result,3,3,value)
   "Toll of Reckoning":
-   var options := targets(boss_range(action))
+   var options := attack_targets(3,boss_range(action))
    if options.is_empty():fallback()
    else:
     var amount := toll_damage();last_targets = options.duplicate();change_resonance(-resonance,"Toll spends all Resonance")
@@ -79,7 +79,7 @@ func boss_step() -> void:
     record_event("guide",last_boss_result,3)
     pending = {"kind":"attack","action":action,"area":true,"victims":options,"reacted":[],"amount":amount};continue_attack()
   "Hushed Chime":
-   var options := targets(boss_range(action))
+   var options := attack_targets(3,boss_range(action))
    if options.is_empty():fallback()
    else:
     var target := nearest(options);var amount := chime_damage();last_targets = [target]
@@ -87,7 +87,7 @@ func boss_step() -> void:
     pending = {"kind":"attack","action":action,"victims":[target],"reacted":[],"amount":amount};continue_attack()
   "Tuning Fork":
    boss_move(v("cantor.fork_move")+(v("cantor.fork_move_phase") if phase_two else 0))
-   var options := targets(boss_range(action))
+   var options := attack_targets(3,boss_range(action))
    if options.is_empty():fallback()
    else:
     var target := nearest(options);last_targets = [target]

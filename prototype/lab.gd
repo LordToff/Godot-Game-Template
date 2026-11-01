@@ -32,6 +32,7 @@ static func create(id: int, forced_numeric: int = -1, profile: Dictionary = {}, 
  return g
 
 static func guide(id: int) -> String:
+ if id == 59:return "Select Die I, click an adjacent empty tile. End turn for an automatic activation; roll again to Command. Kill the worm to test resummoning."
  if Catalog.is_reaction(id): return "Stored reaction: press Boss hits. Respond in the window; compare HP / Block and the log. Reset to repeat."
  if id in [0,56]: return "This face is intentionally inert. Blank is not a failure; Red Tile is also locked against rerolls."
  if id in [2,3,53,54,57]: return "Select Die I, then a highlighted empty cell." + (" Bone may also Resolve to stay and gain Block." if id == 54 else "")

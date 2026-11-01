@@ -1565,7 +1565,7 @@ const DEFINITIONS = [
  {
   "key": "boss.phase.percent",
   "group": "Boss · phase change",
-  "label": "HP percent that unlocks Furnace Roar",
+  "label": "HP percent that permanently upgrades boss abilities",
   "default": 50,
   "min": 0,
   "max": 100
@@ -1692,7 +1692,48 @@ const DEFINITIONS = [
  {"key": "cantor.fork_damage", "group": "Boss \u00b7 Brass Cantor", "label": "Fork damage", "default": 1, "min": 0, "max": 99},
  {"key": "cantor.fork_damage_phase", "group": "Boss \u00b7 Brass Cantor", "label": "Half HP: extra Fork damage (optional)", "default": 0, "min": 0, "max": 9},
  {"key": "cantor.fallback_move", "group": "Boss \u00b7 Brass Cantor", "label": "Fallback movement", "default": 1, "min": 0, "max": 16},
- {"key": "cantor.fallback_block", "group": "Boss \u00b7 Brass Cantor", "label": "Fallback Block", "default": 1, "min": 0, "max": 99}
+ {"key": "cantor.fallback_block", "group": "Boss \u00b7 Brass Cantor", "label": "Fallback Block", "default": 1, "min": 0, "max": 99},
+ {"key": "face59.hp", "group": "59 · Summon Nu’gh", "label": "Hp", "default": 1, "min": 1, "max": 99},
+ {"key": "face59.move", "group": "59 · Summon Nu’gh", "label": "Move", "default": 2, "min": 0, "max": 99},
+ {"key": "face59.range", "group": "59 · Summon Nu’gh", "label": "Range", "default": 1, "min": 0, "max": 99},
+ {"key": "face59.damage", "group": "59 · Summon Nu’gh", "label": "Damage", "default": 1, "min": 0, "max": 99},
+ {"key": "face59.hit_faces", "group": "59 · Summon Nu’gh", "label": "Hit faces", "default": 2, "min": 0, "max": 6},
+ {"key": "face59.poison", "group": "59 · Summon Nu’gh", "label": "Poison", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.hp", "group": "Boss · Bu’gh", "label": "Hp", "default": 12, "min": 1, "max": 99},
+ {"key": "bugh.cap", "group": "Boss · Bu’gh", "label": "Cap", "default": 3, "min": 0, "max": 99},
+ {"key": "bugh.initial_cocoons", "group": "Boss · Bu’gh", "label": "Initial cocoons", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.cocoon_hp", "group": "Boss · Bu’gh", "label": "Cocoon hp", "default": 1, "min": 1, "max": 99},
+ {"key": "bugh.cocoon_hp_phase", "group": "Boss · Bu’gh", "label": "Cocoon hp phase", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.hatch_turns", "group": "Boss · Bu’gh", "label": "Hatch turns", "default": 3, "min": 1, "max": 99},
+ {"key": "bugh.mite_hp", "group": "Boss · Bu’gh", "label": "Mite hp", "default": 1, "min": 1, "max": 99},
+ {"key": "bugh.mite_move", "group": "Boss · Bu’gh", "label": "Mite move", "default": 2, "min": 0, "max": 99},
+ {"key": "bugh.mite_move_phase", "group": "Boss · Bu’gh", "label": "Mite move phase", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.mite_damage", "group": "Boss · Bu’gh", "label": "Mite damage", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.mite_hit_faces", "group": "Boss · Bu’gh", "label": "Mite hit faces", "default": 2, "min": 0, "max": 6},
+ {"key": "bugh.mite_block_phase", "group": "Boss · Bu’gh", "label": "Mite block phase", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.mite_weakness", "group": "Boss · Bu’gh", "label": "Mite weakness", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.mite_root_phase", "group": "Boss · Bu’gh", "label": "Mite root phase", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.shell_block", "group": "Boss · Bu’gh", "label": "Shell block", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.shell_phase", "group": "Boss · Bu’gh", "label": "Shell phase", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.mandate_range", "group": "Boss · Bu’gh", "label": "Mandate range", "default": 4, "min": 0, "max": 99},
+ {"key": "bugh.mandate_weakness", "group": "Boss · Bu’gh", "label": "Mandate weakness", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.mandate_root_phase", "group": "Boss · Bu’gh", "label": "Mandate root phase", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.feast_heal", "group": "Boss · Bu’gh", "label": "Feast heal", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.feast_block", "group": "Boss · Bu’gh", "label": "Feast block", "default": 0, "min": 0, "max": 99},
+ {"key": "bugh.feast_block_phase", "group": "Boss · Bu’gh", "label": "Feast block phase", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.crash_move", "group": "Boss · Bu’gh", "label": "Crash move", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.crash_move_phase", "group": "Boss · Bu’gh", "label": "Crash move phase", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.crash_range", "group": "Boss · Bu’gh", "label": "Crash range", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.crash_range_phase", "group": "Boss · Bu’gh", "label": "Crash range phase", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.crash_damage", "group": "Boss · Bu’gh", "label": "Crash damage", "default": 2, "min": 0, "max": 99},
+ {"key": "bugh.crash_damage_phase", "group": "Boss · Bu’gh", "label": "Crash damage phase", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.break_block", "group": "Boss · Bu’gh", "label": "Break block", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.break_strip", "group": "Boss · Bu’gh", "label": "Break strip", "default": 2, "min": 0, "max": 99},
+ {"key": "bugh.break_weakness", "group": "Boss · Bu’gh", "label": "Break weakness", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.lay_count", "group": "Boss · Bu’gh", "label": "Lay count", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.lay_radius", "group": "Boss · Bu’gh", "label": "Lay radius", "default": 2, "min": 0, "max": 99},
+ {"key": "bugh.mite_range", "group": "Boss · Bu’gh", "label": "Mite range", "default": 1, "min": 0, "max": 99},
+ {"key": "bugh.fallback_move", "group": "Boss · Bu’gh", "label": "Fallback move", "default": 1, "min": 0, "max": 99}
 ]
 
 static var INDEX: Dictionary = make_index()
@@ -1723,7 +1764,7 @@ static func face_group(id: int) -> String:
  return "%02d · %s" % [id,names.name_for(id)]
 static func groups() -> Array[String]:
  var result: Array[String] = ["General & passives","Body & owned tiles","Soul · Blank movement","Numeric die","Lab fixtures"]
- for id in range(59):result.append(face_group(id))
+ for id in range(60):result.append(face_group(id))
  for entry in DEFINITIONS:
   if entry.group.begins_with("Boss · ") and entry.group not in result:result.append(entry.group)
  return result

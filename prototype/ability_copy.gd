@@ -66,5 +66,6 @@ func face(f: int) -> String:
   55:return "Heal yourself or an ally within %d for a rolled value." % n("face55.range")
   56:return "No effect. Locked: cannot be rerolled and does not count as a Blank."
   57:return "Move up to %d spaces, turning allowed, then gain %d Block. Occupied cells block the path." % [n("face57.move"),n("face57.block")]
+  59:return "Summon a friendly Nu’gh on an adjacent empty cell: %d HP, Move %d, reach %d. Numeric bite: %d successful sides of six, %d damage; HP damage applies Poison %d. Acts after owner’s turn. While alive: Command grants an immediate extra activation. One per hero across all copies." % [n("face59.hp"),n("face59.move"),n("face59.range"),n("face59.hit_faces"),n("face59.damage"),n("face59.poison")]
   58:return "Swap with a standing ally within %d and clear sight. Both gain %d Block. Rooted prevents the swap." % [n("face58.range"),n("face58.block")]
  return ""

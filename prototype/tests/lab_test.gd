@@ -9,7 +9,7 @@ func check(ok: bool, message: String):
  if not ok: errors += 1; printerr("LAB FAIL: ",message)
 func _initialize(): call_deferred("run")
 func run():
- for id in range(59):
+ for id in range(60):
   var g = Lab.create(id,1)
   check(g.active == 0 and g.face(0,0) == id and g.outcome == "","prepared fixture: "+Battle.FACES[id])
   check(not Lab.guide(id).is_empty(),"guidance: "+Battle.FACES[id])
@@ -21,6 +21,7 @@ func run():
    var target := 3 if Catalog.is_attack(id) else (1 if id in [7,8,12,15,19,58] else (0 if id == 55 else -1))
    var dest := Vector2i(4,5) if id in [2,3,53,54,57] else (Vector2i.LEFT if id == 8 else Vector2i(-99,-99))
    if id == 6: target = 1
+   if id == 59:dest = g.summon_cells(0)[0]
    check(g.hero_action(0,target,dest),"resolve fixture face: "+Battle.FACES[id])
    if not g.pending.is_empty():
     match g.pending.kind:

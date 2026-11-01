@@ -18,7 +18,7 @@ func run():
  check(app.Catalog.display_name(57) == "Ashstep (Movement)","ordinary movement is labelled without false timing")
  check(app.Catalog.display_name(32) == "Oath of Smoke (Skill)","an ability that grants a reaction is not falsely labelled as a reaction")
  var cards = app.ui.get_node("GiftCards").get_child(0)
- check(cards.get_child_count() == 47,"all 47 bonus abilities remain available")
+ check(cards.get_child_count() == 48,"all 47 bonus abilities remain available")
  cards.get_node("Face25").pressed.emit()
  check(app.inspected_gift == 25 and 25 in app.gifts[0],"one click inspects and selects ability")
  check(app.builds[0].any(func(d):return 25 in d),"one click equips the selected design")

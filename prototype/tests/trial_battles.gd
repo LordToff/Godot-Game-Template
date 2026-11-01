@@ -2,6 +2,7 @@ extends SceneTree
 # Deterministic heuristic playtester. Reads visible rolls/board only; never alters live state or RNG.
 const Battle = preload("res://prototype/battle.gd")
 const Cantor = preload("res://prototype/cantor.gd")
+const Bugh = preload("res://prototype/bugh.gd")
 const Nugh = preload("res://prototype/nugh.gd")
 const Catalog = preload("res://prototype/catalog.gd")
 var activations := {}
@@ -11,18 +12,19 @@ func _initialize():call_deferred("run")
 func run():
  var count := maxi(1,int(OS.get_environment("ASH_TRIAL_COUNT")))
  var report := {"seeds":count,"policy":"visible-board heuristic v3", "boss":OS.get_environment("ASH_BOSS"),"ignore_worms":OS.get_environment("ASH_IGNORE_WORMS") == "1", "ignore_hazards":OS.get_environment("ASH_IGNORE_HAZARDS") == "1", "scenarios":[]}
- for kit in ["starting","mixed","numeric","support","channel","growth"]:
+ for kit in (["starting","mixed","summoner"] if OS.get_environment("ASH_V22") == "1" else ["starting","mixed","numeric","support","channel","growth"]):
   for move in [0,1,2]:
    var stat := {"kit":kit,"blank_move":move,"wins":0,"losses":0,"stalls":0,"rounds":0,"phase_two":0,"loss_boss_hp":0,"downings":0,"damage":{},"ability_uses":{}}
    activations = {};choice_misses = {}
    for seed_value in range(1,count+1):
-    var g = Cantor.new() if OS.get_environment("ASH_BOSS") == "cantor" else (Nugh.new() if OS.get_environment("ASH_BOSS") == "nugh" else Battle.new());var builds: Array = []
+    var g = Bugh.new() if OS.get_environment("ASH_BOSS") == "bugh" else Cantor.new() if OS.get_environment("ASH_BOSS") == "cantor" else (Nugh.new() if OS.get_environment("ASH_BOSS") == "nugh" else Battle.new());var builds: Array = []
     var picker := RandomNumberGenerator.new();picker.seed = seed_value*173
     var ids: Array = Catalog.extended_ids()
     for hero in range(3):
      if kit == "starting":builds.append(Battle.default_build());continue
      var pair: Array
      match kit:
+      "summoner":pair = [[59,34],[59,43],[59,19]][hero]
       "numeric":pair = [[34,37],[35,39],[36,40]][hero]
       "support":pair = [[19,43],[42,44],[47,58]][hero]
       "channel":pair = [[25,37],[31,39],[49,35]][hero]
@@ -65,7 +67,7 @@ func run():
  var path := OS.get_environment("ASH_TRIAL_REPORT")
  if path == "":path = "/tmp/ash-trial-report.json"
  var out := FileAccess.open(path,FileAccess.WRITE);out.store_string(JSON.stringify(report,"  "))
- print("TRIAL COMPLETE: ",count*18," encounters; report=",path)
+ print("TRIAL COMPLETE: ",count*report.scenarios.size()," encounters; report=",path)
  quit(1 if errors or report.scenarios.any(func(s):return s.stalls > 0) else 0)
 
 func face_value(g, id: int, f: int) -> float:
@@ -121,6 +123,13 @@ func hero_step(g) -> bool:
    if g.distance(id,3) <= g.face_range(f) and (f != 35 or g.sight(id,3,g.face_range(f))) and use_action(g,d,3):return true
    continue
   match f:
+   59:
+    if g.owned_worm(id) >= 0:
+     if use_action(g,d):return true
+    else:
+     var cells: Array = g.summon_cells(id)
+     cells.sort_custom(func(a,b):return movement_value(g,id,a)>movement_value(g,id,b))
+     if not cells.is_empty() and use_action(g,d,-1,cells[0]):return true
    0,2,3,53,54,57:
     if f == 0 and (not g.reward or g.soul_remaining(id) <= 0):continue
     var options: Array = g.leap_cells(id) if f == 53 else g.reachable(id,g.move_steps(f),f == 3)

@@ -1,0 +1,38 @@
+# v0.22 — The Cocoon Regent and Summon Nu’gh
+
+Reconstructed from the development handoff on 1 November 2026. The available prototype branch ended at published source `a8884c3d`; no uncommitted v0.22 files were available in the replacement workspace.
+
+## New optional encounter: Bu’gh
+
+The Cocoon Regent joins The Hollow, Nu’gh and Veyl. Original integer-grid pixel art depicts its two phases, silk cocoons and mites. No Soul Link.
+
+- **Lay the Cradle:** lay a cocoon on an empty cell within 2; enemy brood cap 3.
+- **Shed the Shell:** gain 1 Block and lay a cocoon; phase II gains 2 Block.
+- **Silken Mandate:** highest-HP standing hero in range 4 suffers Weakness; phase II also Roots until next boss turn.
+- **Hatching Scream:** hatch the oldest cocoon; phase II hatches all.
+- **Royal Feast:** consume an enemy mite to heal 1; phase II also gains 1 Block. Friendly worms are never food.
+- **Carapace Crash:** move 1, reach 1, single-target damage 2. Phase II: move 2, reach 2, area damage 1.
+
+Bu’gh starts at 12 HP with one cocoon. Cocoons have 1 HP and hatch after three brood phases. New phase-II cocoons have 2 HP; existing cocoons keep their HP. Mites have 1 HP, Move 2 (3 in phase II), reach 1 and Numeric 1,1,0,0,0,0. Phase-II newborn mites gain 1 Block. Successful HP-damaging mite bites inflict Weakness; phase II also Roots until the next boss turn. Mites activate after all three boss dice, with real Reaction windows between bites.
+
+A hero destroying a cocoon gains 1 Block, removes up to 2 boss Block and inflicts boss Weakness until Bu’gh’s turn ends. Cocoon destruction causes no direct boss HP damage.
+
+## New selectable Skill: Summon Nu’gh (ID 59)
+
+Summon one small friendly Nu’gh onto an adjacent empty tile: 1 HP, Move 2, bite reach 1, Numeric 1,1,0,0,0,0. HP-damaging bites apply Poison 1. After its owner’s turn it moves toward enemies and attacks the closest enemy in reach. While it lives, all copies owned by that hero display **Command Nu’gh**, granting an immediate extra activation. This does not remove its normal owner-end activation. Death restores Summon. The maximum is one living worm per hero across all copies. Friendly sprites carry the owner’s colored ring and V/R/W marker.
+
+The catalog now has 60 IDs and 48 selectable bonus designs. Two distinct bonus choices per hero, default two Blanks per die, ownership and category limits remain in place.
+
+## Factions and Poison
+
+Friendly and enemy summons are distinct for targeting, movement occupancy, brood caps, consumption, Cleave splash, area damage, poison, deaths and logs. Enemies can kill friendly worms. Nu’gh’s existing enemy brood, Soul Link phase break, Commands and automatic brood turn remain; friendly worms do not strengthen or feed them.
+
+Poison can affect heroes, bosses and summons. HP damage applies it; blocked bites do not. Further applications refresh rather than stack. At the victim’s next activation, Poison causes unavoidable HP damage and clears. Downing clears Poison. Cocoons resolve it before aging or hatching in the brood phase.
+
+New numeric settings are exposed in Balance Workshop. Numeric animations use recorded die results. Ability descriptions remain hover-only; hero movement keeps its existing tile paths and animation.
+
+## Validation and limits
+
+See [validation details](Validation-v0.22.md) and [raw trial scenarios](Trial-results-v0.22.json). This is a provisional balance release, **not a claim of complete testing or balanced player win rates**. In 360 seeded heuristic encounters, 114 were hero wins, 234 boss wins and 12 reached the 50-round limit. All twelve long fights were Bu’gh scenarios with continuing turns and no pending input deadlock. Starting and summoner builds perform very differently; more human playtesting is needed.
+
+The [current rulebook](current-rules.html), [PDF](AshAndOath-Current-Rules-v0.22.pdf) and in-game patch notes describe this version. The Windows download remains an older release.

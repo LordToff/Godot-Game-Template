@@ -14,7 +14,7 @@ func run():
  check(build.all(func(d):return d.count(0) == 2) and Battle.validate(build) == "","fuller default is legal with exactly two Blanks per die")
  build[0] = [1,2,4,1,8,0]
  check(Battle.validate(build) != "","one Blank remains illegal")
- check(Battle.Catalog.extended_ids().size() == 47 and 57 in Battle.Catalog.draft_ids() and 58 in Battle.Catalog.draft_ids(),"both new movements are offered")
+ check(Battle.Catalog.extended_ids().size() == 48 and 57 in Battle.Catalog.draft_ids() and 58 in Battle.Catalog.draft_ids(),"both new movements are offered")
  var g = Lab.create(57)
  check(not g.hero_action(0,-1,Vector2i(8,8)) and g.heroes[0].block == 0 and not g.heroes[0].used[0],"invalid Ashstep cannot farm Block")
  check(g.hero_action(0,-1,Vector2i(3,5)) and g.heroes[0].pos == Vector2i(3,5) and g.heroes[0].block == 1,"Ashstep turns and grants exactly one Block")

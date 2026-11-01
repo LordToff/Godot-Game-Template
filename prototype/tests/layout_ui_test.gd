@@ -27,7 +27,7 @@ func run():
  app.show_dice = false;app.rebuild()
  check(not app.ui.has_node("LabAbilities"),"testing picker is tucked away during play")
  app.game.active = 0;app.rebuild();button(app,"Lab tools").pressed.emit()
- check(app.ui.has_node("LabAbilities") and app.ui.get_node("LabAbilities").item_count == 59,"Lab tools retain every test face")
+ check(app.ui.has_node("LabAbilities") and app.ui.get_node("LabAbilities").item_count == 60,"Lab tools retain every test face")
  button(app,"Back to battle").pressed.emit();button(app,"Menu").pressed.emit()
  check(app.show_menu and button(app,"Game options") != null and button(app,"What changed") != null,"secondary commands are available in Menu")
  var position: Vector2i = app.game.heroes[0].pos
