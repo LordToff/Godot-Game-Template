@@ -182,4 +182,7 @@ func summon_description(id: int) -> String:
  return text
 func status_description(id: int) -> String:
  if id != 3:return super.status_description(id)
- return "%s. Enemy brood %d/%d: %d cocoons, %d mites. No Soul Link. %s" % ["Phase II: The Cradle Opens" if phase_two else "Phase I",living_minions().size(),v("bugh.cap"),kind_ids("cocoon").size(),kind_ids("mite").size(),"Weakness until this boss turn ends." if boss.weak else ""]
+ var text := "%s. Enemy brood %d/%d: %d cocoons, %d mites. No Soul Link." % ["Phase II: The Cradle Opens" if phase_two else "Phase I",living_minions().size(),v("bugh.cap"),kind_ids("cocoon").size(),kind_ids("mite").size()]
+ if boss.weak:text += " Weakness %d until this boss turn ends." % boss_weakness()
+ if boss.get("poison",0) > 0:text += " Poison %d: unavoidable HP damage at next boss activation, then clears." % boss.poison
+ return text

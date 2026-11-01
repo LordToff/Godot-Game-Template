@@ -209,9 +209,9 @@ func report_changes() -> void:
   var now: Dictionary = status_map(id)
   for status in now:
    if now[status] and not old.statuses.get(status,false):
-    var harmful: bool = status in ["Weakness","Marked","Debt Penalty","Stunned","Broken","Rooted"]
+    var harmful: bool = status in ["Weakness","Marked","Debt Penalty","Stunned","Broken","Rooted","Poison"]
     var description: String = status
-    if status == "Weakness":description += " %d (Attacks deal %d less damage)" % [hero_weakness(h) if id < 3 else v("face51.weakness"),hero_weakness(h) if id < 3 else v("face51.weakness")]
+    if status == "Weakness":description += " %d (Attacks deal %d less damage)" % [hero_weakness(h) if id < 3 else boss_weakness(),hero_weakness(h) if id < 3 else boss_weakness()]
     if status == "Damage Reduction":description += " %d (after Block)" % h.dr
     if status == "Backstab":description = "Weak Point READY (next rear Attack repeats)"
     if status == "Numeric Power": description += " +"+str(h.num_boost)+" for the next Numeric damage this turn"
@@ -308,7 +308,7 @@ func activate() -> void:
   if boss.block > 0: record_event("expire","%s loses %d unspent Block at turn start." % [boss_name(),boss.block],3,3)
   boss.block = 0
   for id in range(3):
-   if heroes[id].weak: record_event("expire","Distort ends on "+unit_name(id)+" at the boss turn start.",3,id)
+   if heroes[id].weak: record_event("expire","Weakness ends on "+unit_name(id)+" at the boss turn start.",3,id)
    heroes[id].weak = false;heroes[id].weak_amount = v("boss.distort.weakness")
   for id in living_minions("friendly"):
    unit_data(id).weak = 0;unit_data(id).rooted = 0
@@ -844,7 +844,7 @@ func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
   begin_action(t,"Reaction: "+FACES[f],victim,die)
   match f:
    28:
-    var options := attack_targets(source,mini(v("face28.range"),reach)).filter(func(id):return id != t)
+    var options := attack_targets(source,mini(v("face28.range"),reach)).filter(func(id):return id in [0,1,2] and id != t)
     if not options.is_empty(): pending.victims = [nearest_attacked(source,options)]
    44: h.block += v("face44.self"); unit_data(victim).block += v("face44.ally")
    45: pending.victims = [t]
@@ -1572,7 +1572,7 @@ func status_description(id: int) -> String:
   if h.echo_due:lines.append("Echo of Pain: unused retaliation costs HP next turn.")
  else:
   if phase_two:lines.append("Phase II: 3×3 Cinder Brand, Rooted Ashen Chain and Furnace Roar unlocked.")
-  if h.weak:lines.append("Weakness −%d damage." % v("face51.weakness"))
+  if h.weak:lines.append("Weakness −%d damage." % boss_weakness())
   if h.mark:lines.append("Mark Prey: next damaging unblocked hit gains damage.")
   if not h.bargain.is_empty():lines.append("Blood Bargain: %d charges." % h.bargain.charges)
  if lines.is_empty():return "No active buffs or debuffs."
@@ -1772,6 +1772,8 @@ func on_enemy_bite(_source: int, _target: int, _action: String) -> void:pass
 func summon_description(id: int) -> String:
  var unit := unit_data(id)
  var text := "Friendly · owner: "+unit_name(unit.owner)+". Acts after owner’s turn; Command grants an extra activation. Bite HP damage applies Poison." if friendly(id) else "Enemy summon."
+ if unit.get("rooted",0) > 0:text += " Rooted %d: no voluntary movement until next boss turn." % unit.rooted
+ if unit.get("weak",0) > 0:text += " Weakness %d: bite damage reduced until next boss turn." % int(unit.weak)
  if unit.get("poison",0) > 0:text += " Poison %d: HP loss at next activation, then clear." % unit.poison
  return text
 func action_name(owner: int, f: int) -> String:

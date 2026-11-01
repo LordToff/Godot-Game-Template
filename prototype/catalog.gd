@@ -45,7 +45,7 @@ const EXTRA = [
  ["Echo of Pain","Defense","Reaction during an enemy Attack: deal your actual HP damage taken this round to the boss (cap 3), then blank this face. If unused, take 1 unavoidable damage at next turn start."],
  ["Last Pulse","Defense","Channel: at each maintained turn start, heal 1 if no HP damage got through. HP damage breaks this Channel and blanks it."],
  ["Black Oath","Defense","Gain Numeric +1 Block. Prototype timing: at your turn end, lose 1 HP if Block remains."],
- ["Wither Ward","Defense","Prototype: gain Numeric Block. Until your next turn, an adjacent attacker causing HP loss receives Weakness 1 until its turn ends."],
+ ["Wither Ward","Defense","Prototype: gain Numeric Block. Until your next turn, an adjacent boss Attack causing HP loss gives the boss Weakness 1 until its turn ends."],
  ["Ember Burst","Defense","Prototype: gain Numeric Block, then burn up to 2 Block; each deals normal damage to every adjacent unit, including allies. Choose how much to burn."],
  ["Leap of Echoes","Movement","Tabletop variant: leap up to 2 orthogonally over units, never land occupied. If ending adjacent to the boss, your next Numeric damage this turn gets +1."]
 ]
