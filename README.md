@@ -1,10 +1,10 @@
-# Ash & Oath v0.22.2 — playable prototype
+# Ash & Oath v0.23 — playable prototype
 
-Bu’gh and Summon Nu’gh are new in v0.22. Balance remains provisional. See [changes and validation](docs/Changes-v0.22.md). The Windows download is an older release and is not updated by this browser release.
+v0.23 adds an original three-part soundtrack, persistent audio controls and a polished interface. See [release notes](docs/Changes-v0.23.md). Bu’gh and Summon Nu’gh were introduced in v0.22. Balance remains provisional. See [changes and validation](docs/Changes-v0.22.md). The Windows download is an older release and is not updated by this browser release.
 
-[**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/?v=0.22.2) — no installation required.
+[**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/?v=0.23) — no installation required.
 
-[**Current rules: timing, abilities and bosses**](docs/current-rules.html) · [Download PDF](docs/AshAndOath-Current-Rules-v0.22.pdf). One consolidated v0.22 reference.
+[**Current rules: timing, abilities and bosses**](docs/current-rules.html) · [Download PDF](docs/AshAndOath-Current-Rules-v0.23.pdf). One consolidated v0.23 reference.
 
 [**Historical v0.16 playtest report**](https://lordtoff.github.io/Godot-Game-Template/playtest-report.html) · [Download the polished Excel workbook](downloads/Ash-and-Oath-Playtest-v0.16.xlsx). Includes plain-language team descriptions, each hero’s abilities, dice layouts, win rates and the test method.
 

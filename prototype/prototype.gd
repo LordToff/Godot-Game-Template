@@ -26,15 +26,20 @@ var encounter := "hollow"
 const Model = preload("res://prototype/battle.gd")
 const FaceLoadout = preload("res://prototype/face_loadout.gd")
 const Preset = preload("res://prototype/preset.gd")
-const TITLE = preload("res://prototype/assets/body.ttf")
+const TITLE = preload("res://prototype/assets/title.ttf")
+const Polish = preload("res://prototype/presentation_theme.gd")
+const Score = preload("res://prototype/soundtrack.gd")
+const CHAMBER = preload("res://prototype/assets/pixel_chamber.png")
+var score: Node
+var show_soundtrack := false
 const BACKDROP = preload("res://prototype/assets/pixel_arena.png")
 const PORTRAITS = preload("res://prototype/assets/pixel_portraits.png")
 const SPRITES = preload("res://prototype/assets/pixel_units.png")
 const BOSS_PHASE_TWO = preload("res://prototype/assets/pixel_boss_phase2.png")
 const BODY = preload("res://prototype/assets/body.ttf")
-const GOLD = Color("d5b87a")
+const GOLD = Color("e6c58c")
 const INK = Color("10151e")
-const MUTED = Color("91a0af")
+const MUTED = Color("a8b4bf")
 const COLORS = [Color("69c7bd"),Color("c5a5e8"),Color("edbd79")]
 const FACE_COLORS = [Color("697483"),Color("df897f"),Color("6fc2b7"),Color("6fc2b7"),Color("8db7df"),Color("8db7df"),Color("c5a5e8"),Color("c5a5e8"),Color("c5a5e8")]
 const SYMBOLS = ["—","/","↑","↟","◇","▣","◎","+","»"]
@@ -110,6 +115,7 @@ var log_filter := "All"
 var draft_modal := true
 var show_changes := false
 var changes_page := 0
+var changes_scroll := 0
 var show_dice := false
 var dice_hero := 0
 var dice_inspected := Vector2i(0,0)
@@ -123,10 +129,7 @@ const Changes = preload("res://prototype/changes.gd")
 
 
 func _ready() -> void:
- var theme_res := Theme.new()
- theme_res.default_font = BODY
- theme_res.default_font_size = 15
- theme = theme_res
+ theme = Polish.make()
  texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
  mouse_filter = Control.MOUSE_FILTER_PASS
  ui = Control.new(); ui.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR; ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); ui.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(ui)
@@ -136,7 +139,7 @@ func _ready() -> void:
   audio = AudioStreamPlayer.new(); audio.bus = &"SFX"
   if sound_controller: sound_controller.add_child(audio)
   else: add_child(audio)
- music = AudioStreamPlayer.new(); music.bus = &"Music"; music.volume_db = -22; add_child(music)
+ score = Score.new();add_child(score);music = score.players[score.slot];muted = score.muted
  make_audio()
  setup_combat_audio()
  load_balance_profile()
@@ -151,25 +154,11 @@ func _ready() -> void:
   encounter = saved.get("encounter","hollow");balance_values = saved.get("balance",balance_values).duplicate(true)
   balanced = saved.get("balanced",true);combat_effects = saved.get("combat_effects",true)
   gifts = saved.get("gifts",gifts); offers = saved.get("offers",offers); draft_modal = false
-  music.stream_paused = muted
-  audio.volume_db = -80 if muted else 0
+  score.set_muted(muted)
   begin()
  elif "--battle" in OS.get_cmdline_user_args(): begin()
 
 func make_audio() -> void:
- var wav := AudioStreamWAV.new(); wav.mix_rate = 22050; wav.format = AudioStreamWAV.FORMAT_16_BITS
- var data := PackedByteArray(); data.resize(22050*2*4)
- for i in range(22050*4):
-  var x := float(i)/22050.0
-  var sample := int((sin(x*TAU*55)+0.3*sin(x*TAU*82.5)+0.12*sin(x*TAU*110))*1300)
-  data.encode_s16(i*2,sample)
- wav.data = data; wav.loop_mode = AudioStreamWAV.LOOP_FORWARD; wav.loop_end = 22050*4
- music.stream = wav
- var music_controller = get_node_or_null("/root/ProjectMusicController")
- if music_controller:
-  music_controller.fade_in_duration = 1.0
-  music_controller.play_stream_player(music)
- else: music.play()
  var click := AudioStreamWAV.new(); click.mix_rate = 22050; click.format = AudioStreamWAV.FORMAT_16_BITS
  var cd := PackedByteArray(); cd.resize(2205*2)
  for i in range(2205): cd.encode_s16(i*2,int(sin(float(i)*0.08)*2200*pow(1.0-float(i)/2205.0,3)))
@@ -182,6 +171,12 @@ func make_audio() -> void:
 
 func _process(delta: float) -> void:
  t += delta
+ if is_instance_valid(score):
+  var cue := "forge"
+  if page == "battle" and game.outcome == "":cue = "phase" if game.phase_two else "battle"
+  score.set_cue(cue);music = score.players[score.slot]
+  var caption = ui.get_node_or_null("SoundtrackCaption")
+  if caption:caption.text = "♪ Sound muted" if score.muted else ("♪ "+score.title() if score.started else "♪ Music begins with your first click")
  impact_time = maxf(0.0,impact_time-delta)
  var effect_delta := 0.0 if rolling_time > 0 else delta
  hit_time = maxf(0,hit_time-effect_delta)
@@ -235,11 +230,8 @@ func movement_track(id: int, origin: Vector2, destination: Vector2) -> Dictionar
  points.append_array(route)
  if points.size() == 1:points.append(destination)
  return {"from":origin,"to":destination,"elapsed":0.0,"path":points,"duration":maxf(0.28,(points.size()-1)*0.24)}
-func style(bg: Color, border: Color, radius: int = 0) -> StyleBoxFlat:
- var s := StyleBoxFlat.new(); s.bg_color = bg; s.border_color = border
- s.set_border_width_all(1); s.set_corner_radius_all(radius)
- s.content_margin_left = 12; s.content_margin_right = 12
- return s
+func style(bg: Color, border: Color, radius: int = 5) -> StyleBoxFlat:
+ return Polish.box(bg,border,radius)
 
 func label_at(text: String, p: Vector2, size_px: int = 16, col: Color = Color("e2e5e9"), w: float = 600, serif: bool = false, wrap: bool = false) -> Label:
  var l := Label.new()
@@ -253,10 +245,14 @@ func label_at(text: String, p: Vector2, size_px: int = 16, col: Color = Color("e
 
 func button(text: String, p: Vector2, sz: Vector2, fn: Callable, accent: Color = GOLD, disabled: bool = false) -> Button:
  var b := Button.new(); b.clip_text = true; b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; b.text = text; b.position = p; b.size = sz; b.disabled = disabled or (page == "battle" and rolling_time > 0)
- b.add_theme_stylebox_override("normal",style(Color("1a222e"),Color(accent,0.35)))
+ var primary: bool = ["Enter fight","Next hero","Choose boss","End hero turn","Resolve selected","Try again","Rematch"].any(func(prefix):return text.begins_with(prefix))
+ b.add_theme_stylebox_override("normal",style(Color("1a222e").lerp(accent,.12 if primary else 0),Color(accent,.8 if primary else .35)))
+ if primary:b.add_theme_font_size_override("font_size",16)
  b.add_theme_stylebox_override("hover",style(Color("2b3543"),accent))
  b.add_theme_stylebox_override("pressed",style(Color("354050"),accent))
  b.add_theme_stylebox_override("disabled",style(Color("151b25"),Color("29303a")))
+ var focus := style(Color(0,0,0,0),accent);focus.set_border_width_all(2);focus.shadow_size = 0;b.add_theme_stylebox_override("focus",focus)
+ b.add_theme_color_override("font_hover_color",Color("fff2d5"))
  b.add_theme_color_override("font_color",accent); b.add_theme_color_override("font_disabled_color",Color("83909d"))
  b.pressed.connect(func():
   fn.call())
@@ -269,8 +265,9 @@ func rebuild() -> void:
  sync_presentation()
  for c in ui.get_children(): ui.remove_child(c); c.queue_free()
  if page == "setup":
-  setup_ui()
+  setup_ui();soundtrack_ui()
   if show_options:options_ui()
+  if show_soundtrack:soundtrack_settings_ui()
   if show_dice:dice_ui()
   return
  if page == "battle":
@@ -281,7 +278,7 @@ func rebuild() -> void:
   button("Menu",Vector2(288,112),Vector2(120,26),func():show_menu = true;rebuild(),GOLD)
  else:
   label_at("ASH & OATH",Vector2(42,26),27,GOLD,500,true)
-  label_at("A DICE-BUILDING BOSS BATTLER · v0.22.2",Vector2(44,65),11,MUTED)
+  label_at("A DICE-BUILDING BOSS BATTLER · v0.23",Vector2(44,65),11,MUTED)
   button("View dice",Vector2(350,30),Vector2(235,40),func(): show_dice = true;dice_hero = build_hero;rebuild(),Color("9fc7e6"))
   button("Tutorial / Ability Lab",Vector2(605,30),Vector2(245,40),start_lab,Color("82c8b9"))
   button("What changed",Vector2(866,30),Vector2(225,40),func():show_changes = true;rebuild())
@@ -290,6 +287,7 @@ func rebuild() -> void:
  if page == "forge": forge_ui()
  else: battle_ui()
  if draft_modal and page == "forge": draft_ui()
+ soundtrack_ui()
  if page == "battle":
   apply_hover_inspection()
   if inspect_action != "" or combat_inspected >= 0 or show_active_effects:combat_details_ui()
@@ -302,6 +300,7 @@ func rebuild() -> void:
  if show_menu: menu_ui()
  if show_lab_tools and lab and game.pending.is_empty() and game.outcome == "": lab_tools_ui()
  if show_options: options_ui()
+ if show_soundtrack:soundtrack_settings_ui()
  queue_redraw()
 
 func forge_ui() -> void:
@@ -373,7 +372,7 @@ func begin() -> void:
 func battle_ui() -> void:
  if inspect_actor != game.active:
   inspect_actor = game.active;combat_inspected = -1;inspect_action = "";show_active_effects = false;roll_feedback = {};selected = -1
- var actor: String = "ENCOUNTER ENDED" if game.outcome != "" else (game.boss_name().split(",")[0].to_upper()+"’S TURN" if game.active == 3 else game.heroes[game.active].name.to_upper()+"’S TURN")
+ var actor: String = "ENCOUNTER ENDED" if game.outcome != "" else (game.boss_name().split(" · ")[0].split(",")[0].to_upper()+"’S TURN" if game.active == 3 else game.heroes[game.active].name.to_upper()+"’S TURN")
  label_at(actor,Vector2(250,19),22,Color("f1e8cf"),360).clip_text = true
  var order_text: Array[String] = []
  for id in game.order: order_text.append(game.unit_name(id))
@@ -494,11 +493,11 @@ func battle_ui() -> void:
  if not game.pending.is_empty():pending_ui()
  if game.encounter_id == "nugh":
   label_at("BROOD %d/%d · SOUL LINK %s" % [game.living_minions().size(),game.v("nugh.worm_cap"),"OFF" if game.phase_two else "ON"],Vector2(428,117),13,Color("d7b3eb"),310)
- var goal := "v0.22.2 · THE HOLLOW · Read the intent, evade fire and prepare for half HP."
- if game.encounter_id == "nugh":goal = "v0.22.2 · SOUL LINK OFF · Hunt Nu’gh; clear worms for control." if game.phase_two else "v0.22.2 · SOUL LINK ON until half HP · Kill worms, then hunt the master."
- if game.encounter_id == "bugh":goal = "v0.22.2 · BREAK COCOONS · Weaken the Regent; control mites. No Soul Link."
+ var goal := "v0.23 · THE HOLLOW · Read the intent, evade fire and prepare for half HP."
+ if game.encounter_id == "nugh":goal = "v0.23 · SOUL LINK OFF · Hunt Nu’gh; clear worms for control." if game.phase_two else "v0.23 · SOUL LINK ON until half HP · Kill worms, then hunt the master."
+ if game.encounter_id == "bugh":goal = "v0.23 · BREAK COCOONS · Weaken the Regent; control mites. No Soul Link."
  if game.encounter_id == "cantor":
-  goal = "v0.22.2 · ATTACKS charge Resonance · SKILL / DEFENSE calm it · Burst during OPEN CORE."
+  goal = "v0.23 · ATTACKS charge Resonance · SKILL / DEFENSE calm it · Burst during OPEN CORE."
   var meter := button("RESONANCE %d/%d · CORE %s · ?" % [game.resonance,game.v("cantor.resonance_cap"),"OPEN +%d" % game.core_bonus() if game.core_open else "closed"],Vector2(424,112),Vector2(314,24),func():show_turn = true;rebuild(),Color("8cdae4"))
   meter.add_theme_font_size_override("font_size",12);meter.name = "ResonanceStatus"
   meter.tooltip_text = "Resonance = Veyl’s shared power. More power means harder bell hits. Click for rules and examples."
@@ -516,6 +515,7 @@ func open_settings() -> void:
 
 func open_audio_settings() -> void:
  var options = load("res://scenes/windows/main_menu_options_window.tscn").instantiate()
+ options.theme = theme
  options.add_to_group("ash_settings")
  options.closed.connect(options.queue_free)
  add_child(options)
@@ -581,7 +581,7 @@ func pending_ui() -> void:
    button("Die %d" % [d+1] if p.kind == "preroll_stun" else "Die %d · %s" % [d+1,Model.FACES[game.face(p.hero,d)]],Vector2(399,416+d*56),Vector2(520,45),func(): game.stun_die(d); rebuild(),GOLD,(p.kind != "preroll_stun" and game.heroes[p.hero].used[d]) or (p.kind == "preroll_stun" and not game.heroes[p.hero].channel.is_empty() and game.heroes[p.hero].channel.die == d))
 
 func overlay() -> void:
- var shade := ColorRect.new(); shade.color = Color(0.02,0.03,0.05,0.93); shade.size = Vector2(1440,900); ui.add_child(shade)
+ var shade := ColorRect.new(); shade.color = Color(0.02,0.03,0.05,0.78); shade.size = Vector2(1440,900); ui.add_child(shade)
  var box := Panel.new(); box.position = Vector2(350,222); box.size = Vector2(680,445); box.add_theme_stylebox_override("panel",style(Color("19212d"),GOLD)); ui.add_child(box)
 
 func outcome_ui() -> void:
@@ -637,7 +637,7 @@ func _gui_input(event: InputEvent) -> void:
     if hover == game.unit_data(id).pos:tooltip_text = game.unit_name(id)+" · HP %d/%d · Block %d\n" % [game.unit_data(id).hp,game.unit_data(id).max_hp,game.unit_data(id).block]+game.summon_description(id)
   if page == "battle" and hover in game.fire_tiles:tooltip_text += "\nFIRE TILE: end your turn here → %d normal damage. A later positive Smoking Strike also detonates it for %d." % [game.v("boss.fire.end_turn"),game.v("boss.smoking.fire_damage")]
  if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-  if page != "battle" or is_instance_valid(balance_editor) or show_menu or show_lab_tools or show_options or show_lab_setup or show_dice or show_turn or show_changes or show_help or show_history or rolling_time > 0 or not game.pending.is_empty() or game.outcome != "" or game.active == 3 or selected < 0: return
+  if page != "battle" or is_instance_valid(balance_editor) or show_menu or show_lab_tools or show_options or show_soundtrack or show_lab_setup or show_dice or show_turn or show_changes or show_help or show_history or rolling_time > 0 or not game.pending.is_empty() or game.outcome != "" or game.active == 3 or selected < 0: return
   var c := Vector2i((event.position-ORIGIN)/CELL)
   if not Rect2(ORIGIN,Vector2.ONE*CELL*9).has_point(event.position): return
   var f: int = game.face(game.active,selected)
@@ -668,10 +668,10 @@ func _gui_input(event: InputEvent) -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
  if event.is_action_pressed("ui_cancel"):
   if is_instance_valid(balance_editor):balance_editor.queue_free();balance_editor = null
-  selected = -1; shove_target = -1; show_active_effects = false; show_options = false; show_menu = false; show_lab_tools = false; show_help = false; inspect_action = "";combat_inspected = -1; show_history = false; show_changes = false; show_dice = false; show_turn = false; show_lab_setup = false; rebuild()
+  selected = -1; shove_target = -1; show_active_effects = false; show_soundtrack = false; show_options = false; show_menu = false; show_lab_tools = false; show_help = false; inspect_action = "";combat_inspected = -1; show_history = false; show_changes = false; show_dice = false; show_turn = false; show_lab_setup = false; rebuild()
 
 func _draw() -> void:
- draw_rect(Rect2(Vector2.ZERO,Vector2(1440,900)),Color("10151e"))
+ draw_texture_rect(CHAMBER,Rect2(0,0,1440,900),false)
  draw_line(Vector2(24,76),Vector2(1408,76),Color("303846"))
  if page == "setup":return
  if page == "forge":
@@ -977,9 +977,10 @@ func confirm_gifts() -> void:
  rebuild()
 
 func draft_ui() -> void:
- var shade := ColorRect.new();shade.color = Color("101922");shade.size = Vector2(1440,900);ui.add_child(shade)
- label_at("CHOOSE TWO FACES · v0.22.2",Vector2(60,27),29,GOLD,1000,true)
- label_at("1 · Pick two abilities     2 · Arrange your dice (optional)     3 · Next hero",Vector2(62,74),15,MUTED,1300)
+ chamber_background()
+ label_at("ASH & OATH",Vector2(60,22),36,GOLD,1000,true)
+ label_at("THE DICE FORGE",Vector2(400,43),11,MUTED,430)
+ label_at("Choose two abilities for each hero. Shape your dice, then choose your foe.",Vector2(62,74),15,MUTED,1300)
  button("Back to forge",Vector2(1150,26),Vector2(230,40),func():draft_modal = false;rebuild(),MUTED)
  for hero in range(3):
   button(["VESPER","ROOK","WREN"][hero]+" · %d/2" % gifts[hero].size(),Vector2(60+hero*440,113),Vector2(424,44),func():build_hero = hero;draft_scroll = 0;draft_error = "";rebuild(),COLORS[hero] if build_hero == hero else MUTED)
@@ -1007,9 +1008,19 @@ func draft_ui() -> void:
   if draft_search != "" and not Model.FACES[id].to_lower().contains(draft_search.to_lower()):continue
   count += 1
   var chosen: bool = id in gifts[build_hero]
-  var card := Button.new();card.name = "Face"+str(id);card.text = Model.FACES[id]+"\n("+Catalog.classification(id)+")\n"+("✓ EQUIPPED · click to remove" if chosen else short_face_help(id).split("\n")[0].left(96))
-  card.custom_minimum_size = Vector2(288,118);card.clip_text = true;card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;card.alignment = HORIZONTAL_ALIGNMENT_LEFT;card.add_theme_font_size_override("font_size",14)
-  card.add_theme_color_override("font_color",color_for_face(id));card.add_theme_stylebox_override("normal",style(Color("2b3c47") if chosen else Color("1a2732"),GOLD if chosen else Color("354653")));card.add_theme_stylebox_override("hover",style(Color("304351"),color_for_face(id)));card.tooltip_text = ""
+  var card := Button.new();card.name = "Face"+str(id);card.text = Catalog.display_name(id)
+  card.custom_minimum_size = Vector2(288,118);card.clip_text = true;card.clip_contents = true;card.alignment = HORIZONTAL_ALIGNMENT_LEFT;card.add_theme_font_size_override("font_size",15)
+  var card_style := style(Color("263944") if chosen else Color("172630"),GOLD if chosen else Color(color_for_face(id),.38));card_style.content_margin_top = 13;card_style.content_margin_left = 16
+  card.add_theme_stylebox_override("normal",card_style)
+  # Keep the button label for accessibility; the separate child labels render it.
+  for color_name in ["font_color","font_hover_color","font_pressed_color","font_focus_color","font_disabled_color","font_hover_pressed_color"]:card.add_theme_color_override(color_name,Color(0,0,0,0))
+  var hovered = card_style.duplicate();hovered.bg_color = Color("2b414b");hovered.border_color = color_for_face(id);card.add_theme_stylebox_override("hover",hovered)
+  var pressed = hovered.duplicate();pressed.bg_color = Color("354c54");card.add_theme_stylebox_override("pressed",pressed);card.tooltip_text = ""
+  var card_title := Label.new();card_title.name = "CardTitle";card_title.text = Model.FACES[id];card_title.position = Vector2(16,12);card_title.size = Vector2(254,24);card_title.clip_text = true;card_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS;card_title.add_theme_font_size_override("font_size",15);card_title.add_theme_color_override("font_color",Color("eee8dc"));card_title.mouse_filter = Control.MOUSE_FILTER_IGNORE;card_title.size = Vector2(254,24);card.add_child(card_title)
+  var category_label := Label.new();category_label.text = Catalog.classification(id);category_label.position = Vector2(16,39);category_label.add_theme_font_size_override("font_size",11);category_label.add_theme_color_override("font_color",color_for_face(id));category_label.mouse_filter = Control.MOUSE_FILTER_IGNORE;card.add_child(category_label)
+  var summary := RichTextLabel.new();var short_text := short_face_help(id).split("\n")[0];summary.text = "Equipped · click again to remove" if chosen else (short_text.left(62)+"…" if short_text.length()>62 else short_text);summary.position = Vector2(16,59);summary.scroll_active = false;summary.add_theme_font_size_override("normal_font_size",12);summary.add_theme_color_override("default_color",GOLD if chosen else MUTED);summary.mouse_filter = Control.MOUSE_FILTER_IGNORE;summary.size = Vector2(254,43);card.add_child(summary)
+  if chosen:
+   var mark := Label.new();mark.text = "◆";mark.position = Vector2(259,38);mark.add_theme_color_override("font_color",GOLD);mark.mouse_filter = Control.MOUSE_FILTER_IGNORE;card.add_child(mark)
   card.pressed.connect(func():
    inspected_gift = id
    if id not in gifts[build_hero] and gifts[build_hero].size() < 2:choose_gift(id)
@@ -1177,17 +1188,20 @@ func lab_tools_ui() -> void:
  button("Next turn",Vector2(689,446),Vector2(285,39),func():show_lab_tools = false;Lab.next_turn(game,lab_numeric);selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
  button("Roll chosen face again",Vector2(399,502),Vector2(275,39),func():show_lab_tools = false;Lab.roll_test_face(game,lab_face,lab_numeric);selected = -1;rebuild(),Color("82c8b9"))
  button("Combine faces",Vector2(689,502),Vector2(285,39),func():show_lab_tools = false;show_lab_setup = true;rebuild(),MUTED)
- button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.22.2 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
+ button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.23 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
  button("Back to battle",Vector2(689,570),Vector2(285,43),func():show_lab_tools = false;rebuild())
  button("Phase II active" if game.phase_two else "Test boss phase II",Vector2(399,632),Vector2(575,39),test_boss_phase_two,Color("e9a36a"),game.phase_two or not game.pending.is_empty() or game.outcome != "" or game.v("boss.phase.percent") == 0)
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.22.2",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.23",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
- var nav_step := minf(75,610.0/Changes.SECTIONS.size())
+ var nav := ScrollContainer.new();nav.name = "PatchTopics";nav.position = Vector2(125,190);nav.size = Vector2(270,610);ui.add_child(nav)
+ var topics := VBoxContainer.new();topics.custom_minimum_size.x = 255;topics.add_theme_constant_override("separation",7);nav.add_child(topics)
+ nav.get_v_scroll_bar().value_changed.connect(func(value):changes_scroll = int(value));nav.set_deferred("scroll_vertical",changes_scroll)
  for i in range(Changes.SECTIONS.size()):
-  button(Changes.SECTIONS[i].title,Vector2(125,190+i*nav_step),Vector2(255,minf(58,nav_step-8)),func(): changes_page = i; rebuild(),GOLD if i == changes_page else MUTED)
+  var topic := button(Changes.SECTIONS[i].title,Vector2.ZERO,Vector2(255,43),func(): changes_page = i; rebuild(),GOLD if i == changes_page else MUTED)
+  topic.reparent(topics);topic.custom_minimum_size = Vector2(255,43);topic.add_theme_font_size_override("font_size",12)
  var section: Dictionary = Changes.SECTIONS[changes_page]
  label_at(section.title,Vector2(420,190),28,GOLD,880,true)
  var text := RichTextLabel.new(); text.name = "ChangeLog"; text.bbcode_enabled = true; text.position = Vector2(420,250); text.size = Vector2(880,455); text.add_theme_font_size_override("normal_font_size",20); text.text = section.body; ui.add_child(text)
@@ -1381,8 +1395,8 @@ func options_ui() -> void:
  button("Blank → Move %d: " % balance_number("soul.move") + ("ON  ·  click to turn OFF" if enabled else "OFF  ·  click to turn ON"),Vector2(399,319),Vector2(575,48),func(): set_soul_enabled(not enabled),Color("82c8b9"))
  label_at("ON: %d Blank conversions per hero turn, each Move %d.\nOFF disables conversion. Switching off/on does not refill uses." % [balance_number("soul.uses"),balance_number("soul.move")],Vector2(399,383),15,Color("dce6ee"),575,false,true)
  button("Balance workshop · edit ability & passive values",Vector2(399,444),Vector2(575,43),open_balance_editor,Color("82c8b9"))
- button("Sound: " + ("OFF" if muted else "ON"),Vector2(399,503),Vector2(275,43),func(): muted = not muted; music.stream_paused = muted; audio.volume_db = -80 if muted else 0; rebuild(),MUTED)
- button("Audio / display settings",Vector2(689,503),Vector2(285,43),open_audio_settings,MUTED)
+ button("Sound: " + ("OFF" if muted else "ON"),Vector2(399,503),Vector2(275,43),func(): muted = not muted; score.set_muted(muted); rebuild(),MUTED)
+ button("Soundtrack & volume",Vector2(689,503),Vector2(285,43),func():show_soundtrack = true;rebuild(),GOLD)
  button("Combat impact effects: "+("ON" if combat_effects else "OFF"),Vector2(399,552),Vector2(575,40),func():combat_effects = not combat_effects;rebuild(),MUTED)
  button("Back to game",Vector2(399,607),Vector2(575,46),func(): show_options = false; rebuild())
 
@@ -1490,7 +1504,7 @@ func draw_pixel_fire(center: Vector2, alpha: float, seed_value: int, burst: bool
 func inspection_at_mouse() -> String:
  return inspection_at(get_local_mouse_position())
 func inspection_at(at: Vector2) -> String:
- if page != "battle" or show_menu or show_lab_tools or show_options or show_lab_setup or show_dice or show_turn or show_changes or show_help or show_history or not game.pending.is_empty():return ""
+ if page != "battle" or show_menu or show_lab_tools or show_options or show_soundtrack or show_lab_setup or show_dice or show_turn or show_changes or show_help or show_history or not game.pending.is_empty():return ""
  if Rect2(1112,151,304,687).has_point(at) and hover_key != "":return hover_key
  for die in range(3):
   if Rect2(760+die*220,66,208,36).has_point(at):return "boss:"+str(die)
@@ -1746,6 +1760,8 @@ func draw_boss_impact(fx: Dictionary) -> void:
 func choice_button(text: String, p: Vector2, size_px: Vector2, fn: Callable, accent: Color = GOLD, disabled: bool = false) -> Button:
  var b := button(text,p,size_px,fn,accent,disabled)
  b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;b.add_theme_font_size_override("font_size",12);b.tooltip_text = text
+ for state in ["normal","hover","pressed","disabled","focus"]:
+  var compact = b.get_theme_stylebox(state).duplicate();compact.content_margin_left = 6;compact.content_margin_right = 6;compact.content_margin_top = 2;compact.content_margin_bottom = 2;b.add_theme_stylebox_override(state,compact)
  return b
 
 func draw_stunned(center: Vector2) -> void:
@@ -1781,6 +1797,7 @@ func setup_panel(rect: Rect2, border: Color = Color("354653")) -> void:
  var box := Panel.new();box.position = rect.position;box.size = rect.size;box.add_theme_stylebox_override("panel",style(Color("19232e"),border));ui.add_child(box)
 
 func setup_ui() -> void:
+ chamber_background()
  label_at("CHOOSE YOUR ENCOUNTER",Vector2(48,30),32,GOLD,1100,true)
  label_at("1 · Faces chosen     →     2 · Boss & rules     →     3 · Fight",Vector2(50,87),18,Color("a6c6c4"),1250)
  setup_panel(Rect2(48,145,410,625));setup_panel(Rect2(482,145,910,625))
@@ -1868,3 +1885,31 @@ func play_hit_sound(kind: int) -> void:
  if kind < 0 or not is_instance_valid(combat_audio) or muted:return
  combat_audio.stream = bell_sound if kind == 3 else (scream_sound if kind == 2 else (impact_sound if kind == 1 else shield_sound))
  combat_audio.play()
+
+func _input(event: InputEvent) -> void:
+ if is_instance_valid(score) and ((event is InputEventMouseButton and event.pressed) or (event is InputEventKey and event.pressed)):
+  score.unlock()
+func chamber_background() -> void:
+ var backdrop := TextureRect.new();backdrop.texture = CHAMBER;backdrop.position = Vector2.ZERO;backdrop.size = Vector2(1440,900);backdrop.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST;backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE;ui.add_child(backdrop)
+func soundtrack_ui() -> void:
+ if not is_instance_valid(score):return
+ if page == "battle" and (not game.pending.is_empty() or game.outcome != ""):return
+ var at := Vector2(1128,858) if page == "battle" else Vector2(62,875)
+ var caption := label_at("♪ "+score.title(),at,11,MUTED,210 if page == "battle" else 520);caption.name = "SoundtrackCaption";caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ var control := button("Audio",Vector2(1340,851) if page == "battle" else Vector2(1308,869),Vector2(66,29) if page == "battle" else Vector2(72,25),func():show_soundtrack = true;rebuild(),GOLD)
+ control.name = "SoundtrackSettings";control.add_theme_font_size_override("font_size",11)
+ if page != "battle":label_at("v0.23",Vector2(1220,875),10,MUTED,75)
+func soundtrack_settings_ui() -> void:
+ overlay()
+ label_at("Sound & atmosphere",Vector2(399,260),28,GOLD,575,true)
+ label_at("ORIGINAL SCORE  /  "+score.title().to_upper(),Vector2(399,310),11,MUTED,575)
+ for i in range(2):
+  var bus: String = ["Music","SFX"][i];var y := 352+i*83
+  label_at("Music" if i == 0 else "Effects",Vector2(399,y),15,Color("e8e4da"),150)
+  var amount: float = score.music_level if i == 0 else score.effects_level
+  var value := label_at("%d%%" % roundi(amount*100),Vector2(915,y),14,GOLD,60);value.name = "AudioValue"+str(i)
+  var slider := HSlider.new();slider.name = "MusicVolume" if i == 0 else "EffectsVolume";slider.position = Vector2(399,y+31);slider.size = Vector2(575,20);slider.min_value = 0;slider.max_value = 100;slider.step = 1;slider.value = amount*100
+  slider.value_changed.connect(func(n):score.set_level(bus,n/100);value.text = "%d%%" % roundi(n));ui.add_child(slider)
+ button("All sound: "+("OFF" if muted else "ON"),Vector2(399,528),Vector2(275,43),func():muted = not muted;score.set_muted(muted);rebuild(),GOLD)
+ button("Display / advanced audio",Vector2(689,528),Vector2(285,43),open_audio_settings,MUTED)
+ button("Back to game",Vector2(399,594),Vector2(575,44),func():show_soundtrack = false;rebuild(),Color("87d1bf"))

@@ -20,11 +20,11 @@ func configure(values: Dictionary, balanced: bool, in_fight: bool) -> void:
  draft = values.duplicate(true);tuned = balanced;restart = in_fight
 func _ready() -> void:
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);mouse_filter = Control.MOUSE_FILTER_STOP;z_index = 60
- var theme_res := Theme.new();theme_res.default_font = FONT;theme_res.default_font_size = 16;theme = theme_res
+ theme = preload("res://prototype/presentation_theme.gd").make()
  build()
 func box(bg: String, border: String) -> StyleBoxFlat:
- var result := StyleBoxFlat.new();result.bg_color = Color(bg);result.border_color = Color(border);result.set_border_width_all(1);result.content_margin_left = 12;result.content_margin_right = 12
- return result
+ return preload("res://prototype/presentation_theme.gd").box(Color(bg),Color(border))
+
 func label(text: String, at: Vector2, dimensions: Vector2, size_px: int = 16, parent: Node = self) -> Label:
  var result := Label.new();result.text = text;result.position = at;result.size = dimensions;result.add_theme_font_size_override("font_size",size_px);result.add_theme_color_override("font_color",Color("dce6ee"));parent.add_child(result);return result
 func button(text: String, at: Vector2, dimensions: Vector2, callback: Callable, parent: Node = self) -> Button:
