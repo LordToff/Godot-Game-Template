@@ -1,19 +1,19 @@
 {
-  "version": "0.22.2",
-  "source_commit": "9ce2625628f440f1645b3187180ac58d285b29e6",
+  "version": "0.23",
+  "source_commit": "d508242d29b6ab1a335c7ea8efba2f96c7420572",
   "engine": "4.6.3.stable",
   "files": {
-    "AshAndOath-Current-Rules-v0.22.pdf": {
-      "sha256": "4fdec3e369fc1a103f69a818284202fb6f7d2d7aa3c53954ce15c688f7d58b59",
-      "bytes": 101999
+    "AshAndOath-Current-Rules-v0.23.pdf": {
+      "sha256": "4e4af791174f577b12e9d1029451ea6f68ed75a72b3b716ac1540a13d643fd5b",
+      "bytes": 104145
     },
-    "Trial-results-v0.22.2.json": {
-      "sha256": "150de0705eb5715a2e6407a779a8927797ea89bd1a0951992a779d3d5ae7cbee",
-      "bytes": 29304
+    "SOUNDTRACK.md": {
+      "sha256": "253faa5dd20543d91c543bbd3c9160bedb0ffe2e11e14aead9d6ca50980599af",
+      "bytes": 953
     },
     "current-rules.html": {
-      "sha256": "45ad590353f0f6669d8b888e38cadff324795d8e697dbefc856f33a0bcb8a285",
-      "bytes": 59517
+      "sha256": "38c729164cde5b8519f8f9c5c7a6e14e2fbae6383bb93063ea86fabff964a961",
+      "bytes": 61133
     },
     "index.apple-touch-icon.png": {
       "sha256": "2c620336a4002a1876393a448ff9efc810322568ab9e8f6bdf20cb419da781f1",
@@ -28,8 +28,8 @@
       "bytes": 7298
     },
     "index.html": {
-      "sha256": "a5eb43cc96ba0085c82f94121689a3799ef362c565a61a8085e0d284e4d04fbf",
-      "bytes": 5641
+      "sha256": "9b3a5441880b941452a7789f465f05183b49ec2f92485a6233276ef57af48661",
+      "bytes": 5635
     },
     "index.icon.png": {
       "sha256": "25895353542fe8dcdfa3736eaf15f44dc02ba60e2dc73a9b863d69aa5bae89a3",
@@ -40,8 +40,8 @@
       "bytes": 315759
     },
     "index.pck": {
-      "sha256": "f93328d94a92a69169f869f3dee9ec1d16607572779ed6381caae00fdae11744",
-      "bytes": 2241024
+      "sha256": "4fe29bd34539587b7a13b5ac21a99e0ce19ddaaca3f3a141f23f8d8e6de27287",
+      "bytes": 3485388
     },
     "index.png": {
       "sha256": "3cb4495c0b98dfbe4b663cbf2b6836473572339beb66d902367893162a70be0e",
@@ -54,6 +54,10 @@
     "index.v0.22.2.pck": {
       "sha256": "f93328d94a92a69169f869f3dee9ec1d16607572779ed6381caae00fdae11744",
       "bytes": 2241024
+    },
+    "index.v0.23.pck": {
+      "sha256": "4fe29bd34539587b7a13b5ac21a99e0ce19ddaaca3f3a141f23f8d8e6de27287",
+      "bytes": 3485388
     },
     "index.wasm": {
       "sha256": "26b61ce95247012ab3dca3ff51e96d1cdbff44ee91a8c20a83e150afca83f1b6",
