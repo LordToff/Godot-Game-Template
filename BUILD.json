@@ -1,6 +1,6 @@
 {
   "version": "0.22",
-  "source_commit": "dbb8a7078d2a2544e14a7607421878f7b2b147b1",
+  "source_commit": "2ece0eab5f6f63d60508abece5a01e718216168d",
   "engine": "4.6.3.stable",
   "files": {
     "AshAndOath-Current-Rules-v0.22.pdf": {
@@ -19,10 +19,6 @@
       "sha256": "2c620336a4002a1876393a448ff9efc810322568ab9e8f6bdf20cb419da781f1",
       "bytes": 30181
     },
-    "index.apple-touch-icon.png.import": {
-      "sha256": "0004dba2f7c1f8a2b78ed9e70e0875933bc2500a3c6f601659f42108bcc3eea1",
-      "bytes": 981
-    },
     "index.audio.position.worklet.js": {
       "sha256": "be33985bc7160d6bf9646f259cd86b259cd67b02ccb297ee5c44f8ac84327bc8",
       "bytes": 2973
@@ -32,32 +28,24 @@
       "bytes": 7298
     },
     "index.html": {
-      "sha256": "6f2ba96c7da0caed50ccfcb17ae9f7580e90745a3af6faa8500dbabe60618794",
+      "sha256": "bcd51415c1ddcbbba9ea9183ce6b36fa5903f90b5997021195e92116d1f51234",
       "bytes": 5580
     },
     "index.icon.png": {
       "sha256": "25895353542fe8dcdfa3736eaf15f44dc02ba60e2dc73a9b863d69aa5bae89a3",
       "bytes": 5373
     },
-    "index.icon.png.import": {
-      "sha256": "53945b06f25057bc8e5b54deab7670b08569eb7a16eb017f1d4f57625800e384",
-      "bytes": 946
-    },
     "index.js": {
       "sha256": "e3f56ee40e6f84371053db06692cfac15e2c8659547b11c6b2dfa1996dabd981",
       "bytes": 315759
     },
     "index.pck": {
-      "sha256": "79194fdc9f87c737a3deee1d46c20e683ebdce7d07a29e5768e615998c83281c",
-      "bytes": 2277444
+      "sha256": "c53d8e7159d1d4c473d84caded8303168263b1abcf3079e82b0672626089e86a",
+      "bytes": 2238544
     },
     "index.png": {
       "sha256": "3cb4495c0b98dfbe4b663cbf2b6836473572339beb66d902367893162a70be0e",
       "bytes": 21443
-    },
-    "index.png.import": {
-      "sha256": "fa92805732df10f221edf975c7abdedf5ec5188b824285625126895cc3c89b6c",
-      "bytes": 930
     },
     "index.wasm": {
       "sha256": "26b61ce95247012ab3dca3ff51e96d1cdbff44ee91a8c20a83e150afca83f1b6",

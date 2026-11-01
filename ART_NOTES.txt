@@ -2,6 +2,10 @@
 
 Bu’gh’s two 32×32 phases and the cocoon, mite and friendly Nu’gh 16×16 two-frame sheets are original integer-grid drawings from tools/make_bugh_art.py. Nearest-neighbor sampling; owner colors/markers are rendered separately. No painted AI art.
 
+# Original pixel sprites · v0.22
+
+Bu’gh’s two 32×32 phases and the cocoon, mite and friendly Nu’gh 16×16 two-frame sheets are original integer-grid drawings from tools/make_bugh_art.py. Nearest-neighbor sampling; owner colors/markers are rendered separately. No painted AI art.
+
 # Pixel art · v0.14
 
 All three heroes now use armoured knight sprites and helmet icons, with teal, purple and gold tabards / shields. Cinder Brand and Ember Burst fire is drawn as animated pixel rectangles without touching gameplay RNG.

@@ -12,4 +12,4 @@ Balance remains provisional. 360 seeded heuristic battles: 114 hero wins, 234 bo
 
 The Windows download remains an older release. Historical reports and downloads retain their versions.
 
-Source: [`dbb8a707`](https://github.com/LordToff/Godot-Game-Template/commit/dbb8a7078d2a2544e14a7607421878f7b2b147b1).
+Source: [`2ece0eab`](https://github.com/LordToff/Godot-Game-Template/commit/2ece0eab5f6f63d60508abece5a01e718216168d).
