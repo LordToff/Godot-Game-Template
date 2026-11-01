@@ -54,7 +54,7 @@ func run():
  await capture("friendly-bugh")
  g.damage(worm,99);g.heroes[0].used[0] = false;app.rebuild()
  check(app.ui.get_node("BattleDie0").text.contains("Summon Nu’gh"),"worm death restores Summon UI")
- g.damage(3,6,true);g.lay_cocoons(1);app.rebuild()
+ g.damage(3,6,true);app.rebuild()
  check(g.phase_two and g.phase_upgrades().size() == 6,"UI phase guide uses all six upgrades")
  await capture("bugh-phase-two")
  app.open_balance_editor()

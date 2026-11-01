@@ -278,7 +278,7 @@ func rebuild() -> void:
   button("Menu",Vector2(288,112),Vector2(120,26),func():show_menu = true;rebuild(),GOLD)
  else:
   label_at("ASH & OATH",Vector2(42,26),27,GOLD,500,true)
-  label_at("A DICE-BUILDING BOSS BATTLER · v0.23",Vector2(44,65),11,MUTED)
+  label_at("A DICE-BUILDING BOSS BATTLER · v0.24",Vector2(44,65),11,MUTED)
   button("View dice",Vector2(350,30),Vector2(235,40),func(): show_dice = true;dice_hero = build_hero;rebuild(),Color("9fc7e6"))
   button("Tutorial / Ability Lab",Vector2(605,30),Vector2(245,40),start_lab,Color("82c8b9"))
   button("What changed",Vector2(866,30),Vector2(225,40),func():show_changes = true;rebuild())
@@ -443,6 +443,7 @@ func battle_ui() -> void:
   if h.dead or h.hp <= 0:instruction = "This hero cannot act. End their turn to continue with the party."
   if h.hp > 0 and h.pos in game.fire_tiles and game.v("boss.fire.end_turn") > 0:
    instruction = "FIRE: end turn here → %d damage. Move off this cell or prepare enough Block." % game.v("boss.fire.end_turn")
+  if game.encounter_id == "bugh" and h.pos in game.sweep_tiles:instruction = "SWEEP: %d damage at the next boss turn. Move out to expose him, or fully guard." % game.sweep_damage
   if training:
    instruction = "Lesson %d/8: " % (training_step+1)+LESSONS[training_step]
    if training_step == 6:instruction = "Soul lesson: select a Blank and move up to %d cells. You have %d conversions this hero turn." % [game.v("soul.move"),game.v("soul.uses")]
@@ -490,14 +491,16 @@ func battle_ui() -> void:
     if game.hero_action(selected,shove_target,dir):selected = -1;shove_target = -1
     rebuild(),GOLD,dir not in game.away_dirs(game.active,shove_target))
  elif lab:lab_ui()
- if not game.pending.is_empty():pending_ui()
  if game.encounter_id == "nugh":
   label_at("BROOD %d/%d · SOUL LINK %s" % [game.living_minions().size(),game.v("nugh.worm_cap"),"OFF" if game.phase_two else "ON"],Vector2(428,117),13,Color("d7b3eb"),310)
- var goal := "v0.23 · THE HOLLOW · Read the intent, evade fire and prepare for half HP."
- if game.encounter_id == "nugh":goal = "v0.23 · SOUL LINK OFF · Hunt Nu’gh; clear worms for control." if game.phase_two else "v0.23 · SOUL LINK ON until half HP · Kill worms, then hunt the master."
- if game.encounter_id == "bugh":goal = "v0.23 · BREAK COCOONS · Weaken the Regent; control mites. No Soul Link."
+ var goal := "v0.24 · THE HOLLOW · Read the intent, evade fire and prepare for half HP."
+ if game.encounter_id == "nugh":goal = "v0.24 · SOUL LINK OFF · Hunt Nu’gh; clear worms for control." if game.phase_two else "v0.24 · SOUL LINK ON until half HP · Kill worms, then hunt the master."
+ if game.encounter_id == "bugh":
+  goal = "v0.24 · GUARD / EVADE → COUNTERATTACK · Escape gold sweep cells or fully defend a hit."
+  var ward := button("OPEN · COUNTERATTACK" if game.guard_broken else "BULWARK −%d · Guard or evade" % game.v("warden.armor"),Vector2(426,112),Vector2(310,25),func():show_turn = true;rebuild(),Color("86d8c5") if game.guard_broken else GOLD)
+  ward.name = "WardenStatus";ward.add_theme_font_size_override("font_size",11)
  if game.encounter_id == "cantor":
-  goal = "v0.23 · ATTACKS charge Resonance · SKILL / DEFENSE calm it · Burst during OPEN CORE."
+  goal = "v0.24 · ATTACKS charge Resonance · SKILL / DEFENSE calm it · Burst during OPEN CORE."
   var meter := button("RESONANCE %d/%d · CORE %s · ?" % [game.resonance,game.v("cantor.resonance_cap"),"OPEN +%d" % game.core_bonus() if game.core_open else "closed"],Vector2(424,112),Vector2(314,24),func():show_turn = true;rebuild(),Color("8cdae4"))
   meter.add_theme_font_size_override("font_size",12);meter.name = "ResonanceStatus"
   meter.tooltip_text = "Resonance = Veyl’s shared power. More power means harder bell hits. Click for rules and examples."
@@ -507,6 +510,7 @@ func battle_ui() -> void:
   outcome_label.name = "BossResolution"
   outcome_label.tooltip_text = game.last_boss_result
 
+ if not game.pending.is_empty():pending_ui()
  if game.outcome != "":outcome_ui()
 
 func open_settings() -> void:
@@ -615,7 +619,7 @@ func help_ui() -> void:
  label_at("03   SURVIVE",Vector2(162,500),17,GOLD)
  label_at("Reactions store immediately and expire before the next round’s roll. Block is spent\non damage and expires at your next turn. First zero HP: Downed, protected through\nthe acting turn. First Aid revives with Broken and queues a full recovery turn.\nAt zero again, a Broken hero dies. All heroes Downed/dead means immediate defeat.",Vector2(162,535),16,Color("d8dfe5"))
  label_at("PROTOTYPE SCOPE",Vector2(162,660),13,GOLD)
- label_at("Tuned: Hollow 12 HP; Nu’gh 10 HP; Veyl 14 HP. Choose boss and rules after picking faces.\nThe Hollow: fire burns at hero turn end; Brand and phase-II Sweep punish staying close.\nNu’gh: retreats and commands worms. Soul Link stops at half HP. Reactions work against bites.\nVeyl: Attacks charge Resonance; Skills / Defenses calm it. Bu’gh: break cocoons to weaken the Regent; mites act after its dice.",Vector2(162,696),14,MUTED)
+ label_at("Tuned: Hollow 12 HP; Nu’gh 10 HP; Veyl 14 HP. Choose boss and rules after picking faces.\nThe Hollow: fire burns at hero turn end; Brand and phase-II Sweep punish staying close.\nNu’gh: retreats and commands worms. Soul Link stops at half HP. Reactions work against bites.\nVeyl: Attacks charge Resonance; Skills / Defenses calm it. Bu’gh: fully guard or evade a marked sweep to break his Bulwark, then counterattack.",Vector2(162,696),14,MUTED)
  button("Open current rulebook",Vector2(162,799),Vector2(310,51),func():OS.shell_open("https://lordtoff.github.io/Godot-Game-Template/current-rules.html"),Color("9fc7e6"))
  button("Return to the game",Vector2(1003,799),Vector2(255,51),func(): show_help = false; rebuild())
 
@@ -635,6 +639,7 @@ func _gui_input(event: InputEvent) -> void:
   if page == "battle":
    for id in game.living_minions("all"):
     if hover == game.unit_data(id).pos:tooltip_text = game.unit_name(id)+" · HP %d/%d · Block %d\n" % [game.unit_data(id).hp,game.unit_data(id).max_hp,game.unit_data(id).block]+game.summon_description(id)
+  if page == "battle" and game.encounter_id == "bugh" and hover in game.sweep_tiles:tooltip_text += "\nCRUSHING SWEEP: %d damage on this fixed tile before the next boss dice. Escape or fully guard to break Bulwark." % game.sweep_damage
   if page == "battle" and hover in game.fire_tiles:tooltip_text += "\nFIRE TILE: end your turn here → %d normal damage. A later positive Smoking Strike also detonates it for %d." % [game.v("boss.fire.end_turn"),game.v("boss.smoking.fire_damage")]
  if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
   if page != "battle" or is_instance_valid(balance_editor) or show_menu or show_lab_tools or show_options or show_soundtrack or show_lab_setup or show_dice or show_turn or show_changes or show_help or show_history or rolling_time > 0 or not game.pending.is_empty() or game.outcome != "" or game.active == 3 or selected < 0: return
@@ -719,9 +724,15 @@ func draw_board() -> void:
    if c in highlights: col = Color("365550")
    if c in game.brand_cells: col = Color("663e31")
    if c in game.fire_tiles:col = Color("8c4b2c")
+   if game.encounter_id == "bugh" and c in game.sweep_tiles:col = Color("a57636")
    var opacity := 0.48 if c in highlights or c in game.brand_cells or c in game.fire_tiles else (0.22 if c in game.cells(3) else 0.06)
    draw_rect(Rect2(p,Vector2.ONE*CELL),Color(col,opacity))
    draw_rect(Rect2(p,Vector2.ONE*CELL),Color(0.75,0.79,0.80,0.24),false,1)
+   if game.encounter_id == "bugh" and c in game.sweep_tiles:
+    draw_rect(Rect2(p+Vector2.ONE*4,Vector2.ONE*(CELL-8)),Color(.95,.69,.31,.86),false,2)
+    draw_line(p+Vector2(9,52),p+Vector2(27,70),Color(.95,.69,.31,.65),2)
+    draw_line(p+Vector2(49,7),p+Vector2(68,26),Color(.95,.69,.31,.65),2)
+    draw_string(BODY,p+Vector2(9,20),str(game.sweep_damage),HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color("ffe1a0"))
    if c in highlights: draw_circle(p+Vector2.ONE*CELL/2,3,Color("82c5b0"))
    if c in game.brand_cells:
     draw_pixel_fire(p+Vector2.ONE*CELL/2,0.55, x+y*9)
@@ -856,7 +867,7 @@ func history_ui() -> void:
  var lines := RichTextLabel.new(); lines.name = "BattleHistory"; lines.bbcode_enabled = true; lines.position = Vector2(214,215); lines.size = Vector2(1004,484); lines.add_theme_font_size_override("normal_font_size",15); lines.scroll_following = true
  var text_lines: Array[String] = []
  for entry in game.event_log:
-  if log_filter == "Combat" and entry.kind not in ["cocoon_break","hatch","brood","consume","phase","hazard","fire","fire_arm","action","attack","damage","block","block_gain","heal","buff","debuff","expire","mutation","retarget","collision","stun","decline","focus","summon","minion_death","soul_link","minion_action","fallback","boss_result","resonance","core","roll","poison","move"]: continue
+  if log_filter == "Combat" and entry.kind not in ["armor","guard_break","warning","cocoon_break","hatch","brood","consume","phase","hazard","fire","fire_arm","action","attack","damage","block","block_gain","heal","buff","debuff","expire","mutation","retarget","collision","stun","decline","focus","summon","minion_death","soul_link","minion_action","fallback","boss_result","resonance","core","roll","poison","move"]: continue
   if log_filter == "Turns" and entry.kind not in ["turn","round","roll"]: continue
   text_lines.append(format_event(entry,true))
  lines.text = "\n\n".join(text_lines); ui.add_child(lines)
@@ -864,7 +875,7 @@ func history_ui() -> void:
  button("Back to battle",Vector2(943,730),Vector2(279,45),func(): show_history = false; show_changes = false; show_dice = false; show_turn = false; show_lab_setup = false; rebuild())
 
 func format_event(entry: Dictionary, expanded: bool) -> String:
- var colors := {"attack":"efb29b","damage":"eea394","block":"9fc7e6","block_gain":"9fc7e6","buff":"91d1b4","debuff":"c9a4e3","heal":"91d1b4","turn":"e4c88f","round":"e4c88f","focus":"e4c88f","summon":"b9d0a6","minion_death":"d9c493","soul_link":"d5a0e4","fallback":"edc785","minion_action":"d5b7eb","boss_result":"edc785","resonance":"8edbe5","core":"f0dfa3","expire":"9aaaba","poison":"b7e86d","roll":"c6d6ed","move":"c0b398"}
+ var colors := {"attack":"efb29b","damage":"eea394","block":"9fc7e6","block_gain":"9fc7e6","buff":"91d1b4","debuff":"c9a4e3","heal":"91d1b4","turn":"e4c88f","round":"e4c88f","focus":"e4c88f","summon":"b9d0a6","minion_death":"d9c493","soul_link":"d5a0e4","fallback":"edc785","minion_action":"d5b7eb","boss_result":"edc785","resonance":"8edbe5","core":"f0dfa3","expire":"9aaaba","poison":"b7e86d","roll":"c6d6ed","move":"c0b398","guard_break":"87dcc6","armor":"b7c9d5","warning":"f0c579"}
  var color: String = colors.get(entry.kind,"becad3")
  var tag: String = "R%02d · #%03d · %s" % [entry.round,entry.id,entry.kind.replace("_"," ").to_upper()]
  return "[color=#%s][b]%s[/b][/color]%s%s" % [color,tag,"\n" if expanded else "  ",entry.text.replace("[","[lb]")]
@@ -1188,13 +1199,13 @@ func lab_tools_ui() -> void:
  button("Next turn",Vector2(689,446),Vector2(285,39),func():show_lab_tools = false;Lab.next_turn(game,lab_numeric);selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
  button("Roll chosen face again",Vector2(399,502),Vector2(275,39),func():show_lab_tools = false;Lab.roll_test_face(game,lab_face,lab_numeric);selected = -1;rebuild(),Color("82c8b9"))
  button("Combine faces",Vector2(689,502),Vector2(285,39),func():show_lab_tools = false;show_lab_setup = true;rebuild(),MUTED)
- button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.23 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
+ button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.24 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
  button("Back to battle",Vector2(689,570),Vector2(285,43),func():show_lab_tools = false;rebuild())
  button("Phase II active" if game.phase_two else "Test boss phase II",Vector2(399,632),Vector2(575,39),test_boss_phase_two,Color("e9a36a"),game.phase_two or not game.pending.is_empty() or game.outcome != "" or game.v("boss.phase.percent") == 0)
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.23",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.24",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
  var nav := ScrollContainer.new();nav.name = "PatchTopics";nav.position = Vector2(125,190);nav.size = Vector2(270,610);ui.add_child(nav)
  var topics := VBoxContainer.new();topics.custom_minimum_size.x = 255;topics.add_theme_constant_override("separation",7);nav.add_child(topics)
@@ -1423,7 +1434,9 @@ func draw_unit_sprite(id: int, rect: Rect2) -> void:
    draw_rect(rect.grow(-8),Color(0.95,0.82,0.4,0.55),false,2)
   return
  if id == 3 and page == "battle" and game.encounter_id == "bugh":
-  draw_texture_rect(BUGH_PHASE if game.phase_two else BUGH_SPRITE,rect,false);return
+  draw_texture_rect(BUGH_PHASE if game.phase_two else BUGH_SPRITE,rect,false)
+  if game.guard_broken:draw_arc(rect.get_center(),54,0,TAU,32,Color(.4,.9,.78,.65),2)
+  return
  if id == 3 and page == "battle" and game.encounter_id == "nugh":
   draw_texture_rect(NUGH_PHASE if game.phase_two else NUGH_SPRITE,rect,false);return
  if id == 3 and page == "battle" and game.phase_two:
@@ -1804,7 +1817,7 @@ func setup_ui() -> void:
  label_at("BOSS",Vector2(70,162),16,GOLD,360)
  for index in range(4):
   var key: String = ["hollow","nugh","cantor","bugh"][index]
-  var title: String = ["The Hollow","Nu’gh · Worm Summoner","Veyl · Brass Cantor","Bu’gh · Cocoon Regent"][index]
+  var title: String = ["The Hollow","Nu’gh · Worm Summoner","Veyl · Brass Cantor","Bu’gh · Iron Warden"][index]
   var top := 198+index*132
   var card := button(("SELECTED · " if encounter == key else "CHOOSE · ")+title,Vector2(68,top),Vector2(370,38),func():encounter = key;rebuild(),GOLD if encounter == key else MUTED)
   card.name = ["EncounterHollow","EncounterNugh","EncounterCantor","EncounterBugh"][index];card.add_theme_font_size_override("font_size",16)
@@ -1812,7 +1825,7 @@ func setup_ui() -> void:
   if index == 0:
    var atlas := AtlasTexture.new();atlas.atlas = SPRITES;atlas.region = Rect2(32,32,32,32);art.texture = atlas
   ui.add_child(art)
-  var lesson: String = ["Read attacks, escape fire warnings and adapt at half HP.","Pursue the human-worm; control his attacking brood. Soul Link breaks at half HP.","Attacks +%d Resonance; Skills / Defenses −%d. Calm the bell, burst into its open core." % [balance_number("cantor.attack_charge"),balance_number("cantor.calm")],"Break cocoons for Block and boss Weakness. Mites hatch, bite and upgrade at half HP."][index]
+  var lesson: String = ["Read attacks, escape fire warnings and adapt at half HP.","Pursue the human-worm; control his attacking brood. Soul Link breaks at half HP.","Attacks +%d Resonance; Skills / Defenses −%d. Calm the bell, burst into its open core." % [balance_number("cantor.attack_charge"),balance_number("cantor.calm")],"Guard his hits or evade the marked sweep, then counterattack while Bulwark is broken."][index]
   label_at(lesson,Vector2(169,top+49),13,Color("d6e0e6"),260,false,true)
  label_at("Every boss ability upgrades at half HP.",Vector2(70,740),14,Color("c1a5d9"),370)
  label_at("RULES FOR THIS FIGHT",Vector2(510,164),18,GOLD,830)
@@ -1898,7 +1911,7 @@ func soundtrack_ui() -> void:
  var caption := label_at("♪ "+score.title(),at,11,MUTED,210 if page == "battle" else 520);caption.name = "SoundtrackCaption";caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
  var control := button("Audio",Vector2(1340,851) if page == "battle" else Vector2(1308,869),Vector2(66,29) if page == "battle" else Vector2(72,25),func():show_soundtrack = true;rebuild(),GOLD)
  control.name = "SoundtrackSettings";control.add_theme_font_size_override("font_size",11)
- if page != "battle":label_at("v0.23",Vector2(1220,875),10,MUTED,75)
+ if page != "battle":label_at("v0.24",Vector2(1220,875),10,MUTED,75)
 func soundtrack_settings_ui() -> void:
  overlay()
  label_at("Sound & atmosphere",Vector2(399,260),28,GOLD,575,true)

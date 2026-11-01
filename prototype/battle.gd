@@ -774,6 +774,7 @@ func continue_attack() -> void:
  var reach: int = pending.get("range",boss_range(action))
  var area: bool = pending.get("area",action in ["Sweep","Furnace Roar"])
  for victim in pending.victims:
+  if pending.has("tiles") and unit_data(victim).pos not in pending.tiles:continue
   for actor in range(3):
    if heroes[actor].hp <= 0 or heroes[actor].dead: continue
    for die in heroes[actor].reaction:
@@ -800,11 +801,14 @@ func continue_attack() -> void:
   record_event("retarget","%s retargets %s to %s after a Reaction." % [unit_name(source),action,unit_name(t)],source,t)
   pending.victims = [t]; continue_attack(); return
  var amount: int = pending.amount
+ var locked_tiles: Array = pending.get("tiles",[]).duplicate()
+ var hit_targets: Array = []
  pending = {}
  action_owner = source;action_label = action
  for t in victims:
   # Sweep locks its area after all reactions, and hits each adjacent unit once.
-  if area and distance(source,t) > reach: continue
+  if area and (distance(source,t) > reach or (not locked_tiles.is_empty() and unit_data(t).pos not in locked_tiles)):continue
+  hit_targets.append(t)
   record_event("attack","%s attacks %s with %s for %d damage." % [unit_name(source),unit_name(t),action,maxi(0,amount-(boss_weakness() if boss.weak and source == 3 else 0))],source,t,amount)
   var hp_before: int = unit_data(t).hp
   damage(t,maxi(0,amount-(boss_weakness() if boss.weak and source == 3 else 0)),false,"",source)
@@ -826,6 +830,10 @@ func continue_attack() -> void:
     if not moved:break
   if action == "Drive Back" and t < 3:
    pending = {"kind":"push","hero":t,"direction":impact_direction(t)};push(pending.direction);return
+
+ after_enemy_attack(source,action,victims,hit_targets)
+
+func after_enemy_attack(_source: int, _action: String, _declared: Array, _hit: Array) -> void:pass
 
 func react(use: bool, dir: Vector2i = Vector2i.ZERO) -> void:
  if pending.get("kind","") != "reaction" or outcome != "":return

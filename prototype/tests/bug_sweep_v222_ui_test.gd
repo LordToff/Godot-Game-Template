@@ -27,13 +27,13 @@ func run():
  await RenderingServer.frame_post_draw
  root.get_texture().get_image().save_png("/workspace/artifacts/v222-summon-statuses.png")
  var bug = app.Bugh.new();bug.start([app.Model.default_build(),app.Model.default_build(),app.Model.default_build()],4)
- bug.action_owner = 0;bug.action_label = "Strike";bug.damage(bug.kind_ids("cocoon")[0],1)
- bug.lay_cocoons(1);bug.hatch(bug.kind_ids("cocoon")[0]);bug.active = 3;bug.boss_index = 0;bug.boss_rolls = ["Royal Feast","Bound","Bound"];bug.boss_step()
- bug.damage(3,6,true);bug.boss_index = 3;bug.finish_turn()
- app.game = bug;app.show_history = true;app.log_filter = "Combat";app.rebuild()
- for tag in ["COCOON BREAK","HATCH","CONSUME","PHASE","BROOD"]:
+ bug.arm_sweep();bug.action_owner = 0;bug.damage(3,1)
+ bug.heroes[0].pos = Vector2i(2,3);bug.heroes[0].block = 1;bug.heroes[0].reaction.clear();bug.active = 3;bug.boss_index = 0;bug.boss_rolls = ["Shield Bash","Bound","Bound"];bug.boss_step()
+ bug.damage(3,6,true)
+ app.game = bug;app.effects.clear();app.floaters.clear();app.visual_positions.clear();app.snapshots.clear();app.show_history = true;app.log_filter = "Combat";app.rebuild()
+ for tag in ["GUARD BREAK","ARMOR","WARNING","PHASE"]:
   check(app.ui.get_node("BattleHistory").text.contains(tag),"Combat history retains "+tag)
  app.log_filter = "Turns";app.rebuild()
- check(not app.ui.get_node("BattleHistory").text.contains("COCOON BREAK"),"Turns filter still excludes combat details")
+ check(not app.ui.get_node("BattleHistory").text.contains("GUARD BREAK"),"Turns filter still excludes combat details")
  print("V0.22.2 BUG SWEEP UI: ",checks," checks, ",failures," failures")
  quit(1 if failures else 0)
