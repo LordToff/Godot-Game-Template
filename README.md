@@ -1,15 +1,15 @@
-# Ash & Oath v0.21.1
+# Ash & Oath v0.22
 
-[Play in your browser](https://lordtoff.github.io/Godot-Game-Template/?v=0.21.1)
+[Play in your browser](https://lordtoff.github.io/Godot-Game-Template/?v=0.22)
 
-Click the Resonance meter for a plain-language guide: what Veyl’s shared power means, gains and spending, live damage, Open Core and a worked example. [Explanation update](CHANGES_v0.21.1.md). No balance changes.
+Bu’gh, the Cocoon Regent is the optional fourth encounter. Break cocoons for Block and boss Weakness; control its hatching mites. All six abilities upgrade at half HP. The Hollow, Nu’gh and Veyl remain selectable.
 
-Worms now move and roll bites after Nu’gh’s three dice, plus extra activations through Brood Command. Their Numeric die is 1,1,0,0,0,0; HP damage applies Poison 1. Poison damages the hero once at their next own turn, through Block, then clears. More bites refresh rather than stack it.
+Choose the new Skill **Summon Nu’gh**: one friendly 1-HP worm per hero. It moves and bites after its owner’s turn; while alive the face becomes **Command Nu’gh**, granting an extra activation. Bites roll 1,1,0,0,0,0; HP damage applies Poison 1. Friendly summons have owner markers and never feed enemy brood mechanics.
 
-Numeric rolls show rotating 3D-style cubes and recorded results, including Numeric Echo and Gambler’s extra die. Action Dice remain instant. Hover abilities and boss intents for details; move away to restore the log. Face cards preview effects and click again to remove a choice. Knights step along tiles with lift, dust and a soft footfall; Veyl’s meter/core changes have musical pulses.
+[Changes](CHANGES_v0.22.md) · [Current rules](current-rules.html) · [PDF rulebook](AshAndOath-Current-Rules-v0.22.pdf) · [Balance Workshop](BALANCE_WORKSHOP.md) · [Validation](Validation-v0.22.md) · [Trial scenarios](Trial-results-v0.22.json)
 
-[Changes and reasons](CHANGES_v0.21.md) · [Current rules](current-rules.html) · [PDF rulebook](AshAndOath-Current-Rules-v0.21.pdf) · [Balance Workshop](BALANCE_WORKSHOP.md)
+Balance remains provisional. 360 seeded heuristic battles: 114 hero wins, 234 boss wins, 12 Bu’gh round limits. These are not human win-rate estimates. New focused tests pass 298 model and 28 rendered UI checks; Nu’gh’s 2,414-check brood regression passes. Historical UI-test limitations are documented. The real browser export was checked in Chromium/WebGL.
 
-The explanation update passed Cantor model and feedback interface checks plus browser verification. The v0.21 release passed 22 model / interface / simulation scripts. Chromium verifies the real picker, encounter flow, hover details, Numeric cube and movement without game/console errors. 900 scripted encounters completed the configured test window: 202 hero wins, 697 losses, one 50-round limit. The latter continued to defeat at round 53, not an input deadlock. [Raw scenarios](Trial-results-v0.21.json). These are scripted policies, not predicted human win rates.
+The Windows download remains an older release. Historical reports and downloads retain their versions.
 
-The older Windows download keeps its original version. The [v0.16 report](playtest-report.html) and [spreadsheet](Ash-and-Oath-Playtest-v0.16.xlsx) remain historical.
+Source: [`dbb8a707`](https://github.com/LordToff/Godot-Game-Template/commit/dbb8a7078d2a2544e14a7607421878f7b2b147b1).

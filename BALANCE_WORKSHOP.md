@@ -1,3 +1,14 @@
+# Balance Workshop additions · v0.22
+
+The **59 · Summon Nu’gh** group exposes friendly HP, movement, bite range, damage, successful Numeric sides (out of six), and Poison. One living worm per owner is a structural limit shared by all copies.
+
+The **Boss · Bu’gh** group exposes boss HP; enemy brood cap; initial cocoon count; cocoon base HP and phase-II HP bonus; hatch age; mite HP, movement and phase bonus; mite successful Numeric sides, damage, reach, Weakness, phase-II Rooted and newborn Block; Shell Block and phase bonus; Mandate reach, Weakness and phase-II Rooted; Feast healing, base Block and phase bonus; Crash movement and reach with phase bonuses, phase-I damage and absolute phase-II area damage; cocoon-break Block reward, boss Block removal and Weakness; cocoon placement count/radius and fallback movement.
+
+Phase bonuses add to the base value. **Crash damage phase is the absolute phase-II damage, not an addition.** Defaults are the provisional values recorded in [v0.22 changes](CHANGES_v0.22.md). The existing shared boss HP-percent setting controls the irreversible phase threshold. Editing settings affects the next encounter; it does not certify the resulting balance.
+
+
+---
+
 > v0.21: Nu’gh → Worm Numeric successful sides (2 of 6 by default), bite damage and Poison value are editable. Poison refreshes, never stacks, and ticks once at the next own turn. [Changes](CHANGES_v0.21.md).
 
 > v0.20: Boss · Brass Cantor edits Resonance, abilities, core bonuses and phase upgrades. Starter Reaction grants 2 Block; the old movement field is retained as unused for saved-profile compatibility. [Changes](CHANGES_v0.20.md).
