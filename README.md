@@ -1,6 +1,8 @@
-# Ash & Oath v0.22
+# Ash & Oath v0.22.1
 
-[Play in your browser](https://lordtoff.github.io/Godot-Game-Template/?v=0.22)
+[Play in your browser](https://lordtoff.github.io/Godot-Game-Template/?v=0.22.1)
+
+**v0.22.1 fixes friendly worm movement:** a worm can now take a full legal detour around heroes, moving up to two steps after its owner’s turn or through Command. [Hotfix details and tests](CHANGES_v0.22.1.md). The resource pack uses a fresh versioned URL so the old cached build does not hide the fix.
 
 Bu’gh, the Cocoon Regent is the optional fourth encounter. Break cocoons for Block and boss Weakness; control its hatching mites. All six abilities upgrade at half HP. The Hollow, Nu’gh and Veyl remain selectable.
 
@@ -12,4 +14,4 @@ Balance remains provisional. 360 seeded heuristic battles: 114 hero wins, 234 bo
 
 The Windows download remains an older release. Historical reports and downloads retain their versions.
 
-Source: [`2ece0eab`](https://github.com/LordToff/Godot-Game-Template/commit/2ece0eab5f6f63d60508abece5a01e718216168d).
+Source: [`38af1644`](https://github.com/LordToff/Godot-Game-Template/commit/38af164471de2cbcd42fc1d508ead75e83699660).
