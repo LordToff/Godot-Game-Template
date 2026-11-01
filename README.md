@@ -1,8 +1,8 @@
-# Ash & Oath v0.22 — playable prototype
+# Ash & Oath v0.22.1 — playable prototype
 
 Bu’gh and Summon Nu’gh are new in v0.22. Balance remains provisional. See [changes and validation](docs/Changes-v0.22.md). The Windows download is an older release and is not updated by this browser release.
 
-[**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/?v=0.22) — no installation required.
+[**Play in your browser**](https://lordtoff.github.io/Godot-Game-Template/?v=0.22.1) — no installation required.
 
 [**Current rules: timing, abilities and bosses**](docs/current-rules.html) · [Download PDF](docs/AshAndOath-Current-Rules-v0.22.pdf). One consolidated v0.22 reference.
 
@@ -149,3 +149,5 @@ Join the [Discord server](https://discord.gg/AyZrJh5AMp) and share your work wit
 [Godot Asset Store - Addon](https://store.godotengine.org/asset/maaack/maaacks-game-template-addon/)  
 [Godot Asset Library - Template](https://godotengine.org/asset-library/asset/2703)  
 [Godot Asset Library - Plugin](https://godotengine.org/asset-library/asset/2709)  
+
+Friendly worm movement hotfix: [v0.22.1](docs/Changes-v0.22.1.md). Worms now take legal detours after their owner’s turn and through Command.

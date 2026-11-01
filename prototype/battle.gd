@@ -1698,6 +1698,8 @@ func spawn_friendly(owner: int, pos: Vector2i) -> int:
  record_event("summon","%s summons friendly Nu’gh at %s: %d HP. All their copies now Command this worm." % [unit_name(owner),cell_name(pos),hp],owner,id)
  return id
 func move_summon(id: int, steps: int) -> void:
+ if friendly(id):
+  move_friendly_summon(id,steps);return
  var origin: Vector2i = unit_data(id).pos
  var queue: Array = [[origin,[]]];var visited: Array = [origin]
  var paths: Array = [];var best := 100
@@ -1719,6 +1721,30 @@ func move_summon(id: int, steps: int) -> void:
  if chosen.is_empty():return
  unit_data(id).pos = chosen.back()
  record_event("move","%s moves %s → %s." % [unit_name(id),cell_name(origin),cell_name(unit_data(id).pos)],id,id)
+# Friendly pursuit needs a complete route: a legal detour can initially move
+# farther from an enemy. Execute only the first movement-allowance steps.
+func move_friendly_summon(id: int, steps: int) -> void:
+ if steps <= 0:return
+ var origin: Vector2i = unit_data(id).pos
+ var opponents := attack_targets(id,99)
+ var queue: Array = [[origin,[]]];var visited: Array = [origin]
+ var paths: Array = [];var length := 100
+ while not queue.is_empty():
+  var item: Array = queue.pop_front();var at: Vector2i = item[0];var path: Array = item[1]
+  if path.size() > length:break
+  if opponents.any(func(target):return distance(id,target,at) == 1):
+   length = path.size();paths.append(path);continue
+  if path.size() >= length:continue
+  for dir in DIRS:
+   var next: Vector2i = at+dir
+   if next not in visited and legal(id,next):visited.append(next);queue.append([next,path+[next]])
+ if paths.is_empty():
+  record_event("move",unit_name(id)+" holds: no legal route to an enemy.",id,id);return
+ var chosen: Array = paths[rng.randi_range(0,paths.size()-1)]
+ if chosen.is_empty():return
+ var moved := mini(steps,chosen.size())
+ unit_data(id).pos = chosen[moved-1]
+ record_event("move","%s moves %s → %s (%d orthogonal step(s) along a legal route; detours around occupied cells)." % [unit_name(id),cell_name(origin),cell_name(unit_data(id).pos),moved],id,id)
 func apply_poison(source: int, target: int, amount: int) -> void:
  var victim := unit_data(target)
  if victim.hp <= 0 or victim.get("dead",false) or amount <= 0:return
