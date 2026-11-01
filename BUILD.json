@@ -1,19 +1,19 @@
 {
-  "version": "0.23",
-  "source_commit": "d508242d29b6ab1a335c7ea8efba2f96c7420572",
+  "version": "0.24",
+  "source_commit": "3fbde088111701120c48283a79c9ee85150eddf0",
   "engine": "4.6.3.stable",
   "files": {
-    "AshAndOath-Current-Rules-v0.23.pdf": {
-      "sha256": "4e4af791174f577b12e9d1029451ea6f68ed75a72b3b716ac1540a13d643fd5b",
-      "bytes": 104145
+    "AshAndOath-Current-Rules-v0.24.pdf": {
+      "sha256": "59d562f82969409c9c455ed874bdfe146c39ebb053bd36c579f94a6a151d5bec",
+      "bytes": 104325
     },
     "SOUNDTRACK.md": {
       "sha256": "253faa5dd20543d91c543bbd3c9160bedb0ffe2e11e14aead9d6ca50980599af",
       "bytes": 953
     },
     "current-rules.html": {
-      "sha256": "38c729164cde5b8519f8f9c5c7a6e14e2fbae6383bb93063ea86fabff964a961",
-      "bytes": 61133
+      "sha256": "f3ea6ad28080cc70cd0b9fa38dc1ca4856bce9a68dda4c9c46ac88db4ba008b3",
+      "bytes": 61517
     },
     "index.apple-touch-icon.png": {
       "sha256": "2c620336a4002a1876393a448ff9efc810322568ab9e8f6bdf20cb419da781f1",
@@ -28,7 +28,7 @@
       "bytes": 7298
     },
     "index.html": {
-      "sha256": "9b3a5441880b941452a7789f465f05183b49ec2f92485a6233276ef57af48661",
+      "sha256": "ae86660f04325cb7044b6d2170a67668c07211f78315fffb5d61da555c411d8a",
       "bytes": 5635
     },
     "index.icon.png": {
@@ -40,8 +40,8 @@
       "bytes": 315759
     },
     "index.pck": {
-      "sha256": "4fe29bd34539587b7a13b5ac21a99e0ce19ddaaca3f3a141f23f8d8e6de27287",
-      "bytes": 3485388
+      "sha256": "00a457aed1496e0b2cab0ab9fb5648b9e713badd9ff044f7ed9a14d2954a7bea",
+      "bytes": 3486412
     },
     "index.png": {
       "sha256": "3cb4495c0b98dfbe4b663cbf2b6836473572339beb66d902367893162a70be0e",
@@ -58,6 +58,10 @@
     "index.v0.23.pck": {
       "sha256": "4fe29bd34539587b7a13b5ac21a99e0ce19ddaaca3f3a141f23f8d8e6de27287",
       "bytes": 3485388
+    },
+    "index.v0.24.pck": {
+      "sha256": "00a457aed1496e0b2cab0ab9fb5648b9e713badd9ff044f7ed9a14d2954a7bea",
+      "bytes": 3486412
     },
     "index.wasm": {
       "sha256": "26b61ce95247012ab3dca3ff51e96d1cdbff44ee91a8c20a83e150afca83f1b6",
