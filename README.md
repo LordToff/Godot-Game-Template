@@ -1,17 +1,13 @@
-# Ash & Oath v0.22.1
+# Ash & Oath v0.22.2
 
-[Play in your browser](https://lordtoff.github.io/Godot-Game-Template/?v=0.22.1)
+[Play in your browser](https://lordtoff.github.io/Godot-Game-Template/?v=0.22.2)
 
-**v0.22.1 fixes friendly worm movement:** a worm can now take a full legal detour around heroes, moving up to two steps after its owner’s turn or through Command. [Hotfix details and tests](CHANGES_v0.22.1.md). The resource pack uses a fresh versioned URL so the old cached build does not hide the fix.
+Fixed Target Override sending attacks onto friendly worms, incorrect custom-Weakness damage previews, missing summon debuffs and Bu’gh Poison details, hidden Combat history events and misleading status logs. The v0.22.1 friendly-worm detour fix is retained. No numeric balance values changed.
 
-Bu’gh, the Cocoon Regent is the optional fourth encounter. Break cocoons for Block and boss Weakness; control its hatching mites. All six abilities upgrade at half HP. The Hollow, Nu’gh and Veyl remain selectable.
+All four bosses remain available: The Hollow, Nu’gh, Veyl and Bu’gh. Summon Nu’gh grants one friendly worm per hero, owner-end movement/bites and extra Command activations. The catalog has 60 IDs and 48 selectable bonus designs.
 
-Choose the new Skill **Summon Nu’gh**: one friendly 1-HP worm per hero. It moves and bites after its owner’s turn; while alive the face becomes **Command Nu’gh**, granting an extra activation. Bites roll 1,1,0,0,0,0; HP damage applies Poison 1. Friendly summons have owner markers and never feed enemy brood mechanics.
+[Latest fixes and validation](CHANGES_v0.22.2.md) · [Current rules](current-rules.html) · [PDF rulebook](AshAndOath-Current-Rules-v0.22.pdf) · [Balance Workshop](BALANCE_WORKSHOP.md) · [New trial scenarios](Trial-results-v0.22.2.json)
 
-[Changes](CHANGES_v0.22.md) · [Current rules](current-rules.html) · [PDF rulebook](AshAndOath-Current-Rules-v0.22.pdf) · [Balance Workshop](BALANCE_WORKSHOP.md) · [Validation](Validation-v0.22.md) · [Trial scenarios](Trial-results-v0.22.json)
+25 selected regression scripts pass, including 14 new model checks and 11 new rendered UI checks. Browser controls and worm movement were verified in Chromium/WebGL. In 180 new heuristic trials: 55 hero wins, 122 boss wins, three Bu’gh round limits, no script/state errors. Bu’gh remains provisional; these are not human win-rate estimates. The older Windows build is unchanged.
 
-Balance remains provisional. 360 seeded heuristic battles: 114 hero wins, 234 boss wins, 12 Bu’gh round limits. These are not human win-rate estimates. New focused tests pass 298 model and 28 rendered UI checks; Nu’gh’s 2,414-check brood regression passes. Historical UI-test limitations are documented. The real browser export was checked in Chromium/WebGL.
-
-The Windows download remains an older release. Historical reports and downloads retain their versions.
-
-Source: [`38af1644`](https://github.com/LordToff/Godot-Game-Template/commit/38af164471de2cbcd42fc1d508ead75e83699660).
+Source: [`9ce26256`](https://github.com/LordToff/Godot-Game-Template/commit/9ce2625628f440f1645b3187180ac58d285b29e6).

@@ -1,15 +1,15 @@
 {
-  "version": "0.22.1",
-  "source_commit": "38af164471de2cbcd42fc1d508ead75e83699660",
+  "version": "0.22.2",
+  "source_commit": "9ce2625628f440f1645b3187180ac58d285b29e6",
   "engine": "4.6.3.stable",
   "files": {
     "AshAndOath-Current-Rules-v0.22.pdf": {
       "sha256": "4fdec3e369fc1a103f69a818284202fb6f7d2d7aa3c53954ce15c688f7d58b59",
       "bytes": 101999
     },
-    "Trial-results-v0.22.json": {
-      "sha256": "3d2d5346f5d70c25874d620885d68bc5e542b99b552019d0ff70cdf472dec752",
-      "bytes": 32496
+    "Trial-results-v0.22.2.json": {
+      "sha256": "150de0705eb5715a2e6407a779a8927797ea89bd1a0951992a779d3d5ae7cbee",
+      "bytes": 29304
     },
     "current-rules.html": {
       "sha256": "45ad590353f0f6669d8b888e38cadff324795d8e697dbefc856f33a0bcb8a285",
@@ -28,7 +28,7 @@
       "bytes": 7298
     },
     "index.html": {
-      "sha256": "d3072060a0e562b5ad2717f580e7c2a3af48c3792d6de2c8686c692600f76e96",
+      "sha256": "a5eb43cc96ba0085c82f94121689a3799ef362c565a61a8085e0d284e4d04fbf",
       "bytes": 5641
     },
     "index.icon.png": {
@@ -40,8 +40,8 @@
       "bytes": 315759
     },
     "index.pck": {
-      "sha256": "68b8b60e60c4eef7393b6ff251fbb971b9bbfe40845ee867bb0a17dd5e793217",
-      "bytes": 2239776
+      "sha256": "f93328d94a92a69169f869f3dee9ec1d16607572779ed6381caae00fdae11744",
+      "bytes": 2241024
     },
     "index.png": {
       "sha256": "3cb4495c0b98dfbe4b663cbf2b6836473572339beb66d902367893162a70be0e",
@@ -50,6 +50,10 @@
     "index.v0.22.1.pck": {
       "sha256": "68b8b60e60c4eef7393b6ff251fbb971b9bbfe40845ee867bb0a17dd5e793217",
       "bytes": 2239776
+    },
+    "index.v0.22.2.pck": {
+      "sha256": "f93328d94a92a69169f869f3dee9ec1d16607572779ed6381caae00fdae11744",
+      "bytes": 2241024
     },
     "index.wasm": {
       "sha256": "26b61ce95247012ab3dca3ff51e96d1cdbff44ee91a8c20a83e150afca83f1b6",
