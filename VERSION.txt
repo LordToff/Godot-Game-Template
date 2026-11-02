@@ -1,2 +1,2 @@
-Ash & Oath 0.24
-Source 3fbde088111701120c48283a79c9ee85150eddf0
+Ash & Oath 0.25
+Source 34fb8c2cee35ad2bea8f8a935d587edc0055134e

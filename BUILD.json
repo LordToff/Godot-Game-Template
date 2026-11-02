@@ -1,19 +1,51 @@
 {
-  "version": "0.24",
-  "source_commit": "3fbde088111701120c48283a79c9ee85150eddf0",
+  "version": "0.25",
+  "source_commit": "34fb8c2cee35ad2bea8f8a935d587edc0055134e",
   "engine": "4.6.3.stable",
   "files": {
-    "AshAndOath-Current-Rules-v0.24.pdf": {
-      "sha256": "59d562f82969409c9c455ed874bdfe146c39ebb053bd36c579f94a6a151d5bec",
-      "bytes": 104325
+    "AshAndOath-Current-Rules-v0.25.pdf": {
+      "sha256": "c7413c002ad17154bed10c7e3b5f45edc9cc72e5d8f887b0167c315de468bad7",
+      "bytes": 109365
     },
-    "SOUNDTRACK.md": {
-      "sha256": "253faa5dd20543d91c543bbd3c9160bedb0ffe2e11e14aead9d6ca50980599af",
-      "bytes": 953
+    "CHANGELOG.txt": {
+      "sha256": "901309d5b3f42c0f988f42f55aec8757c71b5a0a46903b40f034a784d9a8a0cc",
+      "bytes": 26087
+    },
+    "CHANGES_v0.25.md": {
+      "sha256": "2b040561cb278450ecbbf3ec7a90b08b60a935950af4d658cdcf175b1ec7c2ec",
+      "bytes": 4991
+    },
+    "Changes-v0.25.md": {
+      "sha256": "2b040561cb278450ecbbf3ec7a90b08b60a935950af4d658cdcf175b1ec7c2ec",
+      "bytes": 4991
+    },
+    "Current-Rules-v0.25.md": {
+      "sha256": "dbd6d3dae4a647f198029bb2cb97b462ee253b75b1ca500596a7e6fa40926acf",
+      "bytes": 56394
+    },
+    "README.md": {
+      "sha256": "a755c2f76b327a11b725bc4f45106dbf6659b0099198e18927a4993825215bc8",
+      "bytes": 1057
+    },
+    "SOURCE_COMMIT.txt": {
+      "sha256": "52bf865ce771226b0dfcdeea53443f32cbf516de13abc590c65a6ac51c9760a5",
+      "bytes": 41
+    },
+    "VERSION.txt": {
+      "sha256": "cdc3ff120a92427df1536cb99e87c54cc70f135924ca82a66117b3aaa2d3526d",
+      "bytes": 64
+    },
+    "Validation-v0.25.json": {
+      "sha256": "9063ab690f855c8a8235bef4bc12152673cc35082ed3b10fa9b9b6d22fe77fde",
+      "bytes": 3144
+    },
+    "Validation-v0.25.md": {
+      "sha256": "3073e37783ba5d32441e902cd1158d6ca0ca99e66dd7e0b67b3a7c27f7083711",
+      "bytes": 2443
     },
     "current-rules.html": {
-      "sha256": "f3ea6ad28080cc70cd0b9fa38dc1ca4856bce9a68dda4c9c46ac88db4ba008b3",
-      "bytes": 61517
+      "sha256": "4335c1ddb54f9fc095126ace95d7070841976ae754b8f1f2289efaf7c53323c3",
+      "bytes": 66187
     },
     "index.apple-touch-icon.png": {
       "sha256": "2c620336a4002a1876393a448ff9efc810322568ab9e8f6bdf20cb419da781f1",
@@ -28,8 +60,8 @@
       "bytes": 7298
     },
     "index.html": {
-      "sha256": "ae86660f04325cb7044b6d2170a67668c07211f78315fffb5d61da555c411d8a",
-      "bytes": 5635
+      "sha256": "c71b6bb87d899821cba990b9519ea9016343b8a77258770035f62ae3b73b6d1f",
+      "bytes": 5476
     },
     "index.icon.png": {
       "sha256": "25895353542fe8dcdfa3736eaf15f44dc02ba60e2dc73a9b863d69aa5bae89a3",
@@ -40,28 +72,16 @@
       "bytes": 315759
     },
     "index.pck": {
-      "sha256": "00a457aed1496e0b2cab0ab9fb5648b9e713badd9ff044f7ed9a14d2954a7bea",
-      "bytes": 3486412
+      "sha256": "b2b20947c43e1c533cd296f9a16d39f8107160cd6e65cf196947b2badde0149e",
+      "bytes": 3500272
     },
     "index.png": {
       "sha256": "3cb4495c0b98dfbe4b663cbf2b6836473572339beb66d902367893162a70be0e",
       "bytes": 21443
     },
-    "index.v0.22.1.pck": {
-      "sha256": "68b8b60e60c4eef7393b6ff251fbb971b9bbfe40845ee867bb0a17dd5e793217",
-      "bytes": 2239776
-    },
-    "index.v0.22.2.pck": {
-      "sha256": "f93328d94a92a69169f869f3dee9ec1d16607572779ed6381caae00fdae11744",
-      "bytes": 2241024
-    },
-    "index.v0.23.pck": {
-      "sha256": "4fe29bd34539587b7a13b5ac21a99e0ce19ddaaca3f3a141f23f8d8e6de27287",
-      "bytes": 3485388
-    },
-    "index.v0.24.pck": {
-      "sha256": "00a457aed1496e0b2cab0ab9fb5648b9e713badd9ff044f7ed9a14d2954a7bea",
-      "bytes": 3486412
+    "index.v0.25.pck": {
+      "sha256": "b2b20947c43e1c533cd296f9a16d39f8107160cd6e65cf196947b2badde0149e",
+      "bytes": 3500272
     },
     "index.wasm": {
       "sha256": "26b61ce95247012ab3dca3ff51e96d1cdbff44ee91a8c20a83e150afca83f1b6",
