@@ -216,7 +216,7 @@ godot --path . --script res://prototype/tests/soul_ui_test.gd
 
 Run UI tests with a display; the template keyboard settings need a graphical display server. Linux and browser exports are run here. Windows is cross-exported and cannot be tested on Windows in this environment. The inherited template can report an ObjectDB shutdown leak warning; final test runs contain no script errors.
 
-Campaign Events, online multiplayer, persistent saves and resurrection remain out of scope. Reward-Soul rematch is a fresh test encounter, not campaign resurrection.
+The first optional event loop and local reward ledger are implemented in v0.25. Online multiplayer, campaign checkpoints and resurrection remain out of scope. Reward-Soul rematch is a fresh test encounter, not campaign resurrection.
 
 ## Code map
 
@@ -244,3 +244,6 @@ The original encounter settings remain selectable; these are targeted rules/impl
 ## v0.22 development continuation
 
 Bu’gh and friendly Summon Nu’gh were reconstructed from the handoff at source a8884c3d. Read [changes](../docs/Changes-v0.22.md) and [validation](../docs/Validation-v0.22.md) before continuing balance work. Browser-only release; the older Windows artifact is unchanged. Export with `tools/export_web.sh`. New model/UI checks are `prototype/tests/summons_v22_test.gd` and `prototype/tests/summons_v22_ui_test.gd`.
+
+## v0.25 event development
+`expedition.gd` owns the saved ledger and atomic reward claims; `event_battle.gd` implements ordinary two-monster encounters. Run `godot --headless --path . --script res://prototype/tests/events_v25_test.gd`. See current rules for exact costs and reward effects.

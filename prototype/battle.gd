@@ -315,6 +315,7 @@ func activate() -> void:
   note(boss_name()+" takes its turn. Resolve I → II → III.")
  else:
   var h: Dictionary = heroes[active]
+  h.event_salve_used = false
   if h.dead or h.hp == 0 or active in replaced:
    cursor += 1; activate(); return
   tick_poison(active)
@@ -384,6 +385,7 @@ func finish_turn() -> void:
    finish_turn(); return
   replaced.append(active); recovery_active = true
   heroes[active].block = 0
+  heroes[active].event_salve_used = false
   heroes[active].opening = true; reset_soul_allowance(active)
   roll_context = "Recovery · fresh Action Dice"
   roll_serial += 1

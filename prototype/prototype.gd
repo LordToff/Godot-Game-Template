@@ -22,6 +22,11 @@ const NUGH_PHASE = preload("res://prototype/assets/pixel_nugh_phase2.png")
 const WORM_SPRITE = preload("res://prototype/assets/pixel_screaming_worm.png")
 const DIE_Y = 205
 const DIE_STEP = 98
+const Expedition = preload("res://prototype/expedition.gd")
+const EventBattle = preload("res://prototype/event_battle.gd")
+var expedition = Expedition.new()
+var event_fight := false
+var show_supplies := false
 var encounter := "hollow"
 const Model = preload("res://prototype/battle.gd")
 const FaceLoadout = preload("res://prototype/face_loadout.gd")
@@ -142,6 +147,7 @@ func _ready() -> void:
  score = Score.new();add_child(score);music = score.players[score.slot];muted = score.muted
  make_audio()
  setup_combat_audio()
+ expedition.load_save()
  load_balance_profile()
  make_offers()
  dice_tray = Tray.new();add_child(dice_tray)
@@ -264,6 +270,8 @@ func panel(rect: Rect2, color: Color = Color("161d28"), border: Color = Color("3
 func rebuild() -> void:
  sync_presentation()
  for c in ui.get_children(): ui.remove_child(c); c.queue_free()
+ if page == "events":
+  events_ui();soundtrack_ui();queue_redraw();return
  if page == "setup":
   setup_ui();soundtrack_ui()
   if show_options:options_ui()
@@ -278,7 +286,7 @@ func rebuild() -> void:
   button("Menu",Vector2(288,112),Vector2(120,26),func():show_menu = true;rebuild(),GOLD)
  else:
   label_at("ASH & OATH",Vector2(42,26),27,GOLD,500,true)
-  label_at("A DICE-BUILDING BOSS BATTLER · v0.24",Vector2(44,65),11,MUTED)
+  label_at("A DICE-BUILDING BOSS BATTLER · v0.25",Vector2(44,65),11,MUTED)
   button("View dice",Vector2(350,30),Vector2(235,40),func(): show_dice = true;dice_hero = build_hero;rebuild(),Color("9fc7e6"))
   button("Tutorial / Ability Lab",Vector2(605,30),Vector2(245,40),start_lab,Color("82c8b9"))
   button("What changed",Vector2(866,30),Vector2(225,40),func():show_changes = true;rebuild())
@@ -300,6 +308,7 @@ func rebuild() -> void:
  if show_menu: menu_ui()
  if show_lab_tools and lab and game.pending.is_empty() and game.outcome == "": lab_tools_ui()
  if show_options: options_ui()
+ if show_supplies:supplies_ui()
  if show_soundtrack:soundtrack_settings_ui()
  queue_redraw()
 
@@ -357,6 +366,7 @@ func open_setup() -> void:
  draft_modal = false;page = "setup";show_menu = false;selected = -1;rebuild()
 
 func begin() -> void:
+ event_fight = false
  for hero in range(3):
   var error := Model.validate(builds[hero],gifts[hero],balance_values)
   if error != "":hint = error;page = "forge";rebuild();return
@@ -387,8 +397,8 @@ func battle_ui() -> void:
   var intent := button(["I","II","III"][d]+" · "+action+(" +" if upgraded else "")+(" ✓" if done else ""),Vector2(760+d*220,66),Vector2(208,36),func():inspect_action = action;combat_inspected = -1;show_active_effects = false;detailed_ability = false;rebuild(),GOLD if game.active == 3 and game.boss_visible_index() == d else MUTED)
   intent.add_theme_font_size_override("font_size",14);intent.tooltip_text = ""
  var threshold := int(floor(game.boss.max_hp*game.v("boss.phase.percent")/100.0))
- var phase_button := button(("PHASE II ACTIVE" if game.phase_two else "UPGRADES AT %d HP" % threshold)+" · view changes",Vector2(760,110),Vector2(328,28),func():inspect_action = "__phase__";combat_inspected = -1;show_active_effects = false;detailed_ability = false;rebuild(),Color("e8a56a") if game.phase_two else GOLD)
- label_at("%d abilities upgrade at half HP" % game.phase_upgrades().size(),Vector2(1128,115),14,Color("e8b885"),280)
+ var phase_button := button(("ORDINARY MONSTERS · rules" if game.encounter_id == "event" else ("PHASE II ACTIVE" if game.phase_two else "UPGRADES AT %d HP" % threshold))+" · view changes",Vector2(760,110),Vector2(328,28),func():inspect_action = "__phase__";combat_inspected = -1;show_active_effects = false;detailed_ability = false;rebuild(),Color("e8a56a") if game.phase_two else GOLD)
+ label_at("No phase · defeat both" if game.encounter_id == "event" else "%d abilities upgrade at half HP" % game.phase_upgrades().size(),Vector2(1128,115),14,Color("e8b885"),280)
  phase_button.name = "BossPhaseSummary";phase_button.add_theme_font_size_override("font_size",14);phase_button.tooltip_text = ""
  soul_toggle(Vector2(760,159),true,328)
  for i in range(3):
@@ -469,7 +479,7 @@ func battle_ui() -> void:
   status_label.name = "ActiveStatuses";status_label.add_theme_font_size_override("font_size",14);status_label.tooltip_text = ""
 
  else:
-  label_at("BOSS TURN",Vector2(760,207),16,GOLD,328)
+  label_at("MONSTER TURN" if game.encounter_id == "event" else "BOSS TURN",Vector2(760,207),16,GOLD,328)
   var current: String = game.boss_display_action()
   label_at(current,Vector2(760,235),25,Color("f1d2bc"),328,true,true)
   var description := RichTextLabel.new();description.name = "CurrentBossDetails";description.position = Vector2(760,310);description.size = Vector2(328,280);description.add_theme_font_size_override("normal_font_size",18);description.text = boss_ability_summary(current) if current != "Turn complete" else "Advance to the next hero.";ui.add_child(description)
@@ -493,14 +503,15 @@ func battle_ui() -> void:
  elif lab:lab_ui()
  if game.encounter_id == "nugh":
   label_at("BROOD %d/%d · SOUL LINK %s" % [game.living_minions().size(),game.v("nugh.worm_cap"),"OFF" if game.phase_two else "ON"],Vector2(428,117),13,Color("d7b3eb"),310)
- var goal := "v0.24 · THE HOLLOW · Read the intent, evade fire and prepare for half HP."
- if game.encounter_id == "nugh":goal = "v0.24 · SOUL LINK OFF · Hunt Nu’gh; clear worms for control." if game.phase_two else "v0.24 · SOUL LINK ON until half HP · Kill worms, then hunt the master."
+ var goal := "v0.25 · THE HOLLOW · Read the intent, evade fire and prepare for half HP."
+ if game.encounter_id == "event":goal = "ORDINARY MONSTERS · Defeat both. Scuttle 2 / Bite 1 / Guard 1. No phase or boss Soul."
+ if game.encounter_id == "nugh":goal = "v0.25 · SOUL LINK OFF · Hunt Nu’gh; clear worms for control." if game.phase_two else "v0.25 · SOUL LINK ON until half HP · Kill worms, then hunt the master."
  if game.encounter_id == "bugh":
-  goal = "v0.24 · GUARD / EVADE → COUNTERATTACK · Escape gold sweep cells or fully defend a hit."
+  goal = "v0.25 · GUARD / EVADE → COUNTERATTACK · Escape gold sweep cells or fully defend a hit."
   var ward := button("OPEN · COUNTERATTACK" if game.guard_broken else "BULWARK −%d · Guard or evade" % game.v("warden.armor"),Vector2(426,112),Vector2(310,25),func():show_turn = true;rebuild(),Color("86d8c5") if game.guard_broken else GOLD)
   ward.name = "WardenStatus";ward.add_theme_font_size_override("font_size",11)
  if game.encounter_id == "cantor":
-  goal = "v0.24 · ATTACKS charge Resonance · SKILL / DEFENSE calm it · Burst during OPEN CORE."
+  goal = "v0.25 · ATTACKS charge Resonance · SKILL / DEFENSE calm it · Burst during OPEN CORE."
   var meter := button("RESONANCE %d/%d · CORE %s · ?" % [game.resonance,game.v("cantor.resonance_cap"),"OPEN +%d" % game.core_bonus() if game.core_open else "closed"],Vector2(424,112),Vector2(314,24),func():show_turn = true;rebuild(),Color("8cdae4"))
   meter.add_theme_font_size_override("font_size",12);meter.name = "ResonanceStatus"
   meter.tooltip_text = "Resonance = Veyl’s shared power. More power means harder bell hits. Click for rules and examples."
@@ -590,6 +601,12 @@ func overlay() -> void:
 
 func outcome_ui() -> void:
  overlay()
+ if event_fight:
+  expedition.finish_combat(game.outcome == "victory")
+  label_at("EVENT COMPLETE" if game.outcome == "victory" else "EVENT FAILED",Vector2(399,270),26,GOLD)
+  label_at(expedition.summary+"\n\n"+expedition.inventory()+"\n\nSupplies and rewards are saved on this device. No boss Soul is granted.\nThe boss fight starts fresh: full HP; temporary mutations and injuries reset.",Vector2(399,325),17,MUTED,570,false,true)
+  button("Continue expedition",Vector2(399,570),Vector2(520,48),func():event_fight = false;page = "events";rebuild())
+  return
  if lab:
   label_at("ABILITY LAB · TEST COMPLETE",Vector2(399,280),24,GOLD,620,true)
   label_at("The test reached an encounter outcome. Reset restores the fixture.\nYour normal builds and rewards are preserved.",Vector2(399,350),16,MUTED,570,false,true)
@@ -673,12 +690,12 @@ func _gui_input(event: InputEvent) -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
  if event.is_action_pressed("ui_cancel"):
   if is_instance_valid(balance_editor):balance_editor.queue_free();balance_editor = null
-  selected = -1; shove_target = -1; show_active_effects = false; show_soundtrack = false; show_options = false; show_menu = false; show_lab_tools = false; show_help = false; inspect_action = "";combat_inspected = -1; show_history = false; show_changes = false; show_dice = false; show_turn = false; show_lab_setup = false; rebuild()
+  selected = -1; shove_target = -1; show_active_effects = false; show_soundtrack = false; show_options = false; show_menu = false; show_lab_tools = false; show_help = false; inspect_action = "";combat_inspected = -1; show_supplies = false; show_history = false; show_changes = false; show_dice = false; show_turn = false; show_lab_setup = false; rebuild()
 
 func _draw() -> void:
  draw_texture_rect(CHAMBER,Rect2(0,0,1440,900),false)
  draw_line(Vector2(24,76),Vector2(1408,76),Color("303846"))
- if page == "setup":return
+ if page in ["setup","events"]:return
  if page == "forge":
   panel(Rect2(68,351,736,336)); panel(Rect2(850,278,472,563))
  else:
@@ -750,9 +767,9 @@ func draw_board() -> void:
   draw_string(BODY,ORIGIN+Vector2(i*CELL+33,9*CELL+12),str(i+1),HORIZONTAL_ALIGNMENT_LEFT,-1,11,MUTED)
   draw_string(BODY,ORIGIN+Vector2(-20,i*CELL+32),char(65+i),HORIZONTAL_ALIGNMENT_LEFT,-1,11,MUTED)
  # Portrait tokens use the same art as the party panels and drafting tabs.
- var bp: Vector2 = ORIGIN+Vector2(visual_positions.get(3,Vector2(game.boss.pos)))*CELL+Vector2.ONE*CELL+attack_nudge(3)
+ var bp: Vector2 = ORIGIN+Vector2(visual_positions.get(3,Vector2(game.boss.pos)))*CELL+Vector2.ONE*CELL*(0.5 if game.encounter_id == "event" else 1.0)+attack_nudge(3)
  draw_circle(bp+Vector2(0,26),43,Color(0.02,0.02,0.04,0.65))
- draw_unit_sprite(3,Rect2(bp-Vector2.ONE*64,Vector2.ONE*128))
+ if game.boss.hp > 0:draw_unit_sprite(3,Rect2(bp-Vector2.ONE*(27 if game.encounter_id == "event" else 64),Vector2.ONE*(54 if game.encounter_id == "event" else 128)))
  draw_boss_vitals(bp)
  for i in range(3):
   var h: Dictionary = game.heroes[i]
@@ -846,7 +863,7 @@ func sync_presentation() -> void:
    var old: Dictionary = snapshots[id]
    var diff: int = h.hp-old.hp
    var bd: int = h.block-old.block
-   var at: Vector2 = ORIGIN+Vector2(h.pos)*CELL+Vector2.ONE*CELL*(1.0 if id == 3 else 0.5)
+   var at: Vector2 = ORIGIN+Vector2(h.pos)*CELL+Vector2.ONE*CELL*(1.0 if id == 3 and game.encounter_id != "event" else 0.5)
    if diff != 0:
     floaters.append({"at":at,"text":("+" if diff > 0 else "")+str(diff)+" HP","color":Color("85d2ab") if diff > 0 else Color("f19581"),"life":1.6})
     if diff < 0: hit_time = 0.7
@@ -872,7 +889,7 @@ func history_ui() -> void:
   text_lines.append(format_event(entry,true))
  lines.text = "\n\n".join(text_lines); ui.add_child(lines)
  button("Copy log",Vector2(215,734),Vector2(208,40),func(): DisplayServer.clipboard_set("\n".join(game.log_lines)),MUTED)
- button("Back to battle",Vector2(943,730),Vector2(279,45),func(): show_history = false; show_changes = false; show_dice = false; show_turn = false; show_lab_setup = false; rebuild())
+ button("Back to battle",Vector2(943,730),Vector2(279,45),func(): show_supplies = false; show_history = false; show_changes = false; show_dice = false; show_turn = false; show_lab_setup = false; rebuild())
 
 func format_event(entry: Dictionary, expanded: bool) -> String:
  var colors := {"attack":"efb29b","damage":"eea394","block":"9fc7e6","block_gain":"9fc7e6","buff":"91d1b4","debuff":"c9a4e3","heal":"91d1b4","turn":"e4c88f","round":"e4c88f","focus":"e4c88f","summon":"b9d0a6","minion_death":"d9c493","soul_link":"d5a0e4","fallback":"edc785","minion_action":"d5b7eb","boss_result":"edc785","resonance":"8edbe5","core":"f0dfa3","expire":"9aaaba","poison":"b7e86d","roll":"c6d6ed","move":"c0b398","guard_break":"87dcc6","armor":"b7c9d5","warning":"f0c579"}
@@ -883,7 +900,7 @@ func format_event(entry: Dictionary, expanded: bool) -> String:
 func effect_center(id: int) -> Vector2:
  if id < 0: return Vector2(322,150)
  var pos: Vector2 = visual_positions.get(id,Vector2(game.unit_data(id).pos))
- return ORIGIN+pos*CELL+Vector2.ONE*CELL*(1.0 if id == 3 else 0.5)
+ return ORIGIN+pos*CELL+Vector2.ONE*CELL*(1.0 if id == 3 and game.encounter_id != "event" else 0.5)
 
 func draw_effects() -> void:
  for fx in effects:
@@ -1199,13 +1216,13 @@ func lab_tools_ui() -> void:
  button("Next turn",Vector2(689,446),Vector2(285,39),func():show_lab_tools = false;Lab.next_turn(game,lab_numeric);selected = -1;rebuild(),GOLD,not game.pending.is_empty() or game.outcome != "")
  button("Roll chosen face again",Vector2(399,502),Vector2(275,39),func():show_lab_tools = false;Lab.roll_test_face(game,lab_face,lab_numeric);selected = -1;rebuild(),Color("82c8b9"))
  button("Combine faces",Vector2(689,502),Vector2(285,39),func():show_lab_tools = false;show_lab_setup = true;rebuild(),MUTED)
- button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.24 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
+ button("Copy test log",Vector2(399,570),Vector2(275,43),func():DisplayServer.clipboard_set("Ash & Oath v0.25 · "+Model.FACES[lab_face]+"\n"+"\n".join(game.log_lines)),MUTED)
  button("Back to battle",Vector2(689,570),Vector2(285,43),func():show_lab_tools = false;rebuild())
  button("Phase II active" if game.phase_two else "Test boss phase II",Vector2(399,632),Vector2(575,39),test_boss_phase_two,Color("e9a36a"),game.phase_two or not game.pending.is_empty() or game.outcome != "" or game.v("boss.phase.percent") == 0)
 
 func changes_ui() -> void:
  var shade := ColorRect.new(); shade.color = Color("101923"); shade.size = Vector2(1440,900); ui.add_child(shade)
- label_at("PATCH NOTES · v0.24",Vector2(125,75),32,GOLD,1200,true)
+ label_at("PATCH NOTES · v0.25",Vector2(125,75),32,GOLD,1200,true)
  label_at("Choose a topic · short pages · what changed and why",Vector2(128,125),15,MUTED,1100)
  var nav := ScrollContainer.new();nav.name = "PatchTopics";nav.position = Vector2(125,190);nav.size = Vector2(270,610);ui.add_child(nav)
  var topics := VBoxContainer.new();topics.custom_minimum_size.x = 255;topics.add_theme_constant_override("separation",7);nav.add_child(topics)
@@ -1275,7 +1292,7 @@ func dice_ui() -> void:
    var rolled := false
    var id := 0
    if is_boss:
-    current = game.boss_dice()[d][side]; original = (Bugh.DICE if game.encounter_id == "bugh" else (Cantor.DICE if game.encounter_id == "cantor" else (Nugh.DICE if game.encounter_id == "nugh" else (Model.TUNED_BOSS_DICE if game.tuned else Model.BOSS_DICE))))[d][side]
+    current = game.boss_dice()[d][side]; original = (EventBattle.DICE if game.encounter_id == "event" else Bugh.DICE if game.encounter_id == "bugh" else (Cantor.DICE if game.encounter_id == "cantor" else (Nugh.DICE if game.encounter_id == "nugh" else (Model.TUNED_BOSS_DICE if game.tuned else Model.BOSS_DICE))))[d][side]
     rolled = game.boss_sides.size() == 3 and game.boss_sides[d] == side
    else:
     var build: Array = game.heroes[dice_hero].build if in_fight else builds[dice_hero]
@@ -1425,6 +1442,8 @@ func portrait_at(id: int, at: Vector2, dimensions: Vector2) -> void:
 
 
 func draw_unit_sprite(id: int, rect: Rect2) -> void:
+ if id == 3 and game.encounter_id == "event":
+  draw_texture_rect_region(MITE_SPRITE,rect,Rect2(0,0,16,16));return
  if id == 3 and page == "battle" and game.encounter_id == "cantor":
   draw_texture_rect(CANTOR_PHASE if game.phase_two else CANTOR_SPRITE,rect,false)
   var center := rect.get_center()
@@ -1453,6 +1472,7 @@ func menu_ui() -> void:
  button("Rules",Vector2(689,388),Vector2(285,45),func():show_menu = false;show_help = true;rebuild(),MUTED)
  button("Game options",Vector2(399,451),Vector2(275,45),func():show_menu = false;open_settings(),MUTED)
  button("Rebuild / restart",Vector2(689,451),Vector2(285,45),func():show_menu = false;page = "forge";selected = -1;rebuild(),MUTED)
+ button("Expedition supplies",Vector2(399,510),Vector2(575,43),func():show_menu = false;show_supplies = true;rebuild(),GOLD)
  button("Return to battle",Vector2(399,570),Vector2(575,46),func():show_menu = false;rebuild())
 
 
@@ -1792,7 +1812,7 @@ func draw_worm(id: int) -> void:
  var center := effect_center(id)
  var frame := int(t*4+id)%2
  draw_circle(center+Vector2(0,18),18,Color(0.02,0.02,0.04,0.5))
- var sprite = FRIENDLY_SPRITE if game.friendly(id) else (COCOON_SPRITE if worm.get("kind","") == "cocoon" else (MITE_SPRITE if worm.get("kind","") == "mite" else WORM_SPRITE))
+ var sprite = FRIENDLY_SPRITE if game.friendly(id) else (MITE_SPRITE if game.encounter_id == "event" else COCOON_SPRITE if worm.get("kind","") == "cocoon" else (MITE_SPRITE if worm.get("kind","") == "mite" else WORM_SPRITE))
  draw_texture_rect_region(sprite,Rect2(center-Vector2(24,24),Vector2(48,48)),Rect2(frame*16,0,16,16))
  draw_hp_dots(center+Vector2(-8 if worm.block > 0 else 0,29),worm.hp,worm.max_hp,Color("bed4ab"))
  if worm.block > 0:
@@ -1855,11 +1875,12 @@ func setup_ui() -> void:
   elif invalid != "":error = invalid
  label_at(error if error != "" else "Review the boss and rules, then enter. Your chosen faces and placements are preserved.",Vector2(50,782),15,Color("edac94") if error != "" else MUTED,1320)
  button("← Change faces / dice",Vector2(48,826),Vector2(290,48),func():page = "forge";draft_modal = true;rebuild(),MUTED)
- button("View chosen dice",Vector2(358,826),Vector2(245,48),func():show_dice = true;dice_hero = 0;rebuild(),Color("9fc7e6"))
+ button("Expedition events",Vector2(358,826),Vector2(245,48),open_events,Color("9fc7e6"))
  button("Advanced numeric rules",Vector2(755,826),Vector2(317,48),open_balance_editor,Color("9fc7e6"))
  var start := button("Enter fight →",Vector2(1092,826),Vector2(300,48),begin,GOLD,error != "");start.name = "StartEncounter"
 
 func boss_ability_summary(action: String) -> String:
+ if game.encounter_id == "event":return game.boss_help(action)
  var text := short_boss_help(action)
  if not game.phase_two:
   for upgrade in game.phase_upgrades():
@@ -1911,7 +1932,7 @@ func soundtrack_ui() -> void:
  var caption := label_at("♪ "+score.title(),at,11,MUTED,210 if page == "battle" else 520);caption.name = "SoundtrackCaption";caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
  var control := button("Audio",Vector2(1340,851) if page == "battle" else Vector2(1308,869),Vector2(66,29) if page == "battle" else Vector2(72,25),func():show_soundtrack = true;rebuild(),GOLD)
  control.name = "SoundtrackSettings";control.add_theme_font_size_override("font_size",11)
- if page != "battle":label_at("v0.24",Vector2(1220,875),10,MUTED,75)
+ if page != "battle":label_at("v0.25",Vector2(1220,875),10,MUTED,75)
 func soundtrack_settings_ui() -> void:
  overlay()
  label_at("Sound & atmosphere",Vector2(399,260),28,GOLD,575,true)
@@ -1926,3 +1947,63 @@ func soundtrack_settings_ui() -> void:
  button("All sound: "+("OFF" if muted else "ON"),Vector2(399,528),Vector2(275,43),func():muted = not muted;score.set_muted(muted);rebuild(),GOLD)
  button("Display / advanced audio",Vector2(689,528),Vector2(285,43),open_audio_settings,MUTED)
  button("Back to game",Vector2(399,594),Vector2(575,44),func():show_soundtrack = false;rebuild(),Color("87d1bf"))
+
+
+func open_events() -> void:
+ if expedition.stage == "combat":expedition.finish_combat(false)
+ event_fight = false;show_menu = false;show_supplies = false;page = "events";rebuild()
+
+func event_choice(option: int) -> void:
+ if not expedition.choose(option):return
+ if expedition.stage == "combat":
+  begin()
+  game = EventBattle.new();game.hard = expedition.selected == 5
+  game.start(builds,0,reward_soul,balanced,balance_values)
+  event_fight = true;page = "battle";seen_event = 0;seen_roll = 0;roll_seen = 0
+ rebuild()
+
+func events_ui() -> void:
+ chamber_background()
+ label_at("THE ASH ROAD · EVENTS",Vector2(50,35),32,GOLD,1300,true)
+ label_at(expedition.inventory(),Vector2(52,95),18,Color("91cfc1"),1300)
+ for i in range(6):
+  var at := Vector2(50+(i%3)*450,150+(i/3)*100)
+  setup_panel(Rect2(at,Vector2(435,85)),GOLD if expedition.selected == i+1 else Color("354653"))
+  var slot := label_at("%d · %s" % [i+1,Expedition.TITLES[i]],at+Vector2(15,15),21,GOLD if expedition.selected == i+1 else MUTED,410,true)
+  slot.name = "EventSlot%d" % (i+1)
+  label_at("SELECTED" if expedition.selected == i+1 else "Roll one d6 to select",at+Vector2(15,51),13,MUTED,410)
+ if expedition.stage == "idle":
+  label_at("One event per sortie. Review its choices before committing.\nRewards persist locally on this device; combat itself is not checkpointed.\nYou may still enter any boss directly from the review screen.",Vector2(65,395),21,MUTED,1260,false,true)
+  var roll := button("Roll event · d6",Vector2(475,590),Vector2(480,65),func():expedition.roll();rebuild())
+  roll.name = "RollEvent"
+ else:
+  label_at("d6 → %d · %s" % [expedition.selected,Expedition.TITLES[expedition.selected-1]],Vector2(65,375),27,GOLD,1280,true)
+  label_at(Expedition.DETAILS[expedition.selected-1] if expedition.stage == "choice" else expedition.summary,Vector2(65,430),21,MUTED,1250,false,true)
+  if expedition.stage == "choice":
+   var options: Array = [["Take 1 Salve","Take 1 Reroll Seal"],["Leave safely","Offer 2 Gold · d6"],["Directions · gain 1 Gold","Help · spend 1 Salve"],["Withdraw safely","Fight 2 Scavengers"],["Leave safely","Fight 2 Cinder Mites"],["Take 1 Gold","Search deeper · d6"]][expedition.selected-1]
+   for option in range(2):
+    var locked: bool = option == 1 and ((expedition.selected == 2 and expedition.gold < 2) or (expedition.selected == 3 and expedition.salves < 1))
+    var choice := button(options[option],Vector2(100+option*650,685),Vector2(590,55),func():event_choice(option),GOLD,locked)
+    choice.name = "EventChoice%d" % option
+  else:
+   button("New sortie · new event roll",Vector2(65,685),Vector2(570,50),func():expedition.next_sortie();rebuild(),MUTED)
+   button("Continue to selected boss →",Vector2(755,685),Vector2(590,50),func():page = "setup";rebuild())
+ button("← Boss review (no event required)",Vector2(50,820),Vector2(470,50),func():page = "setup";rebuild(),MUTED)
+ button("Spend 3 Fragments · unlock Soul",Vector2(755,820),Vector2(590,50),func():
+  if expedition.unlock_soul():reward_soul = true;balance_values["soul.move"] = 2
+  rebuild(),GOLD,expedition.fragments < 3 or expedition.soul)
+ label_at("Soul unlock is optional. If unlocked, select Blank movement on boss review. Gold funds shrine offerings; no shop yet.",Vector2(65,762),15,MUTED,1280,false,true)
+
+func supplies_ui() -> void:
+ overlay()
+ label_at("EXPEDITION SUPPLIES",Vector2(399,260),26,GOLD,600)
+ label_at(expedition.inventory()+"\nSalve: +2 HP to the active standing hero (max HP); once per own turn.\nSeal: +1 stored Action Reroll below the bank cap.\nNo Action Die spent. Finish pending choices first. No revival.\nSupplies are consumed immediately and saved on this device.",Vector2(399,320),17,MUTED,570,false,true)
+ button("Use 1 Salve",Vector2(399,475),Vector2(250,48),func():expedition.use_supply(game,"salve");rebuild(),GOLD,not can_use_supply("salve"))
+ button("Use 1 Reroll Seal",Vector2(674,475),Vector2(275,48),func():expedition.use_supply(game,"seal");rebuild(),GOLD,not can_use_supply("seal"))
+ button("Close supplies",Vector2(399,580),Vector2(550,45),func():show_supplies = false;rebuild(),MUTED)
+
+func can_use_supply(kind: String) -> bool:
+ if game.active not in [0,1,2] or game.outcome != "" or not game.pending.is_empty() or lab or training:return false
+ var hero: Dictionary = game.heroes[game.active]
+ if hero.dead or hero.hp <= 0:return false
+ return expedition.salves > 0 and hero.hp < hero.max_hp and not hero.get("event_salve_used",false) if kind == "salve" else expedition.seals > 0 and hero.rerolls < game.v("hero.reroll_cap")

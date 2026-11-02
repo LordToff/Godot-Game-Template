@@ -1,0 +1,157 @@
+{
+  "version": "0.25",
+  "engine": "4.6.3.stable",
+  "event_rules": {
+    "checks": 355,
+    "failures": 0
+  },
+  "event_ui": {
+    "checks": 24,
+    "failures": 0
+  },
+  "core_regressions": [
+    {
+      "script": "balance_test.gd",
+      "checks": 51,
+      "exit_code": 0
+    },
+    {
+      "script": "boss_v13_test.gd",
+      "checks": 47,
+      "exit_code": 0
+    },
+    {
+      "script": "brood_v21_test.gd",
+      "checks": 2414,
+      "exit_code": 0
+    },
+    {
+      "script": "bug_sweep_v222_test.gd",
+      "checks": 14,
+      "exit_code": 0
+    },
+    {
+      "script": "bugfix_v15_test.gd",
+      "checks": 18,
+      "exit_code": 0
+    },
+    {
+      "script": "cantor_v20_test.gd",
+      "checks": 34,
+      "exit_code": 0
+    },
+    {
+      "script": "catalog_test.gd",
+      "checks": 180,
+      "exit_code": 0
+    },
+    {
+      "script": "encounter_v18_test.gd",
+      "checks": 358,
+      "exit_code": 0
+    },
+    {
+      "script": "encounter_v19_test.gd",
+      "checks": 358,
+      "exit_code": 0
+    },
+    {
+      "script": "lab_test.gd",
+      "checks": 329,
+      "exit_code": 0
+    },
+    {
+      "script": "loadout_v14_test.gd",
+      "checks": 836,
+      "exit_code": 0
+    },
+    {
+      "script": "numeric_v21_test.gd",
+      "checks": 52,
+      "exit_code": 0
+    },
+    {
+      "script": "playtest_v12_test.gd",
+      "checks": 51,
+      "exit_code": 0
+    },
+    {
+      "script": "polish_test.gd",
+      "checks": 12,
+      "exit_code": 0
+    },
+    {
+      "script": "presentation_test.gd",
+      "checks": 2269,
+      "exit_code": 0
+    },
+    {
+      "script": "preset_v15_test.gd",
+      "checks": 31,
+      "exit_code": 0
+    },
+    {
+      "script": "reliability_test.gd",
+      "checks": 10,
+      "exit_code": 0
+    },
+    {
+      "script": "rules_test.gd",
+      "checks": 41,
+      "exit_code": 0
+    },
+    {
+      "script": "soul_test.gd",
+      "checks": 14,
+      "exit_code": 0
+    },
+    {
+      "script": "summons_v22_test.gd",
+      "checks": 269,
+      "exit_code": 0
+    },
+    {
+      "script": "trial_regression_test.gd",
+      "checks": 12,
+      "exit_code": 0
+    },
+    {
+      "script": "update_test.gd",
+      "checks": 28,
+      "exit_code": 0
+    },
+    {
+      "script": "warden_v24_test.gd",
+      "checks": 38,
+      "exit_code": 0
+    },
+    {
+      "script": "worm_path_v221_test.gd",
+      "checks": 75,
+      "exit_code": 0
+    }
+  ],
+  "browser": {
+    "events_seen": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "sorties": 13,
+    "console_errors": [],
+    "reload_inventory_unchanged": true,
+    "duplicate_claim_after_reload_prevented": true,
+    "ordinary_encounter_rendered": true,
+    "supply_menu_and_dice_inspected": true
+  },
+  "pack_sha256": "b2b20947c43e1c533cd296f9a16d39f8107160cd6e65cf196947b2badde0149e",
+  "limitations": [
+    "Older interaction_v14 rendered fixture timed out headlessly waiting for a rendered frame; not passed.",
+    "Other historical rendered fixtures not rerun.",
+    "Native UI shutdown reports inherited resource leak warnings.",
+    "No human balance study or full campaign; Windows package unchanged."
+  ]
+}
